@@ -16,17 +16,22 @@ struct ErrorMessage {
 }
 
 pub async fn run_server() {
+    let is_dev_run: bool = cfg!(debug_assertions);
+
     let server_config = ServerConfig::init_from_env().expect("Loading server config failed");
 
     init_logger(&server_config);
 
-    let index_route = warp::get().and(warp::path::end().map(|| "Lets play secret-clan"));
-    let static_route = warp::path("public").and(warp::fs::dir("/var/www/public/"));
-
+    let index_route = warp::get().and(warp::path::end().and(warp::fs::file(if is_dev_run {
+        "/var/www/public/index.html"
+    } else {
+        "/var/www/public/index.html"
+    })));
+    let static_route = warp::path("static").and(warp::fs::dir("/var/www/public/static"));
     let routes = index_route.or(static_route).recover(handle_rejection);
 
     warp::serve(routes)
-        .run(([127, 0, 0, 1], server_config.port))
+        .run(([0, 0, 0, 0], server_config.port))
         .await
 }
 

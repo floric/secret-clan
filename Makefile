@@ -1,5 +1,5 @@
-build-release:
+build:
 	docker build -t secret-clan .
 
-run-release:
-	docker run --rm -it secret-clan
+run:
+	docker run --rm -it -p 3333:3333 secret-clan
