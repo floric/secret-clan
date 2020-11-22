@@ -23,22 +23,24 @@ pub async fn run_server() {
 
     init_logger(&server_config);
 
-    let rev_dist_path = fs::canonicalize("../frontend")
-        .unwrap()
-        .into_os_string()
-        .into_string()
-        .unwrap();
+    let frontend_path = fs::canonicalize("../frontend")
+        .map(|p| p.into_os_string().into_string().unwrap_or("-".to_string()))
+        .unwrap_or("-".to_string());
+
+    let index_path: String;
+    let static_path: String;
     if is_dev_run {
-        warn!("Delivering development assets from {}", rev_dist_path);
+        warn!("Delivering development assets from {}", frontend_path);
+        index_path = format!("{}/public/index.html", frontend_path);
+        static_path = format!("{}/dist/", frontend_path);
+    } else {
+        index_path = "/var/www/public/index.html".to_string();
+        static_path = "/var/www/public/static".to_string();
     }
 
     let server_log = warp::log("server");
-    let index_route = warp::get().and(warp::path::end().and(warp::fs::file(if is_dev_run {
-        format!("{}/public/index.html", rev_dist_path)
-    } else {
-        String::from("/var/www/public/index.html")
-    })));
-    let static_route = warp::path("static").and(warp::fs::dir(format!("{}/dist", rev_dist_path)));
+    let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));
+    let static_route = warp::path("static").and(warp::fs::dir(static_path));
     let routes = index_route
         .or(static_route)
         .recover(handle_rejection)
