@@ -2,10 +2,11 @@ name: Build, Lint and Test
 on: push
 jobs:
   backend:
-    name: Build and Lint
+    name: Backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        path: backend
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -15,10 +16,11 @@ jobs:
       - name: Lint
         run: cargo clippy
   frontend:
-    name: Build and Lint
+    name: Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        path: frontend
       - name: Setup Environment
         uses: actions/setup-node@v2.1.2
         with:
