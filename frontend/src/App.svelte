@@ -6,9 +6,9 @@
   const routes = {
     "/": Home,
     "/login": wrap({
-      asyncComponent: () => import("./routes/Login.svelte"),
+      asyncComponent: () => import("./routes/Login.svelte")
     }),
-    "*": Home,
+    "*": Home
   };
 </script>
 
