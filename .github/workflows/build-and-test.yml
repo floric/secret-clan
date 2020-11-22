@@ -1,4 +1,4 @@
-name: Build, Lint and Test
+name: Build and Lint
 on: push
 jobs:
   backend:
@@ -13,7 +13,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cd backend
       - name: Build
         run: cargo build --release
       - name: Lint
@@ -32,7 +31,6 @@ jobs:
         with:
           node-version: 14.x
           registry-url: "https://registry.npmjs.org"
-      - run: cd frontend
       - name: Fetch Dependencies
         run: yarn
       - name: Check Dependencies
