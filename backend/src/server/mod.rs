@@ -24,8 +24,12 @@ pub async fn run_server() {
     init_logger(&server_config);
 
     let frontend_path = fs::canonicalize("../frontend")
-        .map(|p| p.into_os_string().into_string().unwrap_or("-".to_string()))
-        .unwrap_or("-".to_string());
+        .map(|p| {
+            p.into_os_string()
+                .into_string()
+                .unwrap_or_else(|_| "-".to_string())
+        })
+        .unwrap_or_else(|_| "-".to_string());
 
     let index_path: String;
     let static_path: String;
@@ -58,7 +62,7 @@ async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
     if err.is_not_found() {
         code = StatusCode::NOT_FOUND;
         message = "NOT_FOUND";
-    } else if let Some(_) = err.find::<warp::reject::MethodNotAllowed>() {
+    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
         code = StatusCode::METHOD_NOT_ALLOWED;
         message = "METHOD_NOT_ALLOWED";
     } else {
