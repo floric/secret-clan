@@ -1,0 +1,9 @@
+# Shared
+Dockerfile
+
+# Frontend
+backend/target/
+
+# Backend
+frontend/dist/
+frontend/node_modules/
