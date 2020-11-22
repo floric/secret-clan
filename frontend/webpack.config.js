@@ -22,8 +22,17 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(html|svelte)$/,
+        test: /\.m?js$/,
         exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["@babel/preset-env"],
+          },
+        },
+      },
+      {
+        test: /\.(html|svelte)$/,
         use: {
           loader: "svelte-loader",
           options: {
@@ -36,24 +45,25 @@ module.exports = {
         test: /\.css$/i,
         use: [MiniCssExtractPlugin.loader, "css-loader"],
       },
-      ...(isProductionBuild
-        ? [
-            {
-              test: /\.css$/i,
-              loader: "postcss-loader",
-              options: {
-                postcssOptions: {
-                  ident: "postcss",
-                  plugins: [
-                    ["postcss-preset-env", { browsers: "> 0.25% in DE" }],
-                    tailwind("./tailwind.config.js"),
-                  ],
-                },
-              },
-            },
-          ]
-        : []),
+      {
+        test: /\.css$/i,
+        loader: "postcss-loader",
+        options: {
+          postcssOptions: {
+            ident: "postcss",
+            plugins: [
+              ["postcss-preset-env", { browsers: "> 0.25% in DE" }],
+              tailwind("./tailwind.config.js"),
+            ],
+          },
+        },
+      },
     ],
+  },
+  watchOptions: {
+    ignored: /node_modules/,
+    aggregateTimeout: 500,
+    poll: 1000,
   },
   plugins: [new MiniCssExtractPlugin()],
   devtool: isProductionBuild ? false : "source-map",
