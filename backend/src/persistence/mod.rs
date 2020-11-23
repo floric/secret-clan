@@ -1,7 +1,7 @@
 use sled::{Db, IVec};
 use std::clone::Clone;
 
-pub trait Persistable<T: Into<IVec> + Clone>: Into<IVec> + Clone {
+pub trait Persist<T: Into<IVec> + Clone>: Into<IVec> + Clone {
     fn persistence_path(&self) -> String;
     fn id(&self) -> &str;
 
@@ -29,6 +29,7 @@ pub trait Persistable<T: Into<IVec> + Clone>: Into<IVec> + Clone {
     }
 
     fn open_tree(&self) -> Db {
+        // TODO Determine correct path
         sled::open(format!(
             "{:?}{}",
             std::env::temp_dir(),

@@ -3,7 +3,7 @@ mod logger;
 use self::logger::init_logger;
 use crate::config::ServerConfig;
 use crate::model::game::Game;
-use crate::persistence::Persistable;
+use crate::persistence::Persist;
 use envconfig::Envconfig;
 use log::{error, warn};
 use serde::Serialize;

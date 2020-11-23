@@ -1,4 +1,4 @@
-use crate::persistence::Persistable;
+use crate::persistence::Persist;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
@@ -23,7 +23,7 @@ impl Game {
     }
 }
 
-impl Persistable<Game> for Game {
+impl Persist<Game> for Game {
     fn id(&self) -> &str {
         self.id()
     }
