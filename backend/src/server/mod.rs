@@ -1,10 +1,12 @@
 mod logger;
 
 use self::logger::init_logger;
-use super::config::ServerConfig;
+use crate::config::ServerConfig;
+use crate::model::game::Game;
+use crate::persistence::Persistable;
 use envconfig::Envconfig;
 use log::{error, warn};
-use serde_derive::Serialize;
+use serde::Serialize;
 use std::convert::Infallible;
 use std::fs;
 use std::result::Result;
@@ -15,6 +17,8 @@ struct ErrorMessage {
     code: u16,
     message: String,
 }
+
+const PUBLIC_PATH: &str = "/var/www/public";
 
 pub async fn run_server() {
     let is_dev_run: bool = cfg!(debug_assertions);
@@ -38,15 +42,27 @@ pub async fn run_server() {
         index_path = format!("{}/public/index.html", frontend_path);
         static_path = format!("{}/dist/", frontend_path);
     } else {
-        index_path = "/var/www/public/index.html".to_string();
-        static_path = "/var/www/public/static".to_string();
+        index_path = format!("{}/index.html", PUBLIC_PATH);
+        static_path = format!("{}/static/", PUBLIC_PATH);
     }
 
     let server_log = warp::log("server");
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));
+    let game_route = warp::path("game").and(
+        warp::put()
+            .map(|| {
+                let new_game = Game::new("token");
+                new_game.persist().expect("Creating game failed");
+
+                warp::reply::with_status(warp::reply::json(&new_game), StatusCode::CREATED)
+            })
+            .recover(handle_rejection),
+    );
+    let api_route = warp::path("api").and(game_route);
     let static_route = warp::path("static").and(warp::fs::dir(static_path));
     let routes = index_route
         .or(static_route)
+        .or(api_route)
         .recover(handle_rejection)
         .with(server_log);
 

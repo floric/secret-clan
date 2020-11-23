@@ -5,10 +5,13 @@
 
   const routes = {
     "/": Home,
-    "/login": wrap({
-      asyncComponent: () => import("./routes/Login.svelte")
+    "/games": wrap({
+      asyncComponent: () => import("./routes/Games.svelte"),
     }),
-    "*": Home
+    "/games/:id": wrap({
+      asyncComponent: () => import("./routes/GameLobby.svelte"),
+    }),
+    "*": Home,
   };
 </script>
 
