@@ -3,11 +3,11 @@ const path = require("path");
 const tailwind = require("tailwindcss");
 
 const mode = process.env.NODE_ENV || "development";
-const isProductionBuild = mode === "production";
+const isProductionBuild = mode !== "development";
 
 module.exports = {
   entry: "./src/main.js",
-  mode: "development",
+  mode,
   output: {
     filename: "bundle.js",
     path: path.join(__dirname, "dist"),

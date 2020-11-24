@@ -1,7 +1,7 @@
 use sled::{Db, IVec};
 use std::clone::Clone;
 
-pub trait Persist<T: Into<IVec> + Clone>: Into<IVec> + Clone {
+pub trait Persist<T: Into<IVec> + From<IVec> + Clone>: Into<IVec> + From<IVec> + Clone {
     fn persistence_path(&self) -> String;
     fn id(&self) -> &str;
 
@@ -18,6 +18,15 @@ pub trait Persist<T: Into<IVec> + Clone>: Into<IVec> + Clone {
         self.flush(&tree).map_err(|e| e.to_string()).map(|_| true)
     }
 
+    fn find_by_id(&self, id: &str) -> Option<T> {
+        let tree = self.open_tree();
+        let success = tree.get(id);
+        match success {
+            Ok(res) => res.map(|g| T::from(g)),
+            Err(_) => None,
+        }
+    }
+
     fn delete(&self, id: &str) -> Result<bool, String> {
         let tree = self.open_tree();
         tree.remove(id).expect("Deleting item failed");
@@ -29,10 +38,12 @@ pub trait Persist<T: Into<IVec> + Clone>: Into<IVec> + Clone {
     }
 
     fn open_tree(&self) -> Db {
-        // TODO Determine correct path
         sled::open(format!(
-            "{:?}{}",
-            std::env::temp_dir(),
+            "{}/sled{}",
+            dirs::home_dir()
+                .expect("No user dir known")
+                .to_str()
+                .unwrap(),
             self.persistence_path()
         ))
         .expect("opening database has failed")

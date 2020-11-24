@@ -1,4 +1,3 @@
-extern crate nanoid;
 use server::run_server;
 
 mod config;
