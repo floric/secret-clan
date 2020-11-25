@@ -1,14 +1,19 @@
 <script lang="typescript">
   import Router from "svelte-spa-router";
   import { wrap } from "svelte-spa-router/wrap";
-  import Home from "./routes/Home.svelte";
+  import NotFound from "./routes/errors/NotFound.svelte";
 
   const routes = {
-    "/": Home,
-    "/login": wrap({
-      asyncComponent: () => import("./routes/Login.svelte")
+    "/": wrap({
+      asyncComponent: () => import("./routes/Home.svelte"),
     }),
-    "*": Home
+    "/games": wrap({
+      asyncComponent: () => import("./routes/Games.svelte"),
+    }),
+    "/games/:token": wrap({
+      asyncComponent: () => import("./routes/GameLobby.svelte"),
+    }),
+    "*": NotFound,
   };
 </script>
 

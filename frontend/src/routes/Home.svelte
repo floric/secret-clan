@@ -11,7 +11,7 @@
     These pages were only created to demonstrate the technology and serve as a
     foundation.
   </p>
-  <a href="/login" use:link>
+  <a href="/games" use:link>
     <PrimaryButton>Let's go</PrimaryButton>
   </a>
 </Dialog>

@@ -1,5 +1,3 @@
-extern crate envconfig;
-
 use envconfig::Envconfig;
 use flexi_logger::Level;
 

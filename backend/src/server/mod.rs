@@ -1,20 +1,20 @@
+mod errors;
 mod logger;
 
-use self::logger::init_logger;
-use super::config::ServerConfig;
+use self::{
+    errors::{handle_rejection, reply_with_error},
+    logger::init_logger,
+};
+use crate::{
+    config::ServerConfig,
+    logic::games::{create_new_game, get_game_by_token},
+};
 use envconfig::Envconfig;
-use log::{error, warn};
-use serde_derive::Serialize;
-use std::convert::Infallible;
+use log::warn;
 use std::fs;
-use std::result::Result;
-use warp::{hyper::StatusCode, Filter, Rejection, Reply};
+use warp::{hyper::StatusCode, Filter};
 
-#[derive(Serialize)]
-struct ErrorMessage {
-    code: u16,
-    message: String,
-}
+const PUBLIC_PATH: &str = "/var/www/public";
 
 pub async fn run_server() {
     let is_dev_run: bool = cfg!(debug_assertions);
@@ -38,41 +38,36 @@ pub async fn run_server() {
         index_path = format!("{}/public/index.html", frontend_path);
         static_path = format!("{}/dist/", frontend_path);
     } else {
-        index_path = "/var/www/public/index.html".to_string();
-        static_path = "/var/www/public/static".to_string();
+        index_path = format!("{}/index.html", PUBLIC_PATH);
+        static_path = format!("{}/static/", PUBLIC_PATH);
     }
 
     let server_log = warp::log("server");
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));
+    let game_route = warp::path("games").and(
+        warp::put()
+            .map(|| {
+                let new_game = create_new_game();
+                warp::reply::with_status(warp::reply::json(&new_game), StatusCode::CREATED)
+            })
+            .or(warp::path!(String).map(|token: String| {
+                let new_game = get_game_by_token(&token);
+                if new_game.is_none() {
+                    return reply_with_error(StatusCode::NOT_FOUND);
+                }
+
+                warp::reply::with_status(warp::reply::json(&new_game), StatusCode::OK)
+            })),
+    );
+    let api_route = warp::path("api").and(game_route);
     let static_route = warp::path("static").and(warp::fs::dir(static_path));
     let routes = index_route
         .or(static_route)
+        .or(api_route)
         .recover(handle_rejection)
         .with(server_log);
 
     warp::serve(routes)
         .run(([0, 0, 0, 0], server_config.port))
         .await
-}
-
-async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
-    let mut code = StatusCode::INTERNAL_SERVER_ERROR;
-    let mut message = "UNHANDLED_REJECTION";
-
-    if err.is_not_found() {
-        code = StatusCode::NOT_FOUND;
-        message = "NOT_FOUND";
-    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
-        code = StatusCode::METHOD_NOT_ALLOWED;
-        message = "METHOD_NOT_ALLOWED";
-    } else {
-        error!("Unexpected error: {:?}", err);
-    }
-
-    let json = warp::reply::json(&ErrorMessage {
-        code: code.as_u16(),
-        message: message.into(),
-    });
-
-    Ok(warp::reply::with_status(json, code))
 }
