@@ -1,9 +1,6 @@
-extern crate log;
-
+use crate::config::ServerConfig;
 use flexi_logger::{colored_detailed_format, Logger};
 use log::info;
-
-use crate::config::ServerConfig;
 
 pub fn init_logger(config: &ServerConfig) {
     let log_level = config.log_level.to_string();

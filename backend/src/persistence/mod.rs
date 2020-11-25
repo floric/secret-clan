@@ -1,51 +1,61 @@
+use log::warn;
 use sled::{Db, IVec};
-use std::clone::Clone;
+use std::{clone::Clone, convert::TryFrom};
 
-pub trait Persist<T: Into<IVec> + From<IVec> + Clone>: Into<IVec> + From<IVec> + Clone {
-    fn persistence_path(&self) -> String;
+pub trait Persist<T: Into<IVec> + TryFrom<IVec> + Clone>:
+    Into<IVec> + TryFrom<IVec> + Clone
+{
+    fn persistence_path(_: Option<Self>) -> String;
+
+    fn open_tree(_: Option<Self>) -> Db {
+        sled::open(format!(
+            "{}/.sled/{}",
+            dirs::home_dir()
+                .expect("No user dir known")
+                .to_str()
+                .unwrap(),
+            Persist::persistence_path(None::<Self>)
+        ))
+        .expect("opening database has failed")
+    }
+
     fn id(&self) -> &str;
 
     fn persist(&self) -> Result<bool, String> {
-        let tree = self.open_tree();
+        let tree = Persist::open_tree(None::<Self>);
         tree.insert(self.id(), self.clone())
-            .expect("Creating item failed");
-        self.flush(&tree).map_err(|e| e.to_string()).map(|_| true)
+            .expect("Persisting item failed");
+        Persist::flush(None::<Self>, &tree)
+            .map_err(|e| e.to_string())
+            .map(|_| true)
     }
 
-    fn update(&self, id: &str) -> Result<bool, String> {
-        let tree = self.open_tree();
-        tree.insert(id, self.clone()).expect("Updating item failed");
-        self.flush(&tree).map_err(|e| e.to_string()).map(|_| true)
-    }
-
-    fn find_by_id(&self, id: &str) -> Option<T> {
-        let tree = self.open_tree();
+    fn find_by_id(_: Option<Self>, id: &str) -> Option<T> {
+        let tree = Persist::open_tree(None::<Self>);
         let success = tree.get(id);
         match success {
-            Ok(res) => res.map(|g| T::from(g)),
+            Ok(res) => res.and_then(|g| T::try_from(g).ok()),
             Err(_) => None,
         }
     }
 
     fn delete(&self, id: &str) -> Result<bool, String> {
-        let tree = self.open_tree();
+        let tree = Persist::open_tree(None::<Self>);
         tree.remove(id).expect("Deleting item failed");
-        self.flush(&tree).map_err(|e| e.to_string()).map(|_| true)
+        Persist::flush(None::<Self>, &tree)
+            .map_err(|e| e.to_string())
+            .map(|_| true)
     }
 
-    fn flush(&self, tree: &Db) -> Result<bool, sled::Error> {
+    fn flush(_: Option<Self>, tree: &Db) -> Result<bool, sled::Error> {
         tree.flush().map(|_| true)
     }
 
-    fn open_tree(&self) -> Db {
-        sled::open(format!(
-            "{}/sled{}",
-            dirs::home_dir()
-                .expect("No user dir known")
-                .to_str()
-                .unwrap(),
-            self.persistence_path()
-        ))
-        .expect("opening database has failed")
+    fn purge_data(_: Option<Self>) {
+        let tree = Persist::open_tree(None::<Self>);
+        let res = tree.drop_tree(Persist::persistence_path(None::<Self>));
+        if res.is_err() {
+            warn!("Cleaning database has failed");
+        }
     }
 }

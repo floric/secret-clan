@@ -1,4 +1,5 @@
 use crate::persistence::Persist;
+use chrono::{DateTime, Utc};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,8 @@ const TOKEN_CHARS_COUNT: usize = 5;
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct Game {
     token: String,
+    creation_time: DateTime<Utc>,
+    last_action_time: DateTime<Utc>,
 }
 
 impl Game {
@@ -20,7 +23,11 @@ impl Game {
             .take(TOKEN_CHARS_COUNT)
             .collect();
 
-        Game { token }
+        Game {
+            token,
+            creation_time: Utc::now(),
+            last_action_time: Utc::now(),
+        }
     }
 
     pub fn token(&self) -> &str {
@@ -33,8 +40,8 @@ impl Persist<Game> for Game {
         self.token()
     }
 
-    fn persistence_path(&self) -> String {
-        String::from("/games")
+    fn persistence_path(_: Option<Self>) -> String {
+        String::from("games")
     }
 }
 

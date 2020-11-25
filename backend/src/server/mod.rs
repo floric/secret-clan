@@ -1,45 +1,20 @@
+mod errors;
 mod logger;
 
-use self::logger::init_logger;
-use crate::config::ServerConfig;
-use crate::model::game::Game;
-use crate::persistence::Persist;
+use self::{
+    errors::{handle_rejection, reply_with_error},
+    logger::init_logger,
+};
+use crate::{
+    config::ServerConfig,
+    logic::games::{create_new_game, get_game_by_token},
+};
 use envconfig::Envconfig;
-use log::{debug, error, info, warn};
-use serde::Serialize;
-use std::convert::Infallible;
+use log::warn;
 use std::fs;
-use std::result::Result;
-use warp::{hyper::StatusCode, Filter, Rejection, Reply};
-
-#[derive(Serialize)]
-struct ErrorMessage {
-    code: u16,
-    message: String,
-}
+use warp::{hyper::StatusCode, Filter};
 
 const PUBLIC_PATH: &str = "/var/www/public";
-
-fn build_error_404() -> ErrorMessage {
-    ErrorMessage {
-        code: StatusCode::NOT_FOUND.as_u16(),
-        message: "NOT_FOUND".to_string(),
-    }
-}
-
-fn build_error_500() -> ErrorMessage {
-    ErrorMessage {
-        code: StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
-        message: "INTERNAL_SERVER_ERROR".to_string(),
-    }
-}
-
-fn build_error_401() -> ErrorMessage {
-    ErrorMessage {
-        code: StatusCode::METHOD_NOT_ALLOWED.as_u16(),
-        message: "METHOD_NOT_ALLOWED".to_string(),
-    }
-}
 
 pub async fn run_server() {
     let is_dev_run: bool = cfg!(debug_assertions);
@@ -72,18 +47,13 @@ pub async fn run_server() {
     let game_route = warp::path("games").and(
         warp::put()
             .map(|| {
-                let new_game = Game::new();
-                new_game.persist().expect("Creating game failed");
-                debug!("Created game with token {}", new_game.token());
+                let new_game = create_new_game();
                 warp::reply::with_status(warp::reply::json(&new_game), StatusCode::CREATED)
             })
-            .or(warp::path!(String).map(|token_id: String| {
-                let new_game = Game::new().find_by_id(&token_id.to_uppercase());
+            .or(warp::path!(String).map(|token: String| {
+                let new_game = get_game_by_token(&token);
                 if new_game.is_none() {
-                    return warp::reply::with_status(
-                        warp::reply::json(&build_error_404()),
-                        StatusCode::NOT_FOUND,
-                    );
+                    return reply_with_error(StatusCode::NOT_FOUND);
                 }
 
                 warp::reply::with_status(warp::reply::json(&new_game), StatusCode::OK)
@@ -100,23 +70,4 @@ pub async fn run_server() {
     warp::serve(routes)
         .run(([0, 0, 0, 0], server_config.port))
         .await
-}
-
-async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> {
-    let mut err_msg: ErrorMessage = build_error_500();
-
-    if err.is_not_found() {
-        err_msg = build_error_404();
-    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
-        err_msg = build_error_401();
-    } else {
-        error!("Unexpected error: {:?}", err);
-    }
-
-    let json = warp::reply::json(&err_msg);
-
-    Ok(warp::reply::with_status(
-        json,
-        StatusCode::from_u16(err_msg.code).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR),
-    ))
 }
