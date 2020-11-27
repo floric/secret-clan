@@ -4,7 +4,7 @@ use crate::{model::game::Game, server::app_context::AppContext};
 
 pub fn create_new_game(ctx: &AppContext) -> Game {
     let new_game = Game::new();
-    let new_token = new_game.token().clone();
+    let new_token = new_game.token();
     ctx.repos()
         .games()
         .persist(new_game.clone())

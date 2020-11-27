@@ -8,6 +8,7 @@ use self::{
 };
 use crate::logic::games::{create_new_game, get_game_by_token};
 use log::warn;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use warp::{hyper::StatusCode, Filter};
 
@@ -33,14 +34,27 @@ pub async fn run_server(ctx: &'static AppContext) {
         static_path = format!("{}/static/", PUBLIC_PATH);
     }
 
-    let server_log = warp::log("server");
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));
     let game_route = warp::path("games").and(
-        warp::put()
+        warp::get()
+            .and(warp::path::end())
             .map(move || {
+                #[derive(Serialize, Deserialize)]
+                struct GamesSummary {
+                    total: usize,
+                };
+
+                warp::reply::with_status(
+                    warp::reply::json(&GamesSummary {
+                        total: ctx.repos().games().total_count(),
+                    }),
+                    StatusCode::OK,
+                )
+            })
+            .or(warp::put().map(move || {
                 let new_game = create_new_game(&ctx);
                 warp::reply::with_status(warp::reply::json(&new_game), StatusCode::CREATED)
-            })
+            }))
             .or(warp::path!(String).map(move |token: String| {
                 let new_game = get_game_by_token(&ctx, &token);
                 if new_game.is_none() {
@@ -56,7 +70,7 @@ pub async fn run_server(ctx: &'static AppContext) {
         .or(static_route)
         .or(api_route)
         .recover(handle_rejection)
-        .with(server_log);
+        .with(warp::log("server"));
 
     warp::serve(routes)
         .run(([0, 0, 0, 0], ctx.config().port))

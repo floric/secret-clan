@@ -41,6 +41,12 @@ After that, start development with two terminals and the following commands:
 
 This will start watch modes for the server and frontend and will automatically update the code and restart the server. The update process is visible in the terminal output.
 
+Run the backend tests with the following command:
+
+`cargo test -- --test-threads=1`
+
+The tests are not run in parallel as each test requires an instance of the AppContext with write access to the database. Concurrent writes to the database would result in an unpredictable behaviour. This might be solvable by handling the flush graciously.
+
 ## Production Build
 
 Run the following command to create the Docker image with the full app:

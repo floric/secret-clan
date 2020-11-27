@@ -25,7 +25,7 @@
   }
 
   async function attendGame() {
-    push(`/games/${inputToken}`);
+    push(`/games/${inputToken?.trim()}`);
   }
 </script>
 

@@ -1,4 +1,4 @@
-name: Build and Lint
+name: Build, Lint and Test
 on: push
 jobs:
   backend:
@@ -17,6 +17,8 @@ jobs:
         run: cargo build --release
       - name: Lint
         run: cargo clippy
+      - name: Test
+        run: cargo test -- --test-threads=1
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

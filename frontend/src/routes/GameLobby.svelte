@@ -50,7 +50,7 @@
               <li>Fancy UI</li>
             </ul>
           </div>
-          <div>Admin</div>
+          <div>Users</div>
         </div>
         <ActionRow>
           <PrimaryButton>Start</PrimaryButton>

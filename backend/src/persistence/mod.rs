@@ -1,4 +1,4 @@
-use log::warn;
+use log::{debug, info};
 use sled::{Db, IVec};
 use std::{clone::Clone, convert::TryFrom, marker::PhantomData};
 
@@ -28,7 +28,10 @@ impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
             phantom: PhantomData,
         };
 
-        repo.purge_data();
+        repo.purge_data()
+            .expect("Cleanup of existing database has failed");
+
+        debug!("Database on \"{}\" ready", repo.path);
 
         repo
     }
@@ -48,15 +51,17 @@ impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
         }
     }
 
+    pub fn total_count(&self) -> usize {
+        self.tree.len()
+    }
+
     fn flush(&self) -> Result<bool, sled::Error> {
         self.tree.flush().map(|_| true)
     }
 
-    fn purge_data(&self) {
-        let res = self.tree.drop_tree(&self.path);
-        if res.is_err() {
-            warn!("Cleaning database has failed");
-        }
+    fn purge_data(&self) -> Result<usize, sled::Error> {
+        info!("Try to purge database \"{}\"", self.path);
+        self.tree.clear().and_then(|()| self.tree.flush())
     }
 }
 
@@ -77,5 +82,66 @@ impl Repositories {
 
     pub fn games(&self) -> &Repository<Game> {
         &self.games
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::persistence::Persist;
+    use crate::{model::game::Game, server::app_context::AppContext};
+
+    fn init_ctx() -> AppContext {
+        AppContext::init()
+    }
+
+    #[test]
+    fn should_persist_game() {
+        let ctx = init_ctx();
+
+        ctx.repos()
+            .games()
+            .persist(Game::new())
+            .expect("Game persist failed");
+    }
+
+    #[test]
+    fn should_find_game() {
+        let ctx = init_ctx();
+        let game = Game::new();
+        let game_id = String::from(game.id());
+        ctx.repos()
+            .games()
+            .persist(game)
+            .expect("Game persist failed");
+
+        let res = ctx.repos().games().find_by_id(&game_id);
+
+        assert!(res.is_some());
+    }
+
+    #[test]
+    fn should_not_find_game() {
+        let ctx = init_ctx();
+        let res = ctx.repos().games().find_by_id("unknown");
+
+        assert!(res.is_none());
+    }
+
+    #[test]
+    fn should_purge_games() {
+        let ctx = init_ctx();
+        ctx.repos()
+            .games()
+            .persist(Game::new())
+            .expect("Game persist failed");
+
+        assert_eq!(ctx.repos().games().total_count(), 1);
+
+        ctx.repos()
+            .games()
+            .purge_data()
+            .expect("Cleanup has failed");
+
+        assert_eq!(ctx.repos().games().total_count(), 0);
     }
 }
