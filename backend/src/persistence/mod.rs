@@ -1,61 +1,86 @@
 use log::warn;
 use sled::{Db, IVec};
-use std::{clone::Clone, convert::TryFrom};
+use std::{clone::Clone, convert::TryFrom, marker::PhantomData};
 
-pub trait Persist<T: Into<IVec> + TryFrom<IVec> + Clone>:
-    Into<IVec> + TryFrom<IVec> + Clone
-{
-    fn persistence_path(_: Option<Self>) -> String;
+use crate::model::game::Game;
 
-    fn open_tree(_: Option<Self>) -> Db {
-        sled::open(format!(
+pub struct Repository<T> {
+    path: String,
+    tree: Db,
+    phantom: PhantomData<T>,
+}
+
+impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
+    pub fn init(path: &str) -> Repository<T> {
+        let tree = sled::open(format!(
             "{}/.sled/{}",
             dirs::home_dir()
                 .expect("No user dir known")
                 .to_str()
                 .unwrap(),
-            Persist::persistence_path(None::<Self>)
+            &path
         ))
-        .expect("opening database has failed")
+        .expect("opening database has failed");
+
+        let repo = Repository {
+            tree,
+            path: String::from(path),
+            phantom: PhantomData,
+        };
+
+        repo.purge_data();
+
+        repo
     }
 
-    fn id(&self) -> &str;
-
-    fn persist(&self) -> Result<bool, String> {
-        let tree = Persist::open_tree(None::<Self>);
-        tree.insert(self.id(), self.clone())
+    pub fn persist(&self, elem: T) -> Result<bool, String> {
+        self.tree
+            .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
-        Persist::flush(None::<Self>, &tree)
-            .map_err(|e| e.to_string())
-            .map(|_| true)
+        self.flush().map_err(|e| e.to_string()).map(|_| true)
     }
 
-    fn find_by_id(_: Option<Self>, id: &str) -> Option<T> {
-        let tree = Persist::open_tree(None::<Self>);
-        let success = tree.get(id);
+    pub fn find_by_id(&self, id: &str) -> Option<T> {
+        let success = self.tree.get(id);
         match success {
             Ok(res) => res.and_then(|g| T::try_from(g).ok()),
             Err(_) => None,
         }
     }
 
-    fn delete(&self, id: &str) -> Result<bool, String> {
-        let tree = Persist::open_tree(None::<Self>);
-        tree.remove(id).expect("Deleting item failed");
-        Persist::flush(None::<Self>, &tree)
-            .map_err(|e| e.to_string())
-            .map(|_| true)
+    pub fn delete(&self, id: &str) -> Result<bool, String> {
+        self.tree.remove(id).expect("Deleting item failed");
+        self.flush().map_err(|e| e.to_string()).map(|_| true)
     }
 
-    fn flush(_: Option<Self>, tree: &Db) -> Result<bool, sled::Error> {
-        tree.flush().map(|_| true)
+    fn flush(&self) -> Result<bool, sled::Error> {
+        self.tree.flush().map(|_| true)
     }
 
-    fn purge_data(_: Option<Self>) {
-        let tree = Persist::open_tree(None::<Self>);
-        let res = tree.drop_tree(Persist::persistence_path(None::<Self>));
+    fn purge_data(&self) {
+        let res = self.tree.drop_tree(&self.path);
         if res.is_err() {
             warn!("Cleaning database has failed");
         }
+    }
+}
+
+pub trait Persist {
+    fn id(&self) -> &str;
+}
+
+pub struct Repositories {
+    games: Repository<Game>,
+}
+
+impl Repositories {
+    pub fn init() -> Repositories {
+        Repositories {
+            games: Repository::init("games"),
+        }
+    }
+
+    pub fn games(&self) -> &Repository<Game> {
+        &self.games
     }
 }
