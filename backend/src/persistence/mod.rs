@@ -48,11 +48,6 @@ impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
         }
     }
 
-    pub fn delete(&self, id: &str) -> Result<bool, String> {
-        self.tree.remove(id).expect("Deleting item failed");
-        self.flush().map_err(|e| e.to_string()).map(|_| true)
-    }
-
     fn flush(&self) -> Result<bool, sled::Error> {
         self.tree.flush().map(|_| true)
     }

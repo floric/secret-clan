@@ -47,7 +47,7 @@ pub async fn run_server(ctx: &'static AppContext) {
                     return reply_with_error(StatusCode::NOT_FOUND);
                 }
 
-                warp::reply::with_status(warp::reply::json(&new_game), StatusCode::OK)
+                warp::reply::with_status(warp::reply::json(&new_game.unwrap()), StatusCode::OK)
             })),
     );
     let api_route = warp::path("api").and(game_route);

@@ -1,11 +1,13 @@
 <script lang="typescript">
-  import { link, push } from "svelte-spa-router";
+  import { push } from "svelte-spa-router";
   import type { Game } from "../types/Game";
+  import ActionRow from "../components/buttons/ActionRow.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
   import SecondaryButton from "../components/buttons/Secondary.svelte";
   import Dialog from "../components/layout/Dialog.svelte";
   import Divider from "../components/layout/Divider.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
+  import InternalLink from "../components/buttons/InternalLink.svelte";
 
   let inputToken = "";
 
@@ -42,15 +44,9 @@
         bind:value={inputToken}
         class="text-sm sm:text-base placeholder-gray-500 rounded-lg border border-gray-400 w-full py-2 px-3 focus:outline-none focus:border-blue-400" />
     </div>
-    <PrimaryButton on:click={attendGame}>Attend</PrimaryButton>
+    <ActionRow>
+      <PrimaryButton on:click={attendGame}>Attend</PrimaryButton>
+      <InternalLink href="/">Back to Start</InternalLink>
+    </ActionRow>
   </form>
-  <div class="flex items-center mt-4">
-    <div class="flex ml-auto">
-      <a
-        href="/"
-        use:link
-        class="inline-flex text-xs sm:text-sm text-blue-500 hover:text-blue-700">Back
-        to Start</a>
-    </div>
-  </div>
 </Dialog>
