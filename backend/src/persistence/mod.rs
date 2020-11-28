@@ -2,7 +2,7 @@ use log::{debug, info};
 use sled::{Db, IVec};
 use std::{clone::Clone, convert::TryFrom, marker::PhantomData};
 
-use crate::model::game::Game;
+use crate::model::{game::Game, player::Player};
 
 pub struct Repository<T> {
     path: String,
@@ -71,17 +71,23 @@ pub trait Persist {
 
 pub struct Repositories {
     games: Repository<Game>,
+    players: Repository<Player>,
 }
 
 impl Repositories {
     pub fn init() -> Repositories {
         Repositories {
             games: Repository::init("games"),
+            players: Repository::init("players"),
         }
     }
 
     pub fn games(&self) -> &Repository<Game> {
         &self.games
+    }
+
+    pub fn players(&self) -> &Repository<Player> {
+        &self.players
     }
 }
 

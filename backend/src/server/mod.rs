@@ -1,18 +1,28 @@
 pub mod app_context;
+mod auth;
 mod errors;
 mod logger;
 
 use self::{
     app_context::AppContext,
+    auth::generate_jwt_token,
     errors::{handle_rejection, reply_with_error},
 };
-use crate::logic::games::{create_new_game, get_game_by_token};
+use crate::{
+    logic::games::{create_new_game, get_game_by_token},
+    model::player::Player,
+};
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use warp::{hyper::StatusCode, Filter};
 
 const PUBLIC_PATH: &str = "/var/www/public";
+
+#[derive(Serialize, Deserialize)]
+struct CreatePlayerInput {
+    name: String,
+}
 
 pub async fn run_server(ctx: &'static AppContext) {
     let frontend_path = fs::canonicalize("../frontend")
@@ -55,6 +65,26 @@ pub async fn run_server(ctx: &'static AppContext) {
                 let new_game = create_new_game(&ctx);
                 warp::reply::with_status(warp::reply::json(&new_game), StatusCode::CREATED)
             }))
+            .or(warp::post()
+                .and(warp::path!(String / "attend"))
+                .and(warp::body::json())
+                .map(move |game_token: String, input: CreatePlayerInput| {
+                    let new_game = get_game_by_token(&ctx, &game_token);
+                    if new_game.is_none() {
+                        return reply_with_error(StatusCode::NOT_FOUND);
+                    }
+
+                    let mut player = Player::new(&input.name, &game_token);
+                    let user_token = generate_jwt_token(&player, &ctx.config().auth_secret);
+                    player.update_token(&user_token);
+
+                    ctx.repos()
+                        .players()
+                        .persist(player.clone())
+                        .expect("Creating player failed");
+
+                    warp::reply::with_status(warp::reply::json(&player), StatusCode::OK)
+                }))
             .or(warp::path!(String).map(move |token: String| {
                 let new_game = get_game_by_token(&ctx, &token);
                 if new_game.is_none() {

@@ -8,4 +8,7 @@ pub struct AppConfig {
 
     #[envconfig(from = "LOG_LEVEL", default = "info")]
     pub log_level: Level,
+
+    #[envconfig(from = "AUTH_SECRET", default = "super-secret")]
+    pub auth_secret: String,
 }
