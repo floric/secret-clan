@@ -12,6 +12,7 @@ use warp::Filter;
 
 const GAMES_PATH: &str = "games";
 
+// GET /api/games/:id
 pub fn get_game(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -27,6 +28,7 @@ pub fn get_game(
         })
 }
 
+// GET /api/games/
 pub fn get_games_count(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -48,6 +50,7 @@ pub fn get_games_count(
         })
 }
 
+// PUT /api/games/
 pub fn create_game(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -57,6 +60,7 @@ pub fn create_game(
     })
 }
 
+// POST /api/games/
 pub fn attend_game(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -91,6 +95,7 @@ fn create_new_game(ctx: &AppContext) -> Game {
         .persist(new_game.clone())
         .expect("Creating game failed");
     debug!("Created game with token {}", new_token);
+
     new_game
 }
 
