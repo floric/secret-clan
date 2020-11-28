@@ -36,7 +36,7 @@ jobs:
       - name: Fetch Dependencies
         run: npm install
       - name: Check Dependencies
-        run: npm run audit
+        run: npm audit
       - name: Build
         run: npm run build:prod
       - name: Lint
