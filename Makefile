@@ -2,7 +2,7 @@ watch-fe:
 	cd frontend && npm run watch
 
 watch-be:
-	cd backend && cargo watch -x 'run'
+	cd backend && cargo watch -x 'run' -w 'src'
 
 build:
 	docker build -t secret-clan .

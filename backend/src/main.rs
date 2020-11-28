@@ -1,5 +1,4 @@
 mod config;
-mod logic;
 mod model;
 mod persistence;
 mod server;
