@@ -67,6 +67,17 @@ Backend: [Rust](https://www.rust-lang.org/learn/get-started), [Cargo Watch](http
 
 General: [Docker Desktop](https://www.docker.com/get-started)
 
+### IDE
+
+We recommend to use VSCode for Frontend and Backend with the following extensions enabled:
+
+- rust-analyzer
+- crates
+- Better TOML / TOML Language Support
+- npm
+- Tailwind CSS IntelliSense
+- ESLint
+
 ## Technologies
 
 ### Frontend
