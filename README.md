@@ -77,6 +77,7 @@ We recommend to use VSCode for Frontend and Backend with the following extension
 - npm
 - Tailwind CSS IntelliSense
 - ESLint
+- Svelte for VSCode
 
 ## Technologies
 
