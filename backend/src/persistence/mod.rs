@@ -12,15 +12,7 @@ pub struct Repository<T> {
 
 impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
     pub fn init(path: &str) -> Repository<T> {
-        let tree = sled::open(format!(
-            "{}/.sled/{}",
-            dirs::home_dir()
-                .expect("No user dir known")
-                .to_str()
-                .unwrap(),
-            &path
-        ))
-        .expect("opening database has failed");
+        let tree = sled::open(format!(".sled/{}", &path)).expect("opening database has failed");
 
         let repo = Repository {
             tree,

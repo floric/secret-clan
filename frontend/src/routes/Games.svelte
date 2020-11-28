@@ -20,7 +20,7 @@
       });
 
       const newGame = (await res.json()) as Game;
-      push(`/games/${newGame.token}`);
+      await push(`/games/${newGame.token}`);
     } catch (err) {
       // TODO Handle all API errors in a generic way
     }
@@ -39,13 +39,14 @@
       });
 
       if (!res.ok) {
+        // TODO Check name and if game exists, show helpful message
         return;
       }
 
       const player = (await res.json()) as Player;
       window.localStorage.setItem("ACCESS_TOKEN", player.user_token);
 
-      push(`/games/${inputToken?.trim()}`);
+      await push(`/games/${inputToken?.trim()}`);
     } catch (err) {
       // TODO Handle all API errors in a generic way
     }

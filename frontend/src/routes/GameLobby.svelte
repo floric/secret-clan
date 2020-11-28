@@ -1,5 +1,4 @@
 <script lang="typescript">
-  import { link } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
@@ -51,6 +50,9 @@
             </ul>
           </div>
           <div>Users</div>
+          <ul>
+            <li>Anzeige der Liste der Spieler</li>
+          </ul>
         </div>
         <ActionRow>
           <PrimaryButton>Start</PrimaryButton>

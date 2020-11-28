@@ -33,6 +33,8 @@ Run the following commands only the first time or if new dependencies were added
 cd frontend
 yarn
 yarn build
+
+cargo install cargo-watch
 ```
 
 After that, start development with two terminals and the following commands:
