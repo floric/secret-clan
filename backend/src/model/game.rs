@@ -35,13 +35,9 @@ impl Game {
     }
 }
 
-impl Persist<Game> for Game {
+impl Persist for Game {
     fn id(&self) -> &str {
         self.token()
-    }
-
-    fn persistence_path(_: Option<Self>) -> String {
-        String::from("games")
     }
 }
 

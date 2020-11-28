@@ -16,7 +16,7 @@ Based on another similiar, famous game we decided to create a small Webapp for f
 │   ├── postcss.config.js
 │   ├── tailwind.config.js
 │   ├── webpack.config.js
-│   └── yarn.lock
+│   └── package-lock.json
 ├── docker-entrypoint.sh
 ├── Dockerfile
 ├── Makefile
@@ -31,8 +31,10 @@ Run the following commands only the first time or if new dependencies were added
 
 ```bash
 cd frontend
-yarn
-yarn build
+npm install
+npm run build
+
+cargo install cargo-watch
 ```
 
 After that, start development with two terminals and the following commands:
@@ -40,6 +42,12 @@ After that, start development with two terminals and the following commands:
 `make watch-fe` and `make watch-be`
 
 This will start watch modes for the server and frontend and will automatically update the code and restart the server. The update process is visible in the terminal output.
+
+Run the backend tests with the following command:
+
+`cargo test -- --test-threads=1`
+
+The tests are not run in parallel as each test requires an instance of the AppContext with write access to the database. Concurrent writes to the database would result in an unpredictable behaviour. This might be solvable by handling the flush graciously.
 
 ## Production Build
 
@@ -53,11 +61,23 @@ Run the following command to start the image created previously. This will start
 
 ## Necessary tools
 
-Frontend: [Node 14, preferred installation with NVM](https://github.com/nvm-sh/nvm), [Yarn](https://yarnpkg.com/)
+Frontend: [Node 14, preferred installation with NVM](https://github.com/nvm-sh/nvm)
 
 Backend: [Rust](https://www.rust-lang.org/learn/get-started), [Cargo Watch](https://crates.io/crates/cargo-watch)
 
 General: [Docker Desktop](https://www.docker.com/get-started)
+
+### IDE
+
+We recommend to use VSCode for Frontend and Backend with the following extensions enabled:
+
+- rust-analyzer
+- crates
+- Better TOML / TOML Language Support
+- npm
+- Tailwind CSS IntelliSense
+- ESLint
+- Svelte for VSCode
 
 ## Technologies
 

@@ -1,5 +1,5 @@
 watch-fe:
-	cd frontend && yarn watch
+	cd frontend && npm run watch
 
 watch-be:
 	cd backend && cargo watch -x 'run'

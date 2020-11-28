@@ -1,4 +1,4 @@
-name: Build and Lint
+name: Build, Lint and Test
 on: push
 jobs:
   backend:
@@ -17,6 +17,8 @@ jobs:
         run: cargo build --release
       - name: Lint
         run: cargo clippy
+      - name: Test
+        run: cargo test -- --test-threads=1
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -32,10 +34,10 @@ jobs:
           node-version: 14.x
           registry-url: "https://registry.npmjs.org"
       - name: Fetch Dependencies
-        run: yarn
+        run: npm install
       - name: Check Dependencies
-        run: yarn audit --groups dependencies
+        run: npm audit
       - name: Build
-        run: yarn build:prod
+        run: npm run build:prod
       - name: Lint
-        run: yarn lint
+        run: npm run lint
