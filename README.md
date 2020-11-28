@@ -16,7 +16,7 @@ Based on another similiar, famous game we decided to create a small Webapp for f
 │   ├── postcss.config.js
 │   ├── tailwind.config.js
 │   ├── webpack.config.js
-│   └── yarn.lock
+│   └── package-lock.json
 ├── docker-entrypoint.sh
 ├── Dockerfile
 ├── Makefile
@@ -31,8 +31,8 @@ Run the following commands only the first time or if new dependencies were added
 
 ```bash
 cd frontend
-yarn
-yarn build
+npm install
+npm run build
 
 cargo install cargo-watch
 ```
@@ -61,7 +61,7 @@ Run the following command to start the image created previously. This will start
 
 ## Necessary tools
 
-Frontend: [Node 14, preferred installation with NVM](https://github.com/nvm-sh/nvm), [Yarn](https://yarnpkg.com/)
+Frontend: [Node 14, preferred installation with NVM](https://github.com/nvm-sh/nvm)
 
 Backend: [Rust](https://www.rust-lang.org/learn/get-started), [Cargo Watch](https://crates.io/crates/cargo-watch)
 

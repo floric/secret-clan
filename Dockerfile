@@ -15,10 +15,10 @@ RUN cargo build --release
 FROM node:14-alpine as fe-builder
 WORKDIR /usr/src/secret-clan
 COPY frontend/package.json package.json
-COPY frontend/yarn.lock yarn.lock
-RUN yarn
+COPY frontend/package-lock.json package-lock.json
+RUN npm install
 COPY frontend/. .
-RUN yarn build:prod
+RUN npm run build:prod
 
 # Runner
 FROM debian:buster-slim

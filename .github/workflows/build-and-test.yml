@@ -34,10 +34,10 @@ jobs:
           node-version: 14.x
           registry-url: "https://registry.npmjs.org"
       - name: Fetch Dependencies
-        run: yarn
+        run: npm install
       - name: Check Dependencies
-        run: yarn audit --groups dependencies
+        run: npm run audit
       - name: Build
-        run: yarn build:prod
+        run: npm run build:prod
       - name: Lint
-        run: yarn lint
+        run: npm run lint
