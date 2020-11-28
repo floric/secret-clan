@@ -14,8 +14,8 @@ use crate::{
 };
 use log::warn;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use warp::{hyper::StatusCode, Filter};
+use std::{format, fs, iter::Map};
+use warp::{hyper::StatusCode, reply::Json, reply::WithStatus, Filter, Rejection};
 
 const PUBLIC_PATH: &str = "/var/www/public";
 
@@ -46,21 +46,7 @@ pub async fn run_server(ctx: &'static AppContext) {
 
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));
     let game_route = warp::path("games").and(
-        warp::get()
-            .and(warp::path::end())
-            .map(move || {
-                #[derive(Serialize, Deserialize)]
-                struct GamesSummary {
-                    total: usize,
-                };
-
-                warp::reply::with_status(
-                    warp::reply::json(&GamesSummary {
-                        total: ctx.repos().games().total_count(),
-                    }),
-                    StatusCode::OK,
-                )
-            })
+        game_count(&ctx)
             .or(warp::put().map(move || {
                 let new_game = create_new_game(&ctx);
                 warp::reply::with_status(warp::reply::json(&new_game), StatusCode::CREATED)
@@ -105,4 +91,28 @@ pub async fn run_server(ctx: &'static AppContext) {
     warp::serve(routes)
         .run(([0, 0, 0, 0], ctx.config().port))
         .await;
+}
+
+fn game_count<T>(
+    ctx: &&AppContext,
+) -> Map<
+    And<
+        impl Filter<Extract = (), Error = Rejection, Future = T>,
+        impl Filter<Extract = (), Error = Rejection, Future = T>,
+    >,
+    fn() -> WithStatus<Json>,
+> {
+    warp::get().and(warp::path::end()).map(move || {
+        #[derive(Serialize, Deserialize)]
+        struct GamesSummary {
+            total: usize,
+        };
+
+        warp::reply::with_status(
+            warp::reply::json(&GamesSummary {
+                total: ctx.repos().games().total_count(),
+            }),
+            StatusCode::OK,
+        )
+    })
 }
