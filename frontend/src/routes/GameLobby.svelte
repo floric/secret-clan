@@ -2,32 +2,62 @@
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
-  import type { Game } from "../types/Game";
+  import type { Game, GameDetails } from "../types/Game";
+  import type { PublicPlayer } from "../types/Player";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import ActionRow from "../components/buttons/ActionRow.svelte";
   import { getToken } from "../utils/auth";
 
   export let params: { token?: string } = {};
 
-  async function fetchGameByToken(): Promise<Game | null> {
+  let details: GameDetails | null = null;
+  const knownPlayers: Map<string, PublicPlayer> = new Map();
+
+  const fetchPlayerById = async (id: string): Promise<PublicPlayer | null> => {
+    if (knownPlayers.has(id)) {
+      return knownPlayers.get(id);
+    }
+    const res = await fetch(`/api/players/${id}`);
+    if (!res.ok) {
+      return null;
+    }
+
+    const p = (await res.json()) as PublicPlayer;
+    knownPlayers.set(p.id, p);
+    return p;
+  };
+
+  const fetchGameByToken = async () => {
     const res = await fetch(`/api/games/${params.token}`, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
       },
     });
-    if (res.ok) {
-      return (await res.json()) as Game;
-    } else {
+    if (!res.ok) {
       return null;
     }
-  }
 
-  async function deleteGameByToken(): Promise<boolean> {
-    const res = await fetch(`/api/games/${params.token}`, { method: "DELETE" });
-    return res.ok;
-  }
+    const game = (await res.json()) as Game;
 
-  const fetchGamePromise = fetchGameByToken();
+    // TODO Cache known players
+    const players = await Promise.all(game.player_ids.map(fetchPlayerById));
+    const admin = await fetchPlayerById(game.admin_id);
+
+    details = {
+      game,
+      participants: {
+        admin,
+        players,
+      },
+    };
+  };
+
+  const fetchGamePeriodically = async () => {
+    await fetchGameByToken();
+    setInterval(() => {
+      fetchGameByToken();
+    }, 1000);
+  };
 </script>
 
 <Dialog>
@@ -38,26 +68,32 @@
   </div>
 
   <div class="mb-4">
-    {#await fetchGamePromise}
+    {#await fetchGamePeriodically()}
       <p>Loading game</p>
-    {:then game}
-      {#if game !== null}
+    {:then _}
+      {#if details !== null}
         <div class="grid md:grid-cols-3 grid-cols-1 gap-8">
           <div class="md:col-span-2">
             <p class="mb-4">Hier ist viel zu tun:</p>
             <ul class="ml-6 list-disc mb-6">
-              <li>
-                Prüfung auf gültiges Spiel und laden des zugehörigen Spieles
-              </li>
-              <li>Anzeige beigetretener Spieler</li>
               <li>Spieleinstellungen</li>
               <li>Fancy UI</li>
             </ul>
           </div>
-          <div>Users</div>
-          <ul>
-            <li>Anzeige der Liste der Spieler</li>
-          </ul>
+          <div class="grid gap-4">
+            <div>
+              <div class="font-bold">Admin</div>
+              <div>{details.participants.admin.name}</div>
+            </div>
+            <div>
+              <div class="font-bold">Players</div>
+              <ul>
+                {#each details.participants.players as p}
+                  <li>{p.name}</li>
+                {/each}
+              </ul>
+            </div>
+          </div>
         </div>
         <ActionRow>
           <PrimaryButton>Start</PrimaryButton>
