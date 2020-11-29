@@ -9,9 +9,15 @@
   import Divider from "../components/layout/Divider.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import InternalLink from "../components/buttons/InternalLink.svelte";
+  import { saveToken } from "../utils/auth";
 
   let inputToken = "";
   let inputName = "";
+
+  type CreateGameResponse = {
+    game: Game;
+    admin: Player;
+  };
 
   async function createGame() {
     try {
@@ -19,8 +25,9 @@
         method: "PUT",
       });
 
-      const newGame = (await res.json()) as Game;
-      await push(`/games/${newGame.token}`);
+      const newGame = (await res.json()) as CreateGameResponse;
+      saveToken(newGame.admin.user_token);
+      await push(`/games/${newGame.game.token}`);
     } catch (err) {
       // TODO Handle all API errors in a generic way
     }
@@ -44,7 +51,7 @@
       }
 
       const player = (await res.json()) as Player;
-      window.localStorage.setItem("ACCESS_TOKEN", player.user_token);
+      saveToken(player.user_token);
 
       await push(`/games/${inputToken?.trim()}`);
     } catch (err) {

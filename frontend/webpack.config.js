@@ -16,20 +16,28 @@ module.exports = {
     alias: {
       svelte: path.resolve("node_modules", "svelte"),
     },
-    extensions: [".mjs", ".js", ".svelte"],
+    extensions: [".ts", ".js", ".svelte"],
     mainFields: ["svelte", "browser", "module", "main"],
   },
   module: {
     rules: [
       {
-        test: /\.m?js$/,
+        test: /\.(js|ts)$/,
         exclude: /node_modules/,
-        use: {
-          loader: "babel-loader",
-          options: {
-            presets: ["@babel/preset-env"],
+        use: [
+          {
+            loader: "babel-loader",
+            options: {
+              presets: ["@babel/preset-env"],
+            },
           },
-        },
+          {
+            loader: "ts-loader",
+            options: {
+              transpileOnly: true,
+            },
+          },
+        ],
       },
       {
         test: /\.(html|svelte)$/,

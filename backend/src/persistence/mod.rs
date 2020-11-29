@@ -1,21 +1,20 @@
+use crate::model::{game::Game, player::Player};
 use log::{debug, info};
 use sled::{Db, IVec};
 use std::{clone::Clone, convert::TryFrom, marker::PhantomData};
 
-use crate::model::{game::Game, player::Player};
-
 pub struct Repository<T> {
     path: String,
-    tree: Db,
+    db: Db,
     phantom: PhantomData<T>,
 }
 
-impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
+impl<T: Persist> Repository<T> {
     pub fn init(path: &str) -> Repository<T> {
-        let tree = sled::open(format!(".sled/{}", &path)).expect("opening database has failed");
+        let db = sled::open(format!(".sled/{}", &path)).expect("opening database has failed");
 
         let repo = Repository {
-            tree,
+            db,
             path: String::from(path),
             phantom: PhantomData,
         };
@@ -29,14 +28,14 @@ impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
     }
 
     pub fn persist(&self, elem: T) -> Result<bool, String> {
-        self.tree
+        self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
         self.flush().map_err(|e| e.to_string()).map(|_| true)
     }
 
     pub fn find_by_id(&self, id: &str) -> Option<T> {
-        let success = self.tree.get(id);
+        let success = self.db.get(id);
         match success {
             Ok(res) => res.and_then(|g| T::try_from(g).ok()),
             Err(_) => None,
@@ -44,20 +43,20 @@ impl<T: Persist + Into<IVec> + TryFrom<IVec> + Clone> Repository<T> {
     }
 
     pub fn total_count(&self) -> usize {
-        self.tree.len()
+        self.db.len()
     }
 
     fn flush(&self) -> Result<bool, sled::Error> {
-        self.tree.flush().map(|_| true)
+        self.db.flush().map(|_| true)
     }
 
     fn purge_data(&self) -> Result<usize, sled::Error> {
         info!("Try to purge database \"{}\"", self.path);
-        self.tree.clear().and_then(|()| self.tree.flush())
+        self.db.clear().and_then(|()| self.db.flush())
     }
 }
 
-pub trait Persist {
+pub trait Persist: Into<IVec> + TryFrom<IVec> + Clone {
     fn id(&self) -> &str;
 }
 
@@ -98,14 +97,14 @@ mod tests {
 
         ctx.repos()
             .games()
-            .persist(Game::new())
+            .persist(Game::new("admin", "token"))
             .expect("Game persist failed");
     }
 
     #[test]
     fn should_find_game() {
         let ctx = init_ctx();
-        let game = Game::new();
+        let game = Game::new("admin", "token");
         let game_id = String::from(game.id());
         ctx.repos()
             .games()
@@ -130,7 +129,7 @@ mod tests {
         let ctx = init_ctx();
         ctx.repos()
             .games()
-            .persist(Game::new())
+            .persist(Game::new("admin", "token"))
             .expect("Game persist failed");
 
         assert_eq!(ctx.repos().games().total_count(), 1);

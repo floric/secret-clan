@@ -13,11 +13,9 @@ impl AppContext {
     pub fn init() -> AppContext {
         let config = AppConfig::init_from_env().expect("Loading server config failed");
         init_logger(&config);
+        let repos = Repositories::init();
 
-        AppContext {
-            repos: Repositories::init(),
-            config,
-        }
+        AppContext { repos, config }
     }
 
     pub fn repos(&self) -> &Repositories {

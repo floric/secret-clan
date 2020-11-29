@@ -1,37 +1,35 @@
 use crate::persistence::Persist;
 use chrono::{DateTime, Utc};
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::{hash::Hash, iter};
-
-const TOKEN_CHARS_COUNT: usize = 5;
+use std::{collections::BTreeSet, convert::TryFrom, hash::Hash};
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct Game {
     token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
+    admin_id: String,
+    player_ids: BTreeSet<String>,
 }
 
 impl Game {
-    pub fn new() -> Game {
-        let mut rng = thread_rng();
-        let token: String = iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric).to_ascii_uppercase())
-            .take(TOKEN_CHARS_COUNT)
-            .collect();
-
+    pub fn new(admin_id: &str, token: &str) -> Game {
         Game {
-            token,
+            token: String::from(token),
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
+            admin_id: String::from(admin_id),
+            player_ids: BTreeSet::new(),
         }
     }
 
     pub fn token(&self) -> &str {
         &self.token
+    }
+
+    pub fn add_player(&mut self, player_id: &str) {
+        self.player_ids.insert(String::from(player_id));
     }
 }
 
@@ -47,9 +45,11 @@ impl Into<IVec> for Game {
     }
 }
 
-impl From<IVec> for Game {
-    fn from(bytes: IVec) -> Game {
+impl TryFrom<IVec> for Game {
+    type Error = bincode::Error;
+    fn try_from(bytes: IVec) -> Result<Self, Self::Error> {
         let vec: Vec<u8> = bytes.to_vec();
-        bincode::deserialize(&vec).unwrap()
+
+        bincode::deserialize(&vec)
     }
 }

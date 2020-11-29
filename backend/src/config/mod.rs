@@ -1,7 +1,7 @@
 use envconfig::Envconfig;
 use flexi_logger::Level;
 
-#[derive(Envconfig)]
+#[derive(Envconfig, Clone)]
 pub struct AppConfig {
     #[envconfig(from = "SERVER_PORT", default = "3333")]
     pub port: u16,

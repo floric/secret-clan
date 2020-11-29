@@ -5,11 +5,16 @@
   import type { Game } from "../types/Game";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import ActionRow from "../components/buttons/ActionRow.svelte";
+  import { getToken } from "../utils/auth";
 
   export let params: { token?: string } = {};
 
   async function fetchGameByToken(): Promise<Game | null> {
-    const res = await fetch(`/api/games/${params.token}`);
+    const res = await fetch(`/api/games/${params.token}`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     if (res.ok) {
       return (await res.json()) as Game;
     } else {
