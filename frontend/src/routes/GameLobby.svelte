@@ -38,8 +38,6 @@
     }
 
     const game = (await res.json()) as Game;
-
-    // TODO Cache known players
     const players = await Promise.all(game.player_ids.map(fetchPlayerById));
     const admin = await fetchPlayerById(game.admin_id);
 
