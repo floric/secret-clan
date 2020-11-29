@@ -2,14 +2,13 @@ use crate::{
     model::game::Game,
     model::player::Player,
     server::auth::generate_jwt_token,
-    server::{app_context::AppContext, errors::reply_with_error},
+    server::{app_context::AppContext, auth::verify_jwt_token, errors::reply_with_error},
 };
 use log::debug;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use std::iter;
-use warp::hyper::StatusCode;
-use warp::Filter;
+use warp::{hyper::StatusCode, Filter};
 
 const GAMES_PATH: &str = "games";
 
@@ -21,12 +20,21 @@ const TOKEN_CHARS_COUNT: usize = 5;
 pub fn get_game(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path(GAMES_PATH).and(warp::path!(String)).map(
-        move |token: String| match get_game_by_token(&ctx, &token) {
-            Some(game) => warp::reply::with_status(warp::reply::json(&game), StatusCode::OK),
-            None => reply_with_error(StatusCode::NOT_FOUND),
-        },
-    )
+    warp::path(GAMES_PATH)
+        .and(warp::path!(String))
+        .and(warp::header("Authorization"))
+        .map(move |token: String, authorization: String| {
+            match verify_jwt_token(&authorization, &ctx.config().auth_secret) {
+                // TODO Verify request is send by admin or player of game via JWT
+                Ok(_) => match get_game_by_token(&ctx, &token) {
+                    Some(game) => {
+                        warp::reply::with_status(warp::reply::json(&game), StatusCode::OK)
+                    }
+                    None => reply_with_error(StatusCode::NOT_FOUND),
+                },
+                Err(_) => reply_with_error(StatusCode::UNAUTHORIZED),
+            }
+        })
 }
 
 // GET /api/games/

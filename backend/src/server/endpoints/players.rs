@@ -6,7 +6,7 @@ use warp::{hyper::StatusCode, Filter};
 
 const PLAYERS_PATH: &str = "players";
 
-// GET /api/games/:id
+// GET /api/players/:id
 pub fn get_player(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -18,5 +18,5 @@ pub fn get_player(
         })
 }
 fn get_player_by_id(ctx: &AppContext, id: &str) -> Option<Player> {
-    ctx.repos().players().find_by_id(&id.to_uppercase())
+    ctx.repos().players().find_by_id(&id)
 }

@@ -1,8 +1,33 @@
-use crate::config::AppConfig;
-use crate::persistence::Repositories;
+use crate::{
+    config::AppConfig,
+    model::{game::Game, player::Player},
+    persistence::Repository,
+};
 use envconfig::Envconfig;
 
 use super::logger::init_logger;
+
+pub struct Repositories {
+    games: Repository<Game>,
+    players: Repository<Player>,
+}
+
+impl Repositories {
+    pub fn init() -> Repositories {
+        Repositories {
+            games: Repository::init("games"),
+            players: Repository::init("players"),
+        }
+    }
+
+    pub fn games(&self) -> &Repository<Game> {
+        &self.games
+    }
+
+    pub fn players(&self) -> &Repository<Player> {
+        &self.players
+    }
+}
 
 pub struct AppContext {
     repos: Repositories,
