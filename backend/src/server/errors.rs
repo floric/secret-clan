@@ -15,7 +15,7 @@ struct ErrorMessage {
 fn build_error_content(status: &StatusCode) -> ErrorMessage {
     ErrorMessage {
         code: status.as_u16(),
-        message: String::from(status.as_str()),
+        message: String::from(status.canonical_reason().unwrap_or("unknown")),
     }
 }
 

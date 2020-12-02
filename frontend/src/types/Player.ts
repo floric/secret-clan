@@ -6,3 +6,8 @@ export type Player = {
   creation_time: string;
   last_action_time: string;
 };
+
+export type PublicPlayer = {
+  id: string;
+  name: string;
+};

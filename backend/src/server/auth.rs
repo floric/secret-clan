@@ -1,8 +1,9 @@
 use crate::model::player::Player;
 use hmac::{Hmac, NewMac};
-use jwt::{AlgorithmType, Header, SignWithKey, Token, VerifyWithKey};
+use jwt::{AlgorithmType, Error, Header, SignWithKey, Token, VerifyWithKey};
 use sha2::Sha256;
 use std::collections::BTreeMap;
+use std::result::Result;
 
 pub fn generate_jwt_token(player: &Player, secret: &str) -> String {
     let key = init_key(secret);
@@ -23,10 +24,11 @@ pub fn generate_jwt_token(player: &Player, secret: &str) -> String {
 pub fn verify_jwt_token(
     token_str: &str,
     secret: &str,
-) -> Token<Header, BTreeMap<String, String>, jwt::token::Verified> {
+) -> Result<Token<Header, BTreeMap<String, String>, jwt::token::Verified>, Error> {
     let key = init_key(secret);
-    let token: Token<Header, BTreeMap<String, String>, jwt::token::Verified> =
-        VerifyWithKey::verify_with_key(token_str, &key).unwrap();
+    let raw_token: &str = &token_str.replace("Bearer ", "");
+    let token: Result<Token<Header, BTreeMap<String, String>, jwt::token::Verified>, Error> =
+        VerifyWithKey::verify_with_key(raw_token, &key);
 
     token
 }
@@ -58,14 +60,16 @@ mod tests {
         // payload contains dynamic ID of user, so we can't check the payload for equalness
         assert!(token.starts_with("eyJhbGciOiJIUzI1NiJ9"));
     }
+
     #[test]
     fn should_verify_token() {
         init_ctx();
 
         let token = verify_jwt_token("eyJhbGciOiJIUzI1NiJ9.eyJnYW1lIjoiZ2FtZSIsIm5hbWUiOiJSYW5kb20gRHVkZSIsInN1YiI6Ik1sbEo3b2VDWTRSR3cyTTZ0SUhCWiJ9.LD1Z9u9G9LFUtqweQCikRi0NQs8SVF6Ri9f3weCKCX4", "super-secret");
 
-        assert_eq!(token.claims().get("name").unwrap(), "Random Dude");
+        assert_eq!(token.unwrap().claims().get("name").unwrap(), "Random Dude");
     }
+
     #[test]
     fn should_create_and_verify_token() {
         init_ctx();
@@ -73,6 +77,15 @@ mod tests {
         let player = Player::new("Random Dude", "game");
         let token_str = generate_jwt_token(&player, SECRET);
         let token = verify_jwt_token(&token_str, SECRET);
-        assert_eq!(token.claims().get("name").unwrap(), "Random Dude");
+        assert_eq!(token.unwrap().claims().get("name").unwrap(), "Random Dude");
+    }
+
+    #[test]
+    fn should_fail_to_verify_token() {
+        init_ctx();
+
+        let token = verify_jwt_token("eyJhbGciOiJIUzI1NiJ9.XYZ.ABC", "super-secret");
+
+        assert!(token.is_err());
     }
 }
