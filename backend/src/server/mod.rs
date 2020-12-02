@@ -16,7 +16,7 @@ use self::{
 };
 use log::warn;
 use std::fs;
-use warp::Filter;
+use warp::{fs::File, Filter};
 
 const PUBLIC_PATH: &str = "/var/www/public";
 
@@ -46,8 +46,10 @@ pub async fn run_server(ctx: &'static AppContext) {
         .or(get_game(&ctx));
     let player_route = get_player(&ctx);
     let api_route = warp::path("api").and(game_route.or(player_route));
-
-    let static_route = warp::path("static").and(warp::fs::dir(static_path));
+    let static_route = warp::path("static").and(
+        warp::fs::dir(static_path)
+            .map(|res: File| warp::reply::with_header(res, "cache-control", "public, 31536000")),
+    );
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));
 
     let routes = index_route
