@@ -14,8 +14,7 @@ RUN cargo build --release
 # Frontend-Builder
 FROM node:14-alpine as fe-builder
 WORKDIR /usr/src/secret-clan
-COPY frontend/package.json package.json
-COPY frontend/package-lock.json package-lock.json
+COPY frontend/package*json ./
 RUN npm install
 COPY frontend/. .
 RUN npm run build:prod

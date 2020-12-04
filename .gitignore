@@ -1,3 +1,6 @@
+# Shared
+.aws-sam
+
 # Backend
 backend/target/
 backend/.sled/

@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  SecretClanFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      # ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan
+      Events:
+        SecretClan:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+    Metadata:
+      DockerTag: secret-clan:latest
+      DockerContext: .
+      Dockerfile: Dockerfile
+
+Outputs:
+  SecretClanApi:
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  SecretClanFunction:
+    Value: !GetAtt SecretClanFunction.Arn
+  SecretClanIamRole:
+    Value: !GetAtt SecretClanRole.Arn
