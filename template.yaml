@@ -49,7 +49,7 @@ Resources:
     DependsOn: MountTarget
     Properties:
       PackageType: Image
-      ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:latest
+      ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v2
       Policies:
         - AWSLambdaExecute
         - AmazonElasticFileSystemClientReadWriteAccess
