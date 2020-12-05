@@ -12,7 +12,9 @@ pub struct Repository<T> {
 
 impl<T: Persist> Repository<T> {
     pub fn init(path: &str) -> Repository<T> {
-        let db = sled::open(format!("/mnt/efs/{}", &path)).expect("opening database has failed");
+        let full_path = format!("/mnt/efs/.sled/{}", &path);
+        info!("Try to open {}", &full_path);
+        let db = sled::open(&full_path).expect("opening database has failed");
 
         let repo = Repository {
             db,
