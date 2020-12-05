@@ -1,0 +1,9 @@
+version = 0.1
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+region = "eu-central-1"
+s3_bucket = "secret-clan-functions"
+s3_prefix = "sc"
+stack_name = "secret-clan"
+tags = "project=\"secret-clan\" stage=\"production\""

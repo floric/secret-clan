@@ -7,17 +7,63 @@ Globals:
     Timeout: 3
 
 Resources:
+  SGBaseIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SGBase
+      IpProtocol: tcp
+      FromPort: 2049
+      ToPort: 2049
+      SourceSecurityGroupId: !GetAtt SGBase.GroupId
+  SGBase:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: vpc-eaaf6a82
+      GroupDescription: "secret clan Lambda"
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: "0.0.0.0/0"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+          FromPort: 22
+          ToPort: 22
+  FileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      PerformanceMode: generalPurpose
+  AccessPoint:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref FileSystem
+  MountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId:
+        Ref: FileSystem
+      SubnetId: subnet-f529919d
+      SecurityGroups:
+        - Ref: SGBase
   SecretClanFunction:
     Type: AWS::Serverless::Function
+    DependsOn: MountTarget
     Properties:
       PackageType: Image
-      # ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan
+      ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:latest
       Events:
         SecretClan:
           Type: Api
           Properties:
-            Path: /hello
+            Path: /
             Method: get
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SGBase
+        SubnetIds:
+          - subnet-f529919d
+      FileSystemConfigs:
+        - Arn: !GetAtt AccessPoint.Arn
+          LocalMountPath: /mnt/efs
     Metadata:
       DockerTag: secret-clan:latest
       DockerContext: .
@@ -25,8 +71,6 @@ Resources:
 
 Outputs:
   SecretClanApi:
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   SecretClanFunction:
     Value: !GetAtt SecretClanFunction.Arn
-  SecretClanIamRole:
-    Value: !GetAtt SecretClanRole.Arn
