@@ -23,7 +23,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
       - name: Build Image
-        run: DOCKER_BUILDKIT=1 docker build -t secret-clan:v3 .
+        run: DOCKER_BUILDKIT=1 docker build -t secret-clan:v4 .
       - name: Login to ECR
         id: ecr
         uses: jwalton/gh-ecr-login@v1
@@ -33,5 +33,5 @@ jobs:
           region: eu-central-1
       - name: Push to ECR
         run: |
-          docker tag secret-clan:v3 ${{ steps.ecr.outputs.account }}.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v3
-          docker push ${{ steps.ecr.outputs.account }}.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v3
+          docker tag secret-clan:v4 ${{ steps.ecr.outputs.account }}.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v4
+          docker push ${{ steps.ecr.outputs.account }}.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v4
