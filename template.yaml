@@ -36,6 +36,15 @@ Resources:
     Type: AWS::EFS::AccessPoint
     Properties:
       FileSystemId: !Ref FileSystem
+      PosixUser:
+        Uid: "1000"
+        Gid: "1000"
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: "1000"
+          OwnerUid: "1000"
+          Permissions: "0777"
+        Path: /db
   MountTarget:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -49,7 +58,7 @@ Resources:
     DependsOn: MountTarget
     Properties:
       PackageType: Image
-      ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v2
+      ImageUri: 817907346621.dkr.ecr.eu-central-1.amazonaws.com/secret-clan:v3
       Policies:
         - AWSLambdaExecute
         - AmazonElasticFileSystemClientReadWriteAccess
@@ -66,7 +75,10 @@ Resources:
           - subnet-f529919d
       FileSystemConfigs:
         - Arn: !GetAtt AccessPoint.Arn
-          LocalMountPath: /mnt/efs
+          LocalMountPath: /mnt/db
+      Environment:
+        Variables:
+          "SERVER_PORT": 80
     Metadata:
       DockerTag: secret-clan:latest
       DockerContext: .
