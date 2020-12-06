@@ -26,5 +26,5 @@ COPY --from=fe-builder /usr/src/secret-clan/dist /var/www/public/static
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY frontend/public /var/www/public
 RUN chmod +x docker-entrypoint.sh
-EXPOSE 8080
+EXPOSE 9001
 CMD ["/docker-entrypoint.sh"]

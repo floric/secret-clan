@@ -78,7 +78,7 @@ Resources:
           LocalMountPath: /mnt/db
       Environment:
         Variables:
-          "SERVER_PORT": 8080
+          "SERVER_PORT": 9001
     Metadata:
       DockerTag: secret-clan:latest
       DockerContext: .
