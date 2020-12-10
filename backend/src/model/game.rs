@@ -16,7 +16,7 @@ pub struct Game {
 impl Game {
     pub fn new(admin_id: &str, token: &str) -> Game {
         Game {
-            token: String::from(token),
+            token: String::from(token).to_uppercase(),
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
             admin_id: String::from(admin_id),

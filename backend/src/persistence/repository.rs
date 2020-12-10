@@ -1,4 +1,5 @@
 use log::{debug, info};
+use nanoid::nanoid;
 use sled::Db;
 use std::marker::PhantomData;
 
@@ -12,7 +13,12 @@ pub struct Repository<T> {
 
 impl<T: Persist> Repository<T> {
     pub fn init(path: &str) -> Repository<T> {
-        let db = sled::open(format!(".sled/{}", &path)).expect("opening database has failed");
+        let db = sled::open(if cfg!(test) {
+            format!(".sled/{}/{}", nanoid!(), &path)
+        } else {
+            format!(".sled/{}", &path)
+        })
+        .expect("opening database has failed");
 
         let repo = Repository {
             db,

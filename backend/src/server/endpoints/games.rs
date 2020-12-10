@@ -13,8 +13,13 @@ use warp::{hyper::StatusCode, Filter};
 const GAMES_PATH: &str = "games";
 
 // this value determines the findability of a game and is a tradeoff between security and user friendliness
-// 5 tokens mean a chance of finding a random game of 1:60466176 ()
+// 5 tokens mean a chance of finding a random game of 1:60466176.
 const TOKEN_CHARS_COUNT: usize = 5;
+
+#[derive(Deserialize)]
+struct CreatePlayerInput {
+    name: String,
+}
 
 // GET /api/games/:token
 pub fn get_game(
@@ -24,17 +29,19 @@ pub fn get_game(
         .and(warp::path!(String))
         .and(warp::header("Authorization"))
         .map(move |token: String, authorization: String| {
-            match verify_jwt_token(&authorization, &ctx.config().auth_secret) {
-                // TODO Verify request is send by admin or player of game via JWT
-                Ok(_) => match get_game_by_token(&ctx, &token) {
-                    Some(game) => {
-                        warp::reply::with_status(warp::reply::json(&game), StatusCode::OK)
-                    }
-                    None => reply_with_error(StatusCode::NOT_FOUND),
-                },
-                Err(_) => reply_with_error(StatusCode::UNAUTHORIZED),
-            }
+            get_game_filter(&token, &authorization, ctx)
         })
+}
+
+fn get_game_filter(token: &str, authorization: &str, ctx: &AppContext) -> impl warp::Reply {
+    match verify_jwt_token(&authorization, &ctx.config().auth_secret) {
+        // TODO Verify request is send by admin or player of game via JWT
+        Ok(_) => match get_game_by_token(&ctx, &token) {
+            Some(game) => warp::reply::with_status(warp::reply::json(&game), StatusCode::OK),
+            None => reply_with_error(StatusCode::NOT_FOUND),
+        },
+        Err(_) => reply_with_error(StatusCode::UNAUTHORIZED),
+    }
 }
 
 // GET /api/games/
@@ -63,6 +70,12 @@ pub fn get_games_count(
 pub fn create_game(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path(GAMES_PATH)
+        .and(warp::put())
+        .map(move || create_game_filter(ctx))
+}
+
+fn create_game_filter(ctx: &AppContext) -> impl warp::Reply {
     fn generate_game_token() -> String {
         let mut rng = thread_rng();
 
@@ -72,57 +85,58 @@ pub fn create_game(
             .collect()
     }
 
-    warp::path(GAMES_PATH).and(warp::put()).map(move || {
-        let game_token = generate_game_token();
-        // TODO insert name of Admin
-        let player = create_new_player("Admin", &game_token, ctx);
-        let new_game = create_new_game(player.id(), &game_token, &ctx);
+    let game_token = generate_game_token();
+    // TODO insert name of Admin
+    let player = create_new_player("Admin", &game_token, ctx);
+    let new_game = create_new_game(player.id(), &game_token, ctx);
 
-        #[derive(Serialize)]
-        struct CreateGameReponse {
-            game: Game,
-            admin: Player,
-        };
+    #[derive(Serialize)]
+    struct CreateGameReponse {
+        game: Game,
+        admin: Player,
+    };
 
-        warp::reply::with_status(
-            warp::reply::json(&CreateGameReponse {
-                game: new_game,
-                admin: player,
-            }),
-            StatusCode::CREATED,
-        )
-    })
+    warp::reply::with_status(
+        warp::reply::json(&CreateGameReponse {
+            game: new_game,
+            admin: player,
+        }),
+        StatusCode::CREATED,
+    )
 }
 
 // POST /api/games/attend
 pub fn attend_game(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    #[derive(Deserialize)]
-    struct CreatePlayerInput {
-        name: String,
-    }
-
     warp::path(GAMES_PATH)
         .and(warp::post())
         .and(warp::path!(String / "attend"))
         .and(warp::body::json())
         .map(move |game_token: String, input: CreatePlayerInput| {
-            match get_game_by_token(&ctx, &game_token) {
-                Some(mut new_game) => {
-                    let player = create_new_player(&input.name, &game_token, ctx);
-
-                    new_game.add_player(player.id());
-                    ctx.repos()
-                        .games()
-                        .persist(new_game)
-                        .expect("Adding player failed");
-
-                    warp::reply::with_status(warp::reply::json(&player), StatusCode::OK)
-                }
-                None => reply_with_error(StatusCode::NOT_FOUND),
-            }
+            attend_game_filter(&game_token, &input, ctx)
         })
+}
+
+fn attend_game_filter(
+    game_token: &str,
+    input: &CreatePlayerInput,
+    ctx: &AppContext,
+) -> impl warp::Reply {
+    match get_game_by_token(ctx, &game_token) {
+        Some(mut new_game) => {
+            let player = create_new_player(&input.name, &game_token, ctx);
+
+            new_game.add_player(player.id());
+            ctx.repos()
+                .games()
+                .persist(new_game)
+                .expect("Adding player failed");
+
+            warp::reply::with_status(warp::reply::json(&player), StatusCode::OK)
+        }
+        None => reply_with_error(StatusCode::NOT_FOUND),
+    }
 }
 
 fn create_new_game(admin_id: &str, token: &str, ctx: &AppContext) -> Game {
@@ -153,4 +167,102 @@ fn create_new_player(name: &str, game_token: &str, ctx: &AppContext) -> Player {
 
 fn get_game_by_token(ctx: &AppContext, token: &str) -> Option<Game> {
     ctx.repos().games().find_by_id(&token.to_uppercase())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{attend_game_filter, create_game_filter, get_game_filter, CreatePlayerInput};
+    use crate::{
+        model::{game::Game, player::Player},
+        server::{app_context::AppContext, auth::generate_jwt_token},
+    };
+    use warp::{hyper::StatusCode, Reply};
+
+    fn init_ctx() -> AppContext {
+        AppContext::init()
+    }
+
+    #[test]
+    fn should_not_get_game_unauthorized() {
+        let ctx = init_ctx();
+
+        let reply = get_game_filter("invalid", "auth", &ctx);
+
+        assert_eq!(reply.into_response().status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn should_not_get_unknown_game() {
+        let ctx = init_ctx();
+
+        let token =
+            generate_jwt_token(&Player::new("Anonymous", "game"), &ctx.config().auth_secret);
+
+        let reply = get_game_filter("game", &token, &ctx);
+
+        assert_eq!(reply.into_response().status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn should_get_game() {
+        let ctx = init_ctx();
+
+        ctx.repos()
+            .games()
+            .persist(Game::new("admin", "abcdef"))
+            .expect("Writing game failed");
+
+        let token = generate_jwt_token(
+            &Player::new("Anonymous", "abcdef"),
+            &ctx.config().auth_secret,
+        );
+
+        let reply = get_game_filter("abcdef", &token, &ctx);
+
+        assert_eq!(reply.into_response().status(), StatusCode::OK);
+    }
+
+    #[test]
+    fn should_create_new_game() {
+        let ctx = init_ctx();
+
+        let reply = create_game_filter(&ctx);
+
+        assert_eq!(reply.into_response().status(), StatusCode::CREATED);
+    }
+
+    #[test]
+    fn should_not_attend_unknown_game() {
+        let ctx = init_ctx();
+
+        let reply = attend_game_filter(
+            "test",
+            &CreatePlayerInput {
+                name: String::from("test"),
+            },
+            &ctx,
+        );
+
+        assert_eq!(reply.into_response().status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn should_attend_game() {
+        let ctx = init_ctx();
+
+        ctx.repos()
+            .games()
+            .persist(Game::new("admin", "abcdef"))
+            .expect("Writing game failed");
+
+        let reply = attend_game_filter(
+            "abcdef",
+            &CreatePlayerInput {
+                name: String::from("test"),
+            },
+            &ctx,
+        );
+
+        assert_eq!(reply.into_response().status(), StatusCode::OK);
+    }
 }
