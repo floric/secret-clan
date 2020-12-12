@@ -45,9 +45,7 @@ This will start watch modes for the server and frontend and will automatically u
 
 Run the backend tests with the following command:
 
-`cargo test -- --test-threads=1`
-
-The tests are not run in parallel as each test requires an instance of the AppContext with write access to the database. Concurrent writes to the database would result in an unpredictable behaviour. This might be solvable by handling the flush graciously.
+`cargo test`
 
 ## Production Build
 

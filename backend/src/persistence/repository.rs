@@ -34,7 +34,7 @@ impl<T: Persist> Repository<T> {
         repo
     }
 
-    pub fn persist(&self, elem: T) -> Result<bool, String> {
+    pub fn persist(&self, elem: &T) -> Result<bool, String> {
         self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
@@ -67,8 +67,11 @@ impl<T: Persist> Repository<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::persistence::Persist;
+    use std::thread;
+
     use crate::{model::game::Game, server::app_context::AppContext};
+    use crate::{model::player::Player, persistence::Persist};
+    use nanoid::nanoid;
 
     fn init_ctx() -> AppContext {
         AppContext::init()
@@ -80,7 +83,7 @@ mod tests {
 
         ctx.repos()
             .games()
-            .persist(Game::new("admin", "token"))
+            .persist(&Game::new("admin", "token"))
             .expect("Game persist failed");
     }
 
@@ -91,7 +94,7 @@ mod tests {
         let game_id = String::from(game.id());
         ctx.repos()
             .games()
-            .persist(game)
+            .persist(&game)
             .expect("Game persist failed");
 
         let res = ctx.repos().games().find_by_id(&game_id);
@@ -112,7 +115,7 @@ mod tests {
         let ctx = init_ctx();
         ctx.repos()
             .games()
-            .persist(Game::new("admin", "token"))
+            .persist(&Game::new("admin", "token"))
             .expect("Game persist failed");
 
         assert_eq!(ctx.repos().games().total_count(), 1);
@@ -123,5 +126,32 @@ mod tests {
             .expect("Cleanup has failed");
 
         assert_eq!(ctx.repos().games().total_count(), 0);
+    }
+
+    #[test]
+    fn should_create_entities_concurrently() {
+        let ctx: &'static AppContext = Box::leak(Box::new(AppContext::init()));
+
+        let mut threads = vec![];
+
+        for _ in 0..1000 {
+            threads.push(thread::spawn(move || {
+                &ctx.repos()
+                    .games()
+                    .persist(&Game::new("admin", &nanoid!()))
+                    .expect("Game persist failed");
+                &ctx.repos()
+                    .players()
+                    .persist(&Player::new(&nanoid!()))
+                    .expect("Game persist failed");
+            }));
+        }
+
+        for t in threads {
+            let _ = t.join();
+        }
+
+        assert_eq!(ctx.repos().games().total_count(), 1000);
+        assert_eq!(ctx.repos().players().total_count(), 1000);
     }
 }

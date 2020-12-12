@@ -5,7 +5,7 @@ watch-be:
 	cd backend && cargo watch -x 'run' -w 'src'
 
 build:
-	docker build -t secret-clan .
+	DOCKER_BUILDKIT=1 docker build -t secret-clan .
 
 run:
 	docker run --rm -it -p 3333:3333 secret-clan

@@ -15,6 +15,7 @@ flexi_logger = "0.16"
 hmac = "0.9"
 jwt = "0.11"
 log = "0.4"
+names = "0.11"
 nanoid = "0.3"
 rand = "0.7"
 serde = {version = "1.0", features = ["derive"]}

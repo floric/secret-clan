@@ -2,6 +2,7 @@
   import Router from "svelte-spa-router";
   import { wrap } from "svelte-spa-router/wrap";
   import NotFound from "./routes/errors/NotFound.svelte";
+  import css from "./main.css";
 
   const routes = {
     "/": wrap({

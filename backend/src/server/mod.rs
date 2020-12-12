@@ -14,6 +14,7 @@ use self::{
     },
     errors::handle_rejection,
 };
+use endpoints::players::edit_player;
 use log::warn;
 use std::fs;
 use warp::Filter;
@@ -40,11 +41,11 @@ pub async fn run_server(ctx: &'static AppContext) {
         static_path = format!("{}/static/", PUBLIC_PATH);
     }
 
-    let game_route = get_games_count(&ctx)
-        .or(create_game(&ctx))
-        .or(attend_game(&ctx))
-        .or(get_game(&ctx));
-    let player_route = get_player(&ctx);
+    let game_route = get_games_count(ctx)
+        .or(create_game(ctx))
+        .or(attend_game(ctx))
+        .or(get_game(ctx));
+    let player_route = get_player(ctx).or(edit_player(ctx));
     let api_route = warp::path("api").and(game_route.or(player_route));
 
     let static_route = warp::path("static").and(warp::fs::dir(static_path));

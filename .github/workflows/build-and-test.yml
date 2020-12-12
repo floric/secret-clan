@@ -18,7 +18,7 @@ jobs:
       - name: Lint
         run: cargo clippy
       - name: Test
-        run: cargo test -- --test-threads=1
+        run: cargo test
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

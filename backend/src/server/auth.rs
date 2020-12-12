@@ -54,7 +54,7 @@ mod tests {
     fn should_create_token() {
         init_ctx();
 
-        let player = Player::new("Random Dude", "game");
+        let player = Player::new("game");
         let token = generate_jwt_token(&player, SECRET);
 
         // payload contains dynamic ID of user, so we can't check the payload for equalness
@@ -74,10 +74,10 @@ mod tests {
     fn should_create_and_verify_token() {
         init_ctx();
 
-        let player = Player::new("Random Dude", "game");
+        let player = Player::new("game");
         let token_str = generate_jwt_token(&player, SECRET);
         let token = verify_jwt_token(&token_str, SECRET);
-        assert_eq!(token.unwrap().claims().get("name").unwrap(), "Random Dude");
+        assert!(!token.unwrap().claims().get("name").unwrap().is_empty());
     }
 
     #[test]
