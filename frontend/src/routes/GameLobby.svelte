@@ -1,7 +1,9 @@
 <script lang="typescript">
+  import { push } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
+  import SecondaryButton from "../components/buttons/Secondary.svelte";
   import type { Game, GameDetails } from "../types/Game";
   import type { PublicPlayer } from "../types/Player";
   import InternalLink from "../components/buttons/InternalLink.svelte";
@@ -11,6 +13,7 @@
   export let params: { token?: string } = {};
 
   let details: GameDetails | null = null;
+  let refreshId: number | null = null;
   const knownPlayers: Map<string, PublicPlayer> = new Map();
 
   const fetchPlayerById = async (id: string): Promise<PublicPlayer | null> => {
@@ -50,9 +53,24 @@
     };
   };
 
+  const leaveGame = async () => {
+    if (getToken()) {
+      await fetch(`/api/games/${params.token}/leave`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+        method: "POST",
+      });
+    }
+    if (refreshId) {
+      clearInterval(refreshId);
+    }
+    await push("/games");
+  };
+
   const fetchGamePeriodically = async () => {
     await fetchGameByToken();
-    setInterval(() => {
+    refreshId = setInterval(() => {
       fetchGameByToken();
     }, 1000);
   };
@@ -78,24 +96,22 @@
               <li>Fancy UI</li>
             </ul>
           </div>
-          <div class="grid gap-4">
-            <div>
-              <div class="font-bold">Admin</div>
-              <div>{details.participants.admin.name}</div>
-            </div>
-            <div>
-              <div class="font-bold">Players</div>
-              <ul>
-                {#each details.participants.players as p}
-                  <li>{p.name}</li>
-                {/each}
-              </ul>
-            </div>
+          <div>
+            <h4 class="font-bold">Players</h4>
+            <ul>
+              <li>
+                {details.participants.admin.name}
+                <span class="font-bold">(Admin)</span>
+              </li>
+              {#each details.participants.players as p}
+                <li>{p.name}</li>
+              {/each}
+            </ul>
           </div>
         </div>
         <ActionRow>
           <PrimaryButton>Start</PrimaryButton>
-          <InternalLink href="/games">Leave Game</InternalLink>
+          <SecondaryButton on:click={leaveGame}>Leave Game</SecondaryButton>
         </ActionRow>
       {:else}
         <p>Game doesn't exist.</p>

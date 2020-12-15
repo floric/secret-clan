@@ -9,7 +9,7 @@ use self::{
     endpoints::games::get_game,
     endpoints::games::get_games_count,
     endpoints::{
-        games::{attend_game, create_game},
+        games::{attend_game, create_game, leave_game},
         players::get_player,
     },
     errors::handle_rejection,
@@ -44,6 +44,7 @@ pub async fn run_server(ctx: &'static AppContext) {
     let game_route = get_games_count(ctx)
         .or(create_game(ctx))
         .or(attend_game(ctx))
+        .or(leave_game(ctx))
         .or(get_game(ctx));
     let player_route = get_player(ctx).or(edit_player(ctx));
     let api_route = warp::path("api").and(game_route.or(player_route));

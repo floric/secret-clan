@@ -28,8 +28,31 @@ impl Game {
         &self.token
     }
 
+    pub fn player_ids(&self) -> &BTreeSet<String> {
+        &self.player_ids
+    }
+
+    pub fn admin_id(&self) -> &str {
+        &self.admin_id
+    }
+
     pub fn add_player(&mut self, player_id: &str) {
         self.player_ids.insert(String::from(player_id));
+    }
+
+    pub fn remove_player(&mut self, player_id: &str) {
+        if player_id == self.admin_id {
+            // try to make next player to new admin
+            match self.player_ids.iter().next() {
+                Some(new_admin_id) => {
+                    self.admin_id = String::from(new_admin_id);
+                    self.player_ids.remove(&self.admin_id);
+                }
+                None => {}
+            }
+        } else if self.player_ids.contains(player_id) {
+            self.player_ids.remove(player_id);
+        }
     }
 }
 

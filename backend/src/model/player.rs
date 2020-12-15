@@ -51,6 +51,14 @@ impl Player {
     pub fn update_token(&mut self, new_token: &str) {
         self.user_token = String::from(new_token);
     }
+
+    pub fn heartbeat(&mut self) {
+        self.last_action_time = Utc::now();
+    }
+
+    pub fn last_action_time(&self) -> DateTime<Utc> {
+        self.last_action_time
+    }
 }
 
 impl Persist for Player {
