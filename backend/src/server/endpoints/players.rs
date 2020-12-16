@@ -12,6 +12,7 @@ pub fn get_player(
     ctx: &'static AppContext,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path(PLAYERS_PATH)
+        .and(warp::get())
         .and(warp::path!(String))
         .map(move |id: String| get_player_filter(&id, ctx))
 }
@@ -62,29 +63,32 @@ fn edit_player_filter(
     authorization: &str,
     ctx: &AppContext,
 ) -> impl warp::Reply {
-    match verify_jwt_token(&authorization, &ctx.config().auth_secret) {
-        Ok(token) => match token.claims().get("sub") {
-            Some(token_id) => {
-                if id == token_id {
-                    return match get_player_by_id(ctx, id) {
+    verify_jwt_token(&authorization, &ctx.config().auth_secret)
+        .ok()
+        .and_then(|token| {
+            token
+                .claims()
+                .get("sub")
+                .map(String::from)
+                .filter(|token_id| token_id == id)
+                .and_then(|token_id| {
+                    return match get_player_by_id(ctx, &token_id) {
                         Some(mut player) => {
                             player.set_name(&input.name);
                             ctx.repos()
                                 .players()
                                 .persist(&player)
                                 .expect("editing player failed");
-                            warp::reply::with_status(warp::reply::json(&player), StatusCode::OK)
+                            Some(player)
                         }
-                        None => reply_with_error(StatusCode::INTERNAL_SERVER_ERROR),
+                        None => None,
                     };
-                }
-
-                reply_with_error(StatusCode::UNAUTHORIZED)
-            }
-            None => reply_with_error(StatusCode::UNAUTHORIZED),
-        },
-        Err(_) => reply_with_error(StatusCode::UNAUTHORIZED),
-    }
+                })
+        })
+        .map_or_else(
+            || reply_with_error(StatusCode::UNAUTHORIZED),
+            |player| warp::reply::with_status(warp::reply::json(&player), StatusCode::OK),
+        )
 }
 
 fn get_player_by_id(ctx: &AppContext, id: &str) -> Option<Player> {
@@ -93,10 +97,13 @@ fn get_player_by_id(ctx: &AppContext, id: &str) -> Option<Player> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{model::player::Player, server::app_context::AppContext};
+    use crate::{
+        model::player::Player,
+        server::{app_context::AppContext, auth::generate_jwt_token},
+    };
     use warp::{hyper::StatusCode, Reply};
 
-    use super::get_player_filter;
+    use super::{edit_player_filter, get_player_filter, EditPlayerInput};
 
     fn init_ctx() -> AppContext {
         AppContext::init()
@@ -112,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn should_get_unknown_player() {
+    fn should_get_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");
@@ -125,5 +132,66 @@ mod tests {
         let reply = get_player_filter(&player_id, &ctx);
 
         assert_eq!(reply.into_response().status(), StatusCode::OK);
+    }
+
+    #[test]
+    fn should_edit_player() {
+        let ctx = init_ctx();
+
+        let player = Player::new("game");
+        let player_id = String::from(player.id());
+        ctx.repos()
+            .players()
+            .persist(&player)
+            .expect("Writing player failed");
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        let reply = edit_player_filter(
+            &player_id,
+            &EditPlayerInput {
+                name: String::from("new name"),
+            },
+            &token,
+            &ctx,
+        );
+
+        let updated_player = ctx
+            .repos()
+            .players()
+            .find_by_id(player.id())
+            .expect("Reading player failed");
+
+        assert_eq!(reply.into_response().status(), StatusCode::OK);
+        assert_eq!(updated_player.name(), "new name");
+    }
+
+    #[test]
+    fn should_not_edit_other_player() {
+        let ctx = init_ctx();
+
+        let player = Player::new("game");
+        ctx.repos()
+            .players()
+            .persist(&player)
+            .expect("Writing player failed");
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        let reply = edit_player_filter(
+            "other",
+            &EditPlayerInput {
+                name: String::from("new name"),
+            },
+            &token,
+            &ctx,
+        );
+
+        let updated_player = ctx
+            .repos()
+            .players()
+            .find_by_id(player.id())
+            .expect("Reading player failed");
+
+        assert_eq!(reply.into_response().status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(updated_player.name(), player.name());
     }
 }

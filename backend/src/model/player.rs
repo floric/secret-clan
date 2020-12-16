@@ -41,7 +41,9 @@ impl Player {
     }
 
     pub fn set_name(&mut self, name: &str) {
-        self.name = String::from(name);
+        if !name.is_empty() {
+            self.name = String::from(name);
+        }
     }
 
     pub fn game_token(&self) -> &str {

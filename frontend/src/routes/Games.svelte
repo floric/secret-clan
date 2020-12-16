@@ -10,6 +10,7 @@
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { saveToken } from "../utils/auth";
+  import TextInput from "../components/inputs/TextInput.svelte";
 
   let inputToken = "";
   let inputName = "";
@@ -62,15 +63,11 @@
 
   <form on:submit|preventDefault={attendGame}>
     <div class="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
-      <input
-        id="token"
-        name="token"
-        placeholder="Token"
-        bind:value={inputToken}
-        class="text-sm sm:text-base placeholder-gray-500 rounded-lg border border-gray-400 w-full py-2 px-3 focus:outline-none focus:border-blue-400" />
+      <TextInput id="token" placeholder="Token" bind:value={inputToken} />
+      <PrimaryButton>Attend</PrimaryButton>
     </div>
     <ActionRow>
-      <PrimaryButton>Attend</PrimaryButton>
+      <div />
       <InternalLink href="/">Back to Start</InternalLink>
     </ActionRow>
   </form>

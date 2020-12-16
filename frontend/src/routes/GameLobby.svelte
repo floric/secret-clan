@@ -8,26 +8,23 @@
   import type { PublicPlayer } from "../types/Player";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import ActionRow from "../components/buttons/ActionRow.svelte";
-  import { getToken } from "../utils/auth";
+  import { getClaims, getToken } from "../utils/auth";
+  import TextInput from "../components/inputs/TextInput.svelte";
+  import Label from "../components/inputs/Label.svelte";
 
   export let params: { token?: string } = {};
 
   let details: GameDetails | null = null;
   let refreshId: number | null = null;
-  const knownPlayers: Map<string, PublicPlayer> = new Map();
+  const claims = getClaims();
 
   const fetchPlayerById = async (id: string): Promise<PublicPlayer | null> => {
-    if (knownPlayers.has(id)) {
-      return knownPlayers.get(id);
-    }
     const res = await fetch(`/api/players/${id}`);
     if (!res.ok) {
       return null;
     }
 
-    const p = (await res.json()) as PublicPlayer;
-    knownPlayers.set(p.id, p);
-    return p;
+    return (await res.json()) as PublicPlayer;
   };
 
   const fetchGameByToken = async () => {
@@ -37,7 +34,8 @@
       },
     });
     if (!res.ok) {
-      return null;
+      details = null;
+      return;
     }
 
     const game = (await res.json()) as Game;
@@ -72,7 +70,23 @@
     await fetchGameByToken();
     refreshId = setInterval(() => {
       fetchGameByToken();
-    }, 1000);
+    }, 3000);
+  };
+
+  const onChangeName = async (ev: any) => {
+    const name = ev?.target?.value;
+    if (!name) {
+      return;
+    }
+
+    await fetch(`/api/players/${claims.sub}`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name }),
+      method: "POST",
+    });
   };
 </script>
 
@@ -88,16 +102,20 @@
       <p>Loading game</p>
     {:then _}
       {#if details !== null}
-        <div class="grid md:grid-cols-3 grid-cols-1 gap-8">
+        <div class="grid md:grid-cols-3 grid-cols-1 gap-8 mb-8">
           <div class="md:col-span-2">
-            <p class="mb-4">Hier ist viel zu tun:</p>
-            <ul class="ml-6 list-disc mb-6">
-              <li>Spieleinstellungen</li>
-              <li>Fancy UI</li>
-            </ul>
+            <h4 class="font-bold mb-4">Settings</h4>
+            <div class="max-w-xs">
+              <Label target="name">Name</Label>
+              <TextInput
+                id="name"
+                placeholder="Name"
+                value={claims.name}
+                on:change={onChangeName} />
+            </div>
           </div>
           <div>
-            <h4 class="font-bold">Players</h4>
+            <h4 class="font-bold mb-4">Players</h4>
             <ul>
               <li>
                 {details.participants.admin.name}
