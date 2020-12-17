@@ -41,6 +41,11 @@ impl<T: Persist> Repository<T> {
         self.flush().map_err(|e| e.to_string()).map(|_| true)
     }
 
+    pub fn remove(&self, elem: &T) -> Result<bool, String> {
+        self.db.remove(elem.id()).expect("Removing item failed");
+        self.flush().map_err(|e| e.to_string()).map(|_| true)
+    }
+
     pub fn find_by_id(&self, id: &str) -> Option<T> {
         let success = self.db.get(id);
         match success {
@@ -100,6 +105,29 @@ mod tests {
         let res = ctx.repos().games().find_by_id(&game_id);
 
         assert!(res.is_some());
+    }
+
+    #[test]
+    fn should_remove_game() {
+        let ctx = init_ctx();
+        let game = Game::new("admin", "token");
+        ctx.repos()
+            .games()
+            .persist(&game)
+            .expect("Game persist failed");
+
+        let persisted_game = ctx.repos().games().find_by_id(&game.id());
+        assert!(persisted_game.is_some());
+
+        let res = ctx
+            .repos()
+            .games()
+            .remove(&game)
+            .expect("Removing game failed");
+        assert!(res);
+
+        let removed_game = ctx.repos().games().find_by_id(&game.id());
+        assert!(removed_game.is_none());
     }
 
     #[test]

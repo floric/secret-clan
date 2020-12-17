@@ -1,5 +1,5 @@
 <script lang="typescript">
-    export let target = "";
+    export let target: string;
 </script>
 
-<label for={target} class="font-bold"><slot /></label>
+<label for={target} class="font-bold text-xs"><slot /></label>

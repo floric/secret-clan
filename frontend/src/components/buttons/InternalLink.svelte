@@ -1,7 +1,7 @@
 <script lang="typescript">
   import { link } from "svelte-spa-router";
 
-  export let href = "";
+  export let href: string;
 </script>
 
 <a

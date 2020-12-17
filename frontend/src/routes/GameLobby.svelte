@@ -94,10 +94,13 @@
   <DialogHeader>Lobby</DialogHeader>
   <div class="mb-8 flex items-center">
     <div>Token</div>
-    <div class="font-extrabold px-4 py-2">{params.token.toUpperCase()}</div>
+    <div
+      class="font-extrabold mx-4 px-3 py-2 rounded-md bg-gray-200 border-black">
+      {params.token.toUpperCase()}
+    </div>
   </div>
 
-  <div class="mb-4">
+  <div>
     {#await fetchGamePeriodically()}
       <p>Loading game</p>
     {:then _}
@@ -106,7 +109,7 @@
           <div class="md:col-span-2">
             <h4 class="font-bold mb-4">Settings</h4>
             <div class="max-w-xs">
-              <Label target="name">Name</Label>
+              <Label target="name">Your Name</Label>
               <TextInput
                 id="name"
                 placeholder="Name"

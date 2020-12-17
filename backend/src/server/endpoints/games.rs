@@ -99,7 +99,8 @@ fn get_game_filter(game_token: &str, authorization: &str, ctx: &AppContext) -> i
                             .find_by_id(&token)
                             .filter(|player| {
                                 game.player_ids().contains(player.id())
-                                    || game.admin_id() == player.id()
+                                    || game.admin_id().is_some()
+                                        && game.admin_id().as_ref().unwrap() == player.id()
                             })
                             .map_or_else(
                                 || reply_with_error(StatusCode::NOT_FOUND),
@@ -175,9 +176,15 @@ fn leave_game_filter(game_token: &str, authorization: &str, ctx: &AppContext) ->
                 || reply_with_error(StatusCode::UNAUTHORIZED),
                 |token_id| {
                     game.remove_player(&token_id);
-                    match ctx.repos().games().persist(&game) {
-                        Ok(_) => reply_with_error(StatusCode::OK),
-                        Err(_) => reply_with_error(StatusCode::INTERNAL_SERVER_ERROR),
+                    match game.admin_id() {
+                        Some(_) => match ctx.repos().games().persist(&game) {
+                            Ok(_) => reply_with_error(StatusCode::OK),
+                            Err(_) => reply_with_error(StatusCode::INTERNAL_SERVER_ERROR),
+                        },
+                        None => match ctx.repos().games().remove(&game) {
+                            Ok(_) => reply_with_error(StatusCode::OK),
+                            Err(_) => reply_with_error(StatusCode::INTERNAL_SERVER_ERROR),
+                        },
                     }
                 },
             ),
@@ -396,7 +403,7 @@ mod tests {
             .persist(&game)
             .expect("Writing game failed");
 
-        assert_eq!(game.admin_id(), admin.id());
+        assert_eq!(game.admin_id().as_ref().unwrap(), admin.id());
 
         let reply = leave_game_filter(GAME_TOKEN, &token, &ctx);
 
@@ -408,6 +415,6 @@ mod tests {
             .find_by_id(GAME_TOKEN)
             .expect("Couldnt find game");
         assert!(updated_game.player_ids().is_empty());
-        assert_eq!(updated_game.admin_id(), player.id());
+        assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());
     }
 }

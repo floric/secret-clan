@@ -1,7 +1,7 @@
 <script lang="typescript">
-    export let id = "";
-    export let value = "";
-    export let placeholder = "";
+    export let id: string;
+    export let value: string;
+    export let placeholder: string;
 </script>
 
 <input
@@ -9,4 +9,4 @@
     {placeholder}
     on:change
     bind:value
-    class="text-sm sm:text-base placeholder-gray-500 rounded-lg border border-gray-400 w-full py-2 px-3 focus:outline-none focus:border-blue-400" />
+    class="text-sm sm:text-base placeholder-gray-500 rounded-lg border border-gray-400 w-full p-2 focus:outline-none focus:border-blue-400" />
