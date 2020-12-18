@@ -5,7 +5,7 @@ use std::{thread, time::Duration};
 
 use self::housekeeping::{cleanup_games, cleanup_players};
 
-const JOB_INTERVAL: u32 = 30;
+const JOB_INTERVAL: u32 = 60;
 
 pub fn init_jobs() {
     tokio::spawn(async {

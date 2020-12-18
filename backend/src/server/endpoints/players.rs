@@ -1,98 +1,57 @@
-use crate::{
-    model::player::Player,
-    server::{app_context::AppContext, auth::verify_jwt_token, errors::reply_with_error},
-};
+use std::convert::Infallible;
+
+use crate::server::{app_context::AppContext, auth::extract_verified_id, errors::reply_with_error};
 use serde::{Deserialize, Serialize};
-use warp::{hyper::StatusCode, Filter};
+use warp::hyper::StatusCode;
 
-const PLAYERS_PATH: &str = "players";
-
-// GET /api/players/:id
-pub fn get_player(
-    ctx: &'static AppContext,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path(PLAYERS_PATH)
-        .and(warp::get())
-        .and(warp::path!(String))
-        .map(move |id: String| get_player_filter(&id, ctx))
-}
-
-#[derive(Deserialize)]
-struct EditPlayerInput {
-    name: String,
-}
-
-// POST /api/players/:id
-pub fn edit_player(
-    ctx: &'static AppContext,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path(PLAYERS_PATH)
-        .and(warp::post())
-        .and(warp::path!(String))
-        .and(warp::body::json())
-        .and(warp::header("Authorization"))
-        .map(
-            move |id: String, input: EditPlayerInput, authorization: String| {
-                edit_player_filter(&id, &input, &authorization, ctx)
-            },
-        )
-}
-
-fn get_player_filter(id: &str, ctx: &AppContext) -> impl warp::Reply {
+pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::Reply, Infallible> {
     #[derive(Serialize)]
     struct GetPlayerResponse {
         id: String,
         name: String,
     }
 
-    match get_player_by_id(ctx, &id) {
-        Some(player) => warp::reply::with_status(
+    match ctx.db().players().find_by_id(&id).await {
+        Some(player) => Ok(warp::reply::with_status(
             warp::reply::json(&GetPlayerResponse {
                 id: String::from(player.id()),
                 name: String::from(player.name()),
             }),
             StatusCode::OK,
-        ),
-        None => reply_with_error(StatusCode::NOT_FOUND),
+        )),
+        None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
     }
 }
 
-fn edit_player_filter(
+#[derive(Deserialize)]
+pub struct EditPlayerInput {
+    name: String,
+}
+
+pub async fn edit_player_filter(
     id: &str,
     input: &EditPlayerInput,
     authorization: &str,
     ctx: &AppContext,
-) -> impl warp::Reply {
-    verify_jwt_token(&authorization, &ctx.config().auth_secret)
-        .ok()
-        .and_then(|token| {
-            token
-                .claims()
-                .get("sub")
-                .map(String::from)
-                .filter(|token_id| token_id == id)
-                .and_then(|token_id| {
-                    return match get_player_by_id(ctx, &token_id) {
-                        Some(mut player) => {
-                            player.set_name(&input.name);
-                            ctx.repos()
-                                .players()
-                                .persist(&player)
-                                .expect("editing player failed");
-                            Some(player)
-                        }
-                        None => None,
-                    };
-                })
-        })
-        .map_or_else(
-            || reply_with_error(StatusCode::UNAUTHORIZED),
-            |player| warp::reply::with_status(warp::reply::json(&player), StatusCode::OK),
-        )
-}
-
-fn get_player_by_id(ctx: &AppContext, id: &str) -> Option<Player> {
-    ctx.repos().players().find_by_id(&id)
+) -> Result<impl warp::Reply, Infallible> {
+    match extract_verified_id(authorization, ctx).filter(|token_id| token_id == id) {
+        Some(player_id) => match ctx.db().players().find_by_id(&player_id).await {
+            Some(mut player) => {
+                player.set_name(&input.name);
+                ctx.db()
+                    .players()
+                    .persist(&player)
+                    .await
+                    .expect("editing player failed");
+                Ok(warp::reply::with_status(
+                    warp::reply::json(&player),
+                    StatusCode::OK,
+                ))
+            }
+            None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+        },
+        None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+    }
 }
 
 #[cfg(test)]
@@ -109,40 +68,45 @@ mod tests {
         AppContext::init()
     }
 
-    #[test]
-    fn should_not_get_unknown_player() {
+    #[tokio::test]
+    async fn should_not_get_unknown_player() {
         let ctx = init_ctx();
 
-        let reply = get_player_filter("unknown", &ctx);
+        let reply = get_player_filter("unknown", &ctx).await;
 
-        assert_eq!(reply.into_response().status(), StatusCode::NOT_FOUND);
+        assert_eq!(
+            reply.unwrap().into_response().status(),
+            StatusCode::NOT_FOUND
+        );
     }
 
-    #[test]
-    fn should_get_player() {
+    #[tokio::test]
+    async fn should_get_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");
         let player_id = String::from(player.id());
-        ctx.repos()
+        ctx.db()
             .players()
             .persist(&player)
+            .await
             .expect("Writing player failed");
 
-        let reply = get_player_filter(&player_id, &ctx);
+        let reply = get_player_filter(&player_id, &ctx).await;
 
-        assert_eq!(reply.into_response().status(), StatusCode::OK);
+        assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
     }
 
-    #[test]
-    fn should_edit_player() {
+    #[tokio::test]
+    async fn should_edit_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");
         let player_id = String::from(player.id());
-        ctx.repos()
+        ctx.db()
             .players()
             .persist(&player)
+            .await
             .expect("Writing player failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
 
@@ -153,26 +117,29 @@ mod tests {
             },
             &token,
             &ctx,
-        );
+        )
+        .await;
 
         let updated_player = ctx
-            .repos()
+            .db()
             .players()
             .find_by_id(player.id())
+            .await
             .expect("Reading player failed");
 
-        assert_eq!(reply.into_response().status(), StatusCode::OK);
+        assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
         assert_eq!(updated_player.name(), "new name");
     }
 
-    #[test]
-    fn should_not_edit_other_player() {
+    #[tokio::test]
+    async fn should_not_edit_other_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");
-        ctx.repos()
+        ctx.db()
             .players()
             .persist(&player)
+            .await
             .expect("Writing player failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
 
@@ -183,15 +150,20 @@ mod tests {
             },
             &token,
             &ctx,
-        );
+        )
+        .await;
 
         let updated_player = ctx
-            .repos()
+            .db()
             .players()
             .find_by_id(player.id())
+            .await
             .expect("Reading player failed");
 
-        assert_eq!(reply.into_response().status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            reply.unwrap().into_response().status(),
+            StatusCode::UNAUTHORIZED
+        );
         assert_eq!(updated_player.name(), player.name());
     }
 }

@@ -1,50 +1,62 @@
+use super::logger::init_logger;
 use crate::{
     config::AppConfig,
+    db::{Client, Database},
     model::{game::Game, player::Player},
-    persistence::Repository,
 };
 use envconfig::Envconfig;
 
-use super::logger::init_logger;
-
-pub struct Repositories {
-    games: Repository<Game>,
-    players: Repository<Player>,
+pub struct DbClients {
+    games: Client<Game>,
+    players: Client<Player>,
 }
 
-impl Repositories {
-    pub fn init() -> Repositories {
-        Repositories {
-            games: Repository::init("games"),
-            players: Repository::init("players"),
+impl DbClients {
+    pub fn init() -> DbClients {
+        let mut games_repo = Database::init("games");
+        let games_sender = games_repo.sender();
+        tokio::spawn(async move {
+            games_repo.start_listening().await;
+        });
+        let mut players_repo = Database::init("players");
+        let players_sender = players_repo.sender();
+        tokio::spawn(async move {
+            players_repo.start_listening().await;
+        });
+
+        DbClients {
+            games: Client::new(games_sender),
+            players: Client::new(players_sender),
         }
     }
 
-    pub fn games(&self) -> &Repository<Game> {
+    pub fn games(&self) -> &Client<Game> {
         &self.games
     }
 
-    pub fn players(&self) -> &Repository<Player> {
+    pub fn players(&self) -> &Client<Player> {
         &self.players
     }
 }
 
 pub struct AppContext {
-    repos: Repositories,
+    db: DbClients,
     config: AppConfig,
 }
 
 impl AppContext {
     pub fn init() -> AppContext {
         let config = AppConfig::init_from_env().expect("Loading server config failed");
-        init_logger(&config);
-        let repos = Repositories::init();
 
-        AppContext { repos, config }
+        init_logger(&config);
+
+        let db = DbClients::init();
+
+        AppContext { db, config }
     }
 
-    pub fn repos(&self) -> &Repositories {
-        &self.repos
+    pub fn db(&self) -> &DbClients {
+        &self.db
     }
 
     pub fn config(&self) -> &AppConfig {

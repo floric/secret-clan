@@ -8,11 +8,12 @@ version = "0.1.0"
 [dependencies]
 bincode = "1.3"
 chrono = {version = "0.4", features = ["serde"]}
-clokwerk = "0.3.4"
+clokwerk = "0.3"
 crypto-mac = "0.9"
 dirs = "3.0"
 envconfig = "0.9"
 flexi_logger = "0.16"
+futures = "0.3"
 hmac = "0.9"
 jwt = "0.11"
 log = "0.4"

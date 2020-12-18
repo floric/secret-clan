@@ -1,4 +1,4 @@
-use crate::persistence::Persist;
+use crate::db::Persist;
 use chrono::{DateTime, Utc};
 use names::Generator;
 use nanoid::nanoid;
@@ -10,7 +10,7 @@ fn generate_random_name() -> String {
     Generator::default().next().unwrap()
 }
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct Player {
     id: String,
     name: String,
