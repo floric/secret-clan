@@ -2,30 +2,30 @@ use super::logger::init_logger;
 use crate::{
     config::AppConfig,
     model::{game::Game, player::Player},
-    persistence::{AsyncRepository, Command, Repository},
+    persistence::{AsyncRepository, Command},
 };
 use envconfig::Envconfig;
 use tokio::sync::mpsc;
 
 pub struct Repositories {
-    games_async: mpsc::Sender<Command<Game>>,
-    players: Repository<Player>,
+    games: mpsc::Sender<Command<Game>>,
+    players: mpsc::Sender<Command<Player>>,
 }
 
 impl Repositories {
-    pub fn init(games_async: mpsc::Sender<Command<Game>>) -> Repositories {
-        Repositories {
-            games_async,
-            players: Repository::init("players"),
-        }
+    pub fn init(
+        games: mpsc::Sender<Command<Game>>,
+        players: mpsc::Sender<Command<Player>>,
+    ) -> Repositories {
+        Repositories { games, players }
     }
 
-    pub fn games_async(&self) -> mpsc::Sender<Command<Game>> {
-        self.games_async.clone()
+    pub fn games(&self) -> mpsc::Sender<Command<Game>> {
+        self.games.clone()
     }
 
-    pub fn players(&self) -> &Repository<Player> {
-        &self.players
+    pub fn players(&self) -> mpsc::Sender<Command<Player>> {
+        self.players.clone()
     }
 }
 
@@ -40,12 +40,17 @@ impl AppContext {
         init_logger(&config);
 
         let mut games_repo = AsyncRepository::init("games");
-        let games_async = games_repo.sender();
+        let games = games_repo.sender();
         tokio::spawn(async move {
             games_repo.start_listening().await;
         });
+        let mut players_repo = AsyncRepository::init("players");
+        let players = players_repo.sender();
+        tokio::spawn(async move {
+            players_repo.start_listening().await;
+        });
 
-        let repos = Repositories::init(games_async);
+        let repos = Repositories::init(games, players);
 
         AppContext { repos, config }
     }

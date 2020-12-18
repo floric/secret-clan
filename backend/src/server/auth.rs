@@ -39,10 +39,8 @@ fn init_key(secret: &str) -> Hmac<Sha256> {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::player::Player;
-    use crate::server::app_context::AppContext;
-
     use super::{generate_jwt_token, verify_jwt_token};
+    use crate::model::player::Player;
 
     const SECRET: &str = "super-secret";
 

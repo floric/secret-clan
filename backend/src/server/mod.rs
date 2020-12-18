@@ -11,11 +11,10 @@ use self::{
             attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
             leave_game_filter,
         },
-        players::get_player,
+        players::{edit_player_filter, get_player_filter, EditPlayerInput},
     },
     errors::handle_rejection,
 };
-use endpoints::players::edit_player;
 use log::warn;
 use std::fs;
 use warp::Filter;
@@ -72,7 +71,22 @@ pub async fn run_server(ctx: &'static AppContext) {
             .and_then(move |token: String, authorization: String| async move {
                 get_game_filter(&token, &authorization, ctx).await
             }));
-    let player_route = get_player(ctx).or(edit_player(ctx));
+
+    const PLAYERS_PATH: &str = "players";
+    let player_route = warp::path(PLAYERS_PATH)
+        .and(warp::get())
+        .and(warp::path!(String))
+        .and_then(move |id: String| async move { get_player_filter(&id, ctx).await })
+        .or(warp::path(PLAYERS_PATH)
+            .and(warp::post())
+            .and(warp::path!(String))
+            .and(warp::body::json())
+            .and(warp::header("Authorization"))
+            .and_then(
+                move |id: String, input: EditPlayerInput, authorization: String| async move {
+                    edit_player_filter(&id, &input, &authorization, ctx).await
+                },
+            ));
     let api_route = warp::path("api").and(game_route.or(player_route));
 
     let static_route = warp::path("static").and(warp::fs::dir(static_path));
