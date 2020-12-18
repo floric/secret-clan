@@ -6,10 +6,11 @@ mod logger;
 
 use self::{
     app_context::AppContext,
-    endpoints::games::get_game,
-    endpoints::games::get_games_count,
     endpoints::{
-        games::{attend_game, create_game, leave_game},
+        games::{
+            attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
+            leave_game_filter,
+        },
         players::get_player,
     },
     errors::handle_rejection,
@@ -41,11 +42,36 @@ pub async fn run_server(ctx: &'static AppContext) {
         static_path = format!("{}/static/", PUBLIC_PATH);
     }
 
-    let game_route = get_games_count(ctx)
-        .or(create_game(ctx))
-        .or(attend_game(ctx))
-        .or(leave_game(ctx))
-        .or(get_game(ctx));
+    const GAMES_PATH: &str = "games";
+    let game_route = warp::path(GAMES_PATH)
+        .and(warp::get())
+        .and(warp::path::end())
+        .and_then(move || async move { get_games_count_filter(ctx).await })
+        .or(warp::path(GAMES_PATH)
+            .and(warp::put())
+            .and_then(move || async move { create_game_filter(ctx).await }))
+        .or(warp::path(GAMES_PATH)
+            .and(warp::post())
+            .and(warp::path!(String / "attend"))
+            .and_then(move |game_token: String| async move {
+                attend_game_filter(&game_token, ctx).await
+            }))
+        .or(warp::path(GAMES_PATH)
+            .and(warp::post())
+            .and(warp::path!(String / "leave"))
+            .and(warp::header("Authorization"))
+            .and_then(
+                move |game_token: String, authorization: String| async move {
+                    leave_game_filter(&game_token, &authorization, ctx).await
+                },
+            ))
+        .or(warp::path(GAMES_PATH)
+            .and(warp::get())
+            .and(warp::path!(String))
+            .and(warp::header("Authorization"))
+            .and_then(move |token: String, authorization: String| async move {
+                get_game_filter(&token, &authorization, ctx).await
+            }));
     let player_route = get_player(ctx).or(edit_player(ctx));
     let api_route = warp::path("api").and(game_route.or(player_route));
 

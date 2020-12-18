@@ -1,13 +1,16 @@
 use crate::{
     config::AppConfig,
     model::{game::Game, player::Player},
-    persistence::Repository,
+    persistence::{AsyncRepository, Command, Repository},
 };
 use envconfig::Envconfig;
+use tokio::sync::mpsc;
 
 use super::logger::init_logger;
 
 pub struct Repositories {
+    games_async: AsyncRepository<Game>,
+    players_async: AsyncRepository<Player>,
     games: Repository<Game>,
     players: Repository<Player>,
 }
@@ -15,9 +18,19 @@ pub struct Repositories {
 impl Repositories {
     pub fn init() -> Repositories {
         Repositories {
+            games_async: AsyncRepository::init("games"),
+            players_async: AsyncRepository::init("players"),
             games: Repository::init("games"),
             players: Repository::init("players"),
         }
+    }
+
+    pub fn games_async(&self) -> mpsc::Sender<Command<Game>> {
+        self.games_async.sender()
+    }
+
+    pub fn players_async(&self) -> mpsc::Sender<Command<Player>> {
+        self.players_async.sender()
     }
 
     pub fn games(&self) -> &Repository<Game> {

@@ -72,23 +72,19 @@ impl<T: Persist> Repository<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::thread;
+    use super::Repository;
+    use crate::model::game::Game;
+    use crate::persistence::Persist;
 
-    use crate::{model::game::Game, server::app_context::AppContext};
-    use crate::{model::player::Player, persistence::Persist};
-    use nanoid::nanoid;
-
-    fn init_ctx() -> AppContext {
-        AppContext::init()
+    fn init_ctx() -> Repository<Game> {
+        Repository::init("games")
     }
 
     #[test]
     fn should_persist_game() {
         let ctx = init_ctx();
 
-        ctx.repos()
-            .games()
-            .persist(&Game::new("admin", "token"))
+        ctx.persist(&Game::new("admin", "token"))
             .expect("Game persist failed");
     }
 
@@ -97,12 +93,9 @@ mod tests {
         let ctx = init_ctx();
         let game = Game::new("admin", "token");
         let game_id = String::from(game.id());
-        ctx.repos()
-            .games()
-            .persist(&game)
-            .expect("Game persist failed");
+        ctx.persist(&game).expect("Game persist failed");
 
-        let res = ctx.repos().games().find_by_id(&game_id);
+        let res = ctx.find_by_id(&game_id);
 
         assert!(res.is_some());
     }
@@ -111,29 +104,22 @@ mod tests {
     fn should_remove_game() {
         let ctx = init_ctx();
         let game = Game::new("admin", "token");
-        ctx.repos()
-            .games()
-            .persist(&game)
-            .expect("Game persist failed");
+        ctx.persist(&game).expect("Game persist failed");
 
-        let persisted_game = ctx.repos().games().find_by_id(&game.id());
+        let persisted_game = ctx.find_by_id(&game.id());
         assert!(persisted_game.is_some());
 
-        let res = ctx
-            .repos()
-            .games()
-            .remove(&game)
-            .expect("Removing game failed");
+        let res = ctx.remove(&game).expect("Removing game failed");
         assert!(res);
 
-        let removed_game = ctx.repos().games().find_by_id(&game.id());
+        let removed_game = ctx.find_by_id(&game.id());
         assert!(removed_game.is_none());
     }
 
     #[test]
     fn should_not_find_game() {
         let ctx = init_ctx();
-        let res = ctx.repos().games().find_by_id("unknown");
+        let res = ctx.find_by_id("unknown");
 
         assert!(res.is_none());
     }
@@ -141,45 +127,13 @@ mod tests {
     #[test]
     fn should_purge_games() {
         let ctx = init_ctx();
-        ctx.repos()
-            .games()
-            .persist(&Game::new("admin", "token"))
+        ctx.persist(&Game::new("admin", "token"))
             .expect("Game persist failed");
 
-        assert_eq!(ctx.repos().games().total_count(), 1);
+        assert_eq!(ctx.total_count(), 1);
 
-        ctx.repos()
-            .games()
-            .purge_data()
-            .expect("Cleanup has failed");
+        ctx.purge_data().expect("Cleanup has failed");
 
-        assert_eq!(ctx.repos().games().total_count(), 0);
-    }
-
-    #[test]
-    fn should_create_entities_concurrently() {
-        let ctx: &'static AppContext = Box::leak(Box::new(AppContext::init()));
-
-        let mut threads = vec![];
-
-        for _ in 0..1000 {
-            threads.push(thread::spawn(move || {
-                &ctx.repos()
-                    .games()
-                    .persist(&Game::new("admin", &nanoid!()))
-                    .expect("Game persist failed");
-                &ctx.repos()
-                    .players()
-                    .persist(&Player::new(&nanoid!()))
-                    .expect("Game persist failed");
-            }));
-        }
-
-        for t in threads {
-            let _ = t.join();
-        }
-
-        assert_eq!(ctx.repos().games().total_count(), 1000);
-        assert_eq!(ctx.repos().players().total_count(), 1000);
+        assert_eq!(ctx.total_count(), 0);
     }
 }
