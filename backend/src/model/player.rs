@@ -1,4 +1,4 @@
-use crate::persistence::Persist;
+use crate::db::Persist;
 use chrono::{DateTime, Utc};
 use names::Generator;
 use nanoid::nanoid;

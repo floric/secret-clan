@@ -4,8 +4,6 @@ use crate::server::{app_context::AppContext, auth::verify_jwt_token, errors::rep
 use serde::{Deserialize, Serialize};
 use warp::hyper::StatusCode;
 
-use super::games::{get_player_by_id, persist_player};
-
 // GET /api/players/:id
 pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::Reply, Infallible> {
     #[derive(Serialize)]
@@ -14,7 +12,7 @@ pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::
         name: String,
     }
 
-    match get_player_by_id(ctx, &id).await {
+    match ctx.db().players().find_by_id(&id).await {
         Some(player) => Ok(warp::reply::with_status(
             warp::reply::json(&GetPlayerResponse {
                 id: String::from(player.id()),
@@ -26,12 +24,12 @@ pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::
     }
 }
 
+// POST /api/players/:id
 #[derive(Deserialize)]
 pub struct EditPlayerInput {
     name: String,
 }
 
-// POST /api/players/:id
 pub async fn edit_player_filter(
     id: &str,
     input: &EditPlayerInput,
@@ -47,10 +45,12 @@ pub async fn edit_player_filter(
                 .map(String::from)
                 .filter(|token_id| token_id == id)
         }) {
-        Some(player_id) => match get_player_by_id(ctx, &player_id).await {
+        Some(player_id) => match ctx.db().players().find_by_id(&player_id).await {
             Some(mut player) => {
                 player.set_name(&input.name);
-                persist_player(ctx, &player)
+                ctx.db()
+                    .players()
+                    .persist(&player)
                     .await
                     .expect("editing player failed");
                 Ok(warp::reply::with_status(
@@ -68,11 +68,7 @@ pub async fn edit_player_filter(
 mod tests {
     use crate::{
         model::player::Player,
-        server::{
-            app_context::AppContext,
-            auth::generate_jwt_token,
-            endpoints::games::{get_player_by_id, persist_player},
-        },
+        server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};
 
@@ -100,7 +96,9 @@ mod tests {
 
         let player = Player::new("game");
         let player_id = String::from(player.id());
-        persist_player(&ctx, &player)
+        ctx.db()
+            .players()
+            .persist(&player)
             .await
             .expect("Writing player failed");
 
@@ -115,7 +113,9 @@ mod tests {
 
         let player = Player::new("game");
         let player_id = String::from(player.id());
-        persist_player(&ctx, &player)
+        ctx.db()
+            .players()
+            .persist(&player)
             .await
             .expect("Writing player failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
@@ -130,7 +130,10 @@ mod tests {
         )
         .await;
 
-        let updated_player = get_player_by_id(&ctx, player.id())
+        let updated_player = ctx
+            .db()
+            .players()
+            .find_by_id(player.id())
             .await
             .expect("Reading player failed");
 
@@ -143,7 +146,9 @@ mod tests {
         let ctx = init_ctx();
 
         let player = Player::new("game");
-        persist_player(&ctx, &player)
+        ctx.db()
+            .players()
+            .persist(&player)
             .await
             .expect("Writing player failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
@@ -158,7 +163,10 @@ mod tests {
         )
         .await;
 
-        let updated_player = get_player_by_id(&ctx, player.id())
+        let updated_player = ctx
+            .db()
+            .players()
+            .find_by_id(player.id())
             .await
             .expect("Reading player failed");
 

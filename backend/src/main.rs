@@ -1,7 +1,7 @@
 mod config;
+mod db;
 mod jobs;
 mod model;
-mod persistence;
 mod server;
 
 use jobs::init_jobs;
