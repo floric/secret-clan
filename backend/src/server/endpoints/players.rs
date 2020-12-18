@@ -109,8 +109,8 @@ mod tests {
         AppContext::init()
     }
 
-    #[test]
-    fn should_not_get_unknown_player() {
+    #[tokio::test]
+    async fn should_not_get_unknown_player() {
         let ctx = init_ctx();
 
         let reply = get_player_filter("unknown", &ctx);
@@ -118,8 +118,8 @@ mod tests {
         assert_eq!(reply.into_response().status(), StatusCode::NOT_FOUND);
     }
 
-    #[test]
-    fn should_get_player() {
+    #[tokio::test]
+    async fn should_get_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");
@@ -134,8 +134,8 @@ mod tests {
         assert_eq!(reply.into_response().status(), StatusCode::OK);
     }
 
-    #[test]
-    fn should_edit_player() {
+    #[tokio::test]
+    async fn should_edit_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");
@@ -165,8 +165,8 @@ mod tests {
         assert_eq!(updated_player.name(), "new name");
     }
 
-    #[test]
-    fn should_not_edit_other_player() {
+    #[tokio::test]
+    async fn should_not_edit_other_player() {
         let ctx = init_ctx();
 
         let player = Player::new("game");

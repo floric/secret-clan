@@ -46,14 +46,8 @@ mod tests {
 
     const SECRET: &str = "super-secret";
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[test]
     fn should_create_token() {
-        init_ctx();
-
         let player = Player::new("game");
         let token = generate_jwt_token(&player, SECRET);
 
@@ -63,8 +57,6 @@ mod tests {
 
     #[test]
     fn should_verify_token() {
-        init_ctx();
-
         let token = verify_jwt_token("eyJhbGciOiJIUzI1NiJ9.eyJnYW1lIjoiZ2FtZSIsIm5hbWUiOiJSYW5kb20gRHVkZSIsInN1YiI6Ik1sbEo3b2VDWTRSR3cyTTZ0SUhCWiJ9.LD1Z9u9G9LFUtqweQCikRi0NQs8SVF6Ri9f3weCKCX4", "super-secret");
 
         assert_eq!(token.unwrap().claims().get("name").unwrap(), "Random Dude");
@@ -72,8 +64,6 @@ mod tests {
 
     #[test]
     fn should_create_and_verify_token() {
-        init_ctx();
-
         let player = Player::new("game");
         let token_str = generate_jwt_token(&player, SECRET);
         let token = verify_jwt_token(&token_str, SECRET);
@@ -82,8 +72,6 @@ mod tests {
 
     #[test]
     fn should_fail_to_verify_token() {
-        init_ctx();
-
         let token = verify_jwt_token("eyJhbGciOiJIUzI1NiJ9.XYZ.ABC", "super-secret");
 
         assert!(token.is_err());

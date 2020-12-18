@@ -32,8 +32,6 @@ pub enum Command<T: Persist> {
     },
 }
 
-use crate::model::game::Game;
-
 use super::Persist;
 
 pub struct AsyncRepository<T: Persist> {
@@ -75,7 +73,7 @@ impl<T: Persist> AsyncRepository<T> {
         info!("Database for \"{}\" ready", self.path);
 
         while let Some(cmd) = self.receiver.recv().await {
-            debug!("Received message");
+            debug!("Received query: {:?}", cmd);
 
             match cmd {
                 Command::Get { key, responder } => {

@@ -22,41 +22,38 @@ pub async fn get_game_filter(
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    verify_jwt_token(authorization, &ctx.config().auth_secret)
+    match verify_jwt_token(authorization, &ctx.config().auth_secret)
         .ok()
         .and_then(|token| token.claims().get("sub").map(String::from))
-        .map_or_else(
-            || Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
-            |token| {
-                get_game_by_token(ctx, game_token).map_or_else(
+    {
+        Some(token) => match get_game_by_token(ctx, game_token).await {
+            Some(game) => ctx
+                .repos()
+                .players()
+                .find_by_id(&token)
+                .filter(|player| {
+                    game.player_ids().contains(player.id())
+                        || game.admin_id().is_some()
+                            && game.admin_id().as_ref().unwrap() == player.id()
+                })
+                .map_or_else(
                     || Ok(reply_with_error(StatusCode::NOT_FOUND)),
-                    |game| {
+                    |mut player| {
+                        player.heartbeat();
                         ctx.repos()
                             .players()
-                            .find_by_id(&token)
-                            .filter(|player| {
-                                game.player_ids().contains(player.id())
-                                    || game.admin_id().is_some()
-                                        && game.admin_id().as_ref().unwrap() == player.id()
-                            })
-                            .map_or_else(
-                                || Ok(reply_with_error(StatusCode::NOT_FOUND)),
-                                |mut player| {
-                                    player.heartbeat();
-                                    ctx.repos()
-                                        .players()
-                                        .persist(&player)
-                                        .expect("Persisting heartbeat has failed");
-                                    Ok(warp::reply::with_status(
-                                        warp::reply::json(&game),
-                                        StatusCode::OK,
-                                    ))
-                                },
-                            )
+                            .persist(&player)
+                            .expect("Persisting heartbeat has failed");
+                        Ok(warp::reply::with_status(
+                            warp::reply::json(&game),
+                            StatusCode::OK,
+                        ))
                     },
-                )
-            },
-        )
+                ),
+            None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
+        },
+        None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+    }
 }
 
 // GET /api/games/
@@ -89,7 +86,7 @@ pub async fn create_game_filter(ctx: &AppContext) -> Result<impl warp::Reply, In
 
     let game_token = generate_game_token();
     let player = create_new_player(&game_token, ctx);
-    let new_game = create_new_game(player.id(), &game_token, ctx);
+    let new_game = create_new_game(player.id(), &game_token, ctx).await;
 
     #[derive(Serialize)]
     struct CreateGameReponse {
@@ -111,20 +108,18 @@ pub async fn attend_game_filter(
     game_token: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    match get_game_by_token(ctx, &game_token) {
+    match get_game_by_token(ctx, &game_token).await {
         Some(mut game) => {
             let player = create_new_player(&game_token, ctx);
 
             game.add_player(player.id());
-            ctx.repos()
-                .games()
-                .persist(&game)
-                .expect("Adding player failed");
-
-            Ok(warp::reply::with_status(
-                warp::reply::json(&player),
-                StatusCode::OK,
-            ))
+            match persist_game(ctx, &game).await {
+                Ok(_) => Ok(warp::reply::with_status(
+                    warp::reply::json(&player),
+                    StatusCode::OK,
+                )),
+                Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
+            }
         }
         None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
     }
@@ -136,35 +131,34 @@ pub async fn leave_game_filter(
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    match get_game_by_token(ctx, &game_token) {
-        Some(mut game) => verify_jwt_token(&authorization, &ctx.config().auth_secret)
+    match get_game_by_token(ctx, &game_token).await {
+        Some(mut game) => match verify_jwt_token(&authorization, &ctx.config().auth_secret)
             .map_or(None, |token| token.claims().get("sub").map(String::from))
-            .map_or_else(
-                || Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
-                |token_id| {
-                    game.remove_player(&token_id);
-                    match game.admin_id() {
-                        Some(_) => match ctx.repos().games().persist(&game) {
-                            Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                            Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                        },
-                        None => match ctx.repos().games().remove(&game) {
-                            Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                            Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                        },
-                    }
-                },
-            ),
+        {
+            Some(player_id) => {
+                game.remove_player(&player_id);
+                match game.admin_id() {
+                    Some(_) => match persist_game(ctx, &game).await {
+                        Ok(_) => Ok(reply_with_error(StatusCode::OK)),
+                        Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                    },
+                    None => match remove_game(ctx, game.token()).await {
+                        Ok(_) => Ok(reply_with_error(StatusCode::OK)),
+                        Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                    },
+                }
+            }
+            None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+        },
         None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
     }
 }
 
-fn create_new_game(admin_id: &str, token: &str, ctx: &AppContext) -> Game {
+async fn create_new_game(admin_id: &str, token: &str, ctx: &AppContext) -> Game {
     let new_game = Game::new(admin_id, token);
     let new_token = new_game.token();
-    ctx.repos()
-        .games()
-        .persist(&new_game)
+    persist_game(ctx, &new_game)
+        .await
         .expect("Creating game failed");
     debug!("Created game with token {}", new_token);
 
@@ -185,8 +179,19 @@ fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
     player
 }
 
-fn get_game_by_token(ctx: &AppContext, token: &str) -> Option<Game> {
-    ctx.repos().games().find_by_id(&token.to_uppercase())
+async fn get_game_by_token(ctx: &AppContext, token: &str) -> Option<Game> {
+    let s = ctx.repos().games_async();
+    AsyncRepository::find_by_id_async(&token.to_uppercase(), &s).await
+}
+
+async fn persist_game(ctx: &AppContext, game: &Game) -> Result<bool, String> {
+    let s = ctx.repos().games_async();
+    AsyncRepository::persist_async(game, &s).await
+}
+
+async fn remove_game(ctx: &AppContext, game_id: &str) -> Result<bool, String> {
+    let s = ctx.repos().games_async();
+    AsyncRepository::remove_async(game_id, &s).await
 }
 
 #[cfg(test)]
@@ -194,6 +199,7 @@ mod tests {
     use super::{attend_game_filter, create_game_filter, get_game_filter, leave_game_filter};
     use crate::{
         model::{game::Game, player::Player},
+        persistence::AsyncRepository,
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};
@@ -239,9 +245,9 @@ mod tests {
             .players()
             .persist(&admin)
             .expect("Writing player failed");
-        ctx.repos()
-            .games()
-            .persist(&Game::new(admin.id(), GAME_TOKEN))
+        let s = ctx.repos().games_async();
+        AsyncRepository::persist_async(&Game::new(admin.id(), GAME_TOKEN), &s)
+            .await
             .expect("Writing game failed");
 
         let token = generate_jwt_token(&admin, &ctx.config().auth_secret);
@@ -262,9 +268,9 @@ mod tests {
             .expect("Writing player failed");
         let mut game = Game::new("admin", GAME_TOKEN);
         game.add_player(player.id());
-        ctx.repos()
-            .games()
-            .persist(&game)
+        let s = ctx.repos().games_async();
+        AsyncRepository::persist_async(&game, &s)
+            .await
             .expect("Writing game failed");
 
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
@@ -286,9 +292,9 @@ mod tests {
             .persist(&admin)
             .expect("Writing admin failed");
 
-        ctx.repos()
-            .games()
-            .persist(&Game::new(admin.id(), GAME_TOKEN))
+        let s = ctx.repos().games_async();
+        AsyncRepository::persist_async(&Game::new(admin.id(), GAME_TOKEN), &s)
+            .await
             .expect("Writing game failed");
 
         let reply = get_game_filter(GAME_TOKEN, &token, &ctx).await;
@@ -328,9 +334,9 @@ mod tests {
     async fn should_attend_game() {
         let ctx = init_ctx();
 
-        ctx.repos()
-            .games()
-            .persist(&Game::new("admin", GAME_TOKEN))
+        let s = ctx.repos().games_async();
+        AsyncRepository::persist_async(&Game::new("admin", GAME_TOKEN), &s)
+            .await
             .expect("Writing game failed");
 
         let reply = attend_game_filter(GAME_TOKEN, &ctx).await;
@@ -346,21 +352,18 @@ mod tests {
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
         game.add_player(player.id());
-        ctx.repos()
-            .games()
-            .persist(&game)
-            .expect("Writing game failed");
 
+        let s = ctx.repos().games_async();
+        AsyncRepository::persist_async(&game, &s)
+            .await
+            .expect("Writing game failed");
         assert!(game.player_ids().contains(player.id()));
 
         let reply = leave_game_filter(GAME_TOKEN, &token, &ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
 
-        let updated_game = ctx
-            .repos()
-            .games()
-            .find_by_id(GAME_TOKEN)
+        let updated_game = AsyncRepository::find_by_id_async(GAME_TOKEN, &s)
+            .await
             .expect("Couldnt find game");
         assert!(!updated_game.player_ids().contains(player.id()));
     }
@@ -374,9 +377,10 @@ mod tests {
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&admin, &ctx.config().auth_secret);
         game.add_player(player.id());
-        ctx.repos()
-            .games()
-            .persist(&game)
+
+        let s = ctx.repos().games_async();
+        AsyncRepository::persist_async(&game, &s)
+            .await
             .expect("Writing game failed");
 
         assert_eq!(game.admin_id().as_ref().unwrap(), admin.id());
@@ -385,10 +389,8 @@ mod tests {
 
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
 
-        let updated_game = ctx
-            .repos()
-            .games()
-            .find_by_id(GAME_TOKEN)
+        let updated_game = AsyncRepository::find_by_id_async(GAME_TOKEN, &s)
+            .await
             .expect("Couldnt find game");
         assert!(updated_game.player_ids().is_empty());
         assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());

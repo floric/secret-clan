@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sled::IVec;
 use std::{collections::BTreeSet, convert::TryFrom, hash::Hash};
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct Game {
     token: String,
     creation_time: DateTime<Utc>,
