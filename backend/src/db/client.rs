@@ -1,5 +1,6 @@
-use std::marker::PhantomData;
+use std::{collections::HashSet, marker::PhantomData};
 
+use log::error;
 use tokio::sync::{mpsc, oneshot};
 
 use super::{Command, Persist};
@@ -17,41 +18,68 @@ impl<T: Persist> Client<T> {
         }
     }
 
-    async fn run_query<R>(&self, cmd_provider: impl Fn(oneshot::Sender<R>) -> Command<T>) -> R {
+    async fn run_query<R>(
+        &self,
+        cmd_provider: impl Fn(oneshot::Sender<R>) -> Command<T>,
+    ) -> Option<R> {
         let (tx, rx): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
         let cmd = cmd_provider(tx);
-        let _ = self.sender.clone().send(cmd).await;
-
-        let res = rx.await;
-        res.unwrap()
+        let res = self.sender.clone().send(cmd).await;
+        match res {
+            Ok(_) => match rx.await {
+                Ok(res) => Some(res),
+                Err(error) => {
+                    error!("Retrieving result has failed: {}", error.to_string());
+                    None
+                }
+            },
+            Err(error) => {
+                error!("Sending Query has failed: {}", error.to_string());
+                None
+            }
+        }
     }
 
     pub async fn find_by_id(&self, id: &str) -> Option<T> {
-        self.run_query(|tx| Command::Get {
+        self.run_query(|responder| Command::Get {
             key: String::from(id),
-            responder: tx,
+            responder,
         })
         .await
+        .expect("Reading query failed")
+    }
+
+    pub async fn scan(&self, scan_function: fn(&T) -> bool) -> HashSet<String> {
+        self.run_query(|responder| Command::Scan {
+            scan_function,
+            responder,
+        })
+        .await
+        .expect("Reading query failed")
     }
 
     pub async fn persist(&self, elem: &T) -> Result<bool, String> {
-        self.run_query(|tx| Command::Persist {
+        self.run_query(|responder| Command::Persist {
             value: elem.clone(),
-            responder: tx,
+            responder,
         })
         .await
+        .expect("Reading query failed")
     }
 
     pub async fn remove(&self, key: &str) -> Result<bool, String> {
-        self.run_query(|tx| Command::Remove {
+        self.run_query(|responder| Command::Remove {
             key: String::from(key),
-            responder: tx,
+            responder,
         })
         .await
+        .expect("Reading query failed")
     }
 
     pub async fn total_count(&self) -> usize {
-        self.run_query(|tx| Command::Count { responder: tx }).await
+        self.run_query(|responder| Command::Count { responder })
+            .await
+            .expect("Reading query failed")
     }
 }
 

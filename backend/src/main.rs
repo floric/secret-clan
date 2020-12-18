@@ -6,16 +6,25 @@ mod server;
 
 use jobs::init_jobs;
 use server::{app_context::AppContext, run_server};
+use tokio::runtime::Builder;
 
 extern crate chrono;
 extern crate envconfig;
 extern crate log;
 
-#[tokio::main]
-async fn main() {
-    let ctx: &'static AppContext = Box::leak(Box::new(AppContext::init()));
+fn main() {
+    let mut rt = Builder::new()
+        .threaded_scheduler()
+        .enable_all()
+        .thread_name("threadpool")
+        .build()
+        .expect("Creating runtime failed");
 
-    init_jobs();
+    rt.block_on(async {
+        let ctx: &'static AppContext = Box::leak(Box::new(AppContext::init()));
 
-    run_server(&ctx).await;
+        init_jobs(ctx);
+
+        run_server(&ctx).await;
+    });
 }

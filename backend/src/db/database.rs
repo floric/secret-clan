@@ -1,6 +1,7 @@
-use log::{debug, info};
+use log::info;
 use nanoid::nanoid;
 use sled::Db;
+use std::collections::HashSet;
 use tokio::sync::mpsc::{self};
 
 use super::{Command, Persist};
@@ -44,8 +45,6 @@ impl<T: Persist> Database<T> {
         info!("Database for \"{}\" ready", self.path);
 
         while let Some(cmd) = self.receiver.recv().await {
-            debug!("Received query: {:?}", cmd);
-
             match cmd {
                 Command::Get { key, responder } => {
                     let _ = responder.send(self.find_by_id(&key));
@@ -58,6 +57,26 @@ impl<T: Persist> Database<T> {
                 }
                 Command::Count { responder } => {
                     let _ = responder.send(self.total_count());
+                }
+                Command::Scan {
+                    scan_function,
+                    responder,
+                } => {
+                    let mut matching_ids = HashSet::new();
+                    let iter = self.db.iter();
+                    for x in iter {
+                        match x {
+                            Ok((_, val)) => {
+                                let val = T::try_from(val).ok().unwrap();
+                                let matches = scan_function(&val);
+                                if matches {
+                                    matching_ids.insert(String::from(val.id()));
+                                }
+                            }
+                            Err(_) => {}
+                        }
+                    }
+                    let _ = responder.send(matching_ids);
                 }
             }
         }
