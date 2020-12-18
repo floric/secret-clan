@@ -1,7 +1,7 @@
 use crate::{
     model::{game::Game, player::Player},
     server::{
-        app_context::AppContext, auth::generate_jwt_token, auth::verify_jwt_token,
+        app_context::AppContext, auth::extract_verified_id, auth::generate_jwt_token,
         errors::reply_with_error,
     },
 };
@@ -15,16 +15,12 @@ use warp::hyper::StatusCode;
 // 5 tokens mean a chance of finding a random game of 1:60466176.
 const TOKEN_CHARS_COUNT: usize = 5;
 
-// GET /api/games/:token
 pub async fn get_game_filter(
     game_token: &str,
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    match verify_jwt_token(authorization, &ctx.config().auth_secret)
-        .ok()
-        .and_then(|token| token.claims().get("sub").map(String::from))
-    {
+    match extract_verified_id(authorization, ctx) {
         Some(token) => match ctx.db().games().find_by_id(game_token).await {
             Some(game) => {
                 match ctx
@@ -58,7 +54,6 @@ pub async fn get_game_filter(
     }
 }
 
-// GET /api/games/
 pub async fn get_games_count_filter(ctx: &AppContext) -> Result<impl warp::Reply, Infallible> {
     #[derive(Serialize)]
     struct GetGamesResponse {
@@ -73,7 +68,6 @@ pub async fn get_games_count_filter(ctx: &AppContext) -> Result<impl warp::Reply
     ))
 }
 
-// PUT /api/games/
 pub async fn create_game_filter(ctx: &AppContext) -> Result<impl warp::Reply, Infallible> {
     fn generate_game_token() -> String {
         let mut rng = thread_rng();
@@ -103,7 +97,6 @@ pub async fn create_game_filter(ctx: &AppContext) -> Result<impl warp::Reply, In
     ))
 }
 
-// POST /api/games/attend
 pub async fn attend_game_filter(
     game_token: &str,
     ctx: &AppContext,
@@ -125,16 +118,13 @@ pub async fn attend_game_filter(
     }
 }
 
-// POST /api/games/leave
 pub async fn leave_game_filter(
     game_token: &str,
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
     match ctx.db().games().find_by_id(&game_token).await {
-        Some(mut game) => match verify_jwt_token(&authorization, &ctx.config().auth_secret)
-            .map_or(None, |token| token.claims().get("sub").map(String::from))
-        {
+        Some(mut game) => match extract_verified_id(authorization, ctx) {
             Some(player_id) => {
                 game.remove_player(&player_id);
                 match game.admin_id() {

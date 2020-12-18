@@ -1,10 +1,9 @@
 use std::convert::Infallible;
 
-use crate::server::{app_context::AppContext, auth::verify_jwt_token, errors::reply_with_error};
+use crate::server::{app_context::AppContext, auth::extract_verified_id, errors::reply_with_error};
 use serde::{Deserialize, Serialize};
 use warp::hyper::StatusCode;
 
-// GET /api/players/:id
 pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::Reply, Infallible> {
     #[derive(Serialize)]
     struct GetPlayerResponse {
@@ -24,7 +23,6 @@ pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::
     }
 }
 
-// POST /api/players/:id
 #[derive(Deserialize)]
 pub struct EditPlayerInput {
     name: String,
@@ -36,15 +34,7 @@ pub async fn edit_player_filter(
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    match verify_jwt_token(&authorization, &ctx.config().auth_secret)
-        .ok()
-        .and_then(|token| {
-            token
-                .claims()
-                .get("sub")
-                .map(String::from)
-                .filter(|token_id| token_id == id)
-        }) {
+    match extract_verified_id(authorization, ctx).filter(|token_id| token_id == id) {
         Some(player_id) => match ctx.db().players().find_by_id(&player_id).await {
             Some(mut player) => {
                 player.set_name(&input.name);
