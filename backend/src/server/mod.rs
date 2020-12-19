@@ -110,6 +110,7 @@ pub async fn run_server(ctx: &'static AppContext) {
         .recover(handle_rejection)
         .with(warp::log("server"));
 
-    let server = warp::serve(routes).bind(([0, 0, 0, 0], ctx.config().port));
-    let _ = tokio::spawn(server).await;
+    warp::serve(routes)
+        .run(([0, 0, 0, 0], ctx.config().port))
+        .await;
 }

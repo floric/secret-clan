@@ -24,7 +24,7 @@ pub async fn get_game_filter(
         Some(token) => match ctx
             .db()
             .games()
-            .find_by_id(game_token)
+            .get(game_token)
             .await
             .expect("Reading game has failed")
         {
@@ -32,7 +32,7 @@ pub async fn get_game_filter(
                 match ctx
                     .db()
                     .players()
-                    .find_by_id(&token)
+                    .get(&token)
                     .await
                     .expect("Reading player has failed")
                     .filter(|player| {
@@ -116,7 +116,7 @@ pub async fn attend_game_filter(
     match ctx
         .db()
         .games()
-        .find_by_id(&game_token)
+        .get(&game_token)
         .await
         .expect("Reading game has failed")
     {
@@ -144,22 +144,16 @@ pub async fn leave_game_filter(
     match ctx
         .db()
         .games()
-        .find_by_id(&game_token)
+        .get(&game_token)
         .await
         .expect("Reading game has failed")
     {
         Some(mut game) => match extract_verified_id(authorization, ctx) {
             Some(player_id) => {
                 game.remove_player(&player_id);
-                match game.admin_id() {
-                    Some(_) => match ctx.db().games().persist(&game).await {
-                        Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                        Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                    },
-                    None => match ctx.db().games().remove(game.token()).await {
-                        Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                        Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                    },
+                match ctx.db().games().persist(&game).await {
+                    Ok(_) => Ok(reply_with_error(StatusCode::OK)),
+                    Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
                 }
             }
             None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
@@ -311,7 +305,7 @@ mod tests {
         let updated_admin = ctx
             .db()
             .players()
-            .find_by_id(admin.id())
+            .get(admin.id())
             .await
             .expect("Reading admin failed");
         assert!(updated_admin.unwrap().last_action_time().gt(&first_time));
@@ -375,7 +369,7 @@ mod tests {
         let updated_game = ctx
             .db()
             .games()
-            .find_by_id(GAME_TOKEN)
+            .get(GAME_TOKEN)
             .await
             .expect("Couldnt find game");
         assert!(!updated_game.unwrap().player_ids().contains(player.id()));
@@ -406,7 +400,7 @@ mod tests {
         let updated_game = ctx
             .db()
             .games()
-            .find_by_id(GAME_TOKEN)
+            .get(GAME_TOKEN)
             .await
             .expect("Couldnt find game")
             .unwrap();

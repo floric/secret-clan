@@ -15,12 +15,12 @@ impl DbClients {
     pub fn init() -> DbClients {
         let mut games_repo = Database::init("games");
         let games_sender = games_repo.sender();
-        tokio::spawn(async move {
+        tokio::task::spawn(async move {
             games_repo.start_listening().await;
         });
         let mut players_repo = Database::init("players");
         let players_sender = players_repo.sender();
-        tokio::spawn(async move {
+        tokio::task::spawn(async move {
             players_repo.start_listening().await;
         });
 

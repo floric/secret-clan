@@ -14,7 +14,7 @@ pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::
     match ctx
         .db()
         .players()
-        .find_by_id(&id)
+        .get(&id)
         .await
         .expect("Reading player has failed")
     {
@@ -44,7 +44,7 @@ pub async fn edit_player_filter(
         Some(player_id) => match ctx
             .db()
             .players()
-            .find_by_id(&player_id)
+            .get(&player_id)
             .await
             .expect("Reading player has failed")
         {
@@ -135,7 +135,7 @@ mod tests {
         let updated_player = ctx
             .db()
             .players()
-            .find_by_id(player.id())
+            .get(player.id())
             .await
             .expect("Reading player failed");
 
@@ -168,7 +168,7 @@ mod tests {
         let updated_player = ctx
             .db()
             .players()
-            .find_by_id(player.id())
+            .get(player.id())
             .await
             .expect("Reading player failed");
 

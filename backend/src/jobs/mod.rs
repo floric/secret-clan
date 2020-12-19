@@ -1,16 +1,16 @@
-mod housekeeping;
+mod cleanup_games;
+mod cleanup_players;
 
+use self::cleanup_games::cleanup_games;
+use self::cleanup_players::cleanup_players;
+use crate::server::app_context::AppContext;
 use clokwerk::{Scheduler, TimeUnits};
 use std::{thread, time::Duration};
 
-use crate::server::app_context::AppContext;
-
-use self::housekeeping::{cleanup_games, cleanup_players};
-
-const JOB_INTERVAL: u32 = 10;
+const JOB_INTERVAL: u32 = 60;
 
 pub fn init_jobs(ctx: &'static AppContext) {
-    tokio::spawn(async move {
+    tokio::task::spawn(async move {
         let mut scheduler = Scheduler::new();
 
         scheduler

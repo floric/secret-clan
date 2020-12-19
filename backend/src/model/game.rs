@@ -36,6 +36,10 @@ impl Game {
         &self.admin_id
     }
 
+    pub fn last_action_time(&self) -> &DateTime<Utc> {
+        &self.last_action_time
+    }
+
     pub fn add_player(&mut self, player_id: &str) {
         match self.admin_id {
             Some(_) => {

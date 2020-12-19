@@ -48,7 +48,7 @@ impl<T: Persist> Database<T> {
         while let Some(cmd) = self.receiver.recv().await {
             match cmd {
                 Command::Get { key, responder } => {
-                    let _ = responder.send(self.find_by_id(&key));
+                    let _ = responder.send(self.get(&key));
                 }
                 Command::Persist { value, responder } => {
                     let _ = responder.send(self.persist(&value));
@@ -94,7 +94,7 @@ impl<T: Persist> Database<T> {
         self.flush()
     }
 
-    fn find_by_id(&self, id: &str) -> Result<Option<T>, sled::Error> {
+    fn get(&self, id: &str) -> Result<Option<T>, sled::Error> {
         let success = self.db.get(id);
         match success {
             Ok(res) => Ok(res.and_then(|g| T::try_from(g).ok())),

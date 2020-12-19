@@ -37,7 +37,7 @@ impl<T: Persist> Client<T> {
         }
     }
 
-    pub async fn find_by_id(&self, id: &str) -> Result<Option<T>, QueryError> {
+    pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
         self.run_query(|responder| Command::Get {
             key: String::from(id),
             responder,
@@ -92,7 +92,7 @@ mod tests {
         let mut repo = Database::init("games");
 
         let sender = repo.sender();
-        tokio::spawn(async move {
+        tokio::task::spawn(async move {
             repo.start_listening().await;
         });
 
@@ -102,17 +102,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_find_game() {
+    async fn should_get_game() {
         let client = init_client();
         let game = Game::new("admin", "token");
         let game_id = String::from(game.id());
 
         client.persist(&game).await.expect("Game persist failed");
 
-        let res = client
-            .find_by_id(&game_id)
-            .await
-            .expect("Reading game has failed");
+        let res = client.get(&game_id).await.expect("Reading game has failed");
 
         assert!(res.is_some());
         assert_eq!(res.unwrap().id(), game_id);
@@ -135,7 +132,7 @@ mod tests {
         client.persist(&game).await.expect("Game persist failed");
 
         let persisted_game = client
-            .find_by_id(&game.id())
+            .get(&game.id())
             .await
             .expect("Reading game has failed");
         assert!(persisted_game.is_some());
@@ -147,17 +144,17 @@ mod tests {
         assert!(res);
 
         let removed_game = client
-            .find_by_id(&game.id())
+            .get(&game.id())
             .await
             .expect("Reading game has failed");
         assert!(removed_game.is_none());
     }
 
     #[tokio::test]
-    async fn should_not_find_game() {
+    async fn should_not_get_game() {
         let client = init_client();
         let res = client
-            .find_by_id("unknown")
+            .get("unknown")
             .await
             .expect("Reading game has failed");
 
