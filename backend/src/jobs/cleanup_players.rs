@@ -12,11 +12,12 @@ pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
                 .await
                 .expect("Scanning players has failed");
             let inactive_count = inactive_players.len();
-            for id in inactive_players {
+
+            // remove players from maybe existing game
+            for id in inactive_players.clone() {
                 let player = ctx.db().players().get(&id).await;
                 match player.expect("Reading player has failed") {
                     Some(player) => {
-                        // remove player from maybe existing game
                         let game = ctx.db().games().get(player.game_token()).await;
                         match game.expect("Reading game has failed") {
                             Some(mut game) => {
@@ -25,19 +26,22 @@ pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
                             }
                             None => {}
                         }
-
-                        // remove player itself
-                        match ctx.db().players().remove(&id).await {
-                            Ok(_) => {}
-                            Err(e) => {
-                                warn!("Cleanup of players failed: {}", e);
-                            }
-                        }
                     }
                     None => {}
                 }
             }
+
+            // remove players
             if inactive_count > 0 {
+                match ctx.db().players().remove_batch(&inactive_players).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        warn!(
+                            "Removing {} inactive players has failed: {:?}",
+                            inactive_count, e
+                        );
+                    }
+                }
                 info!("Removed {} inactive players", inactive_count);
             } else {
                 debug!("Removed no inactive players");

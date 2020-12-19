@@ -1,6 +1,6 @@
 use crate::{model::game::Game, server::app_context::AppContext};
 use chrono::{Duration, Utc};
-use log::{debug, info};
+use log::{debug, info, warn};
 
 pub fn cleanup_games(ctx: &'static AppContext) -> impl Fn() {
     let cleanup_periodically = move || {
@@ -12,11 +12,18 @@ pub fn cleanup_games(ctx: &'static AppContext) -> impl Fn() {
                 .await
                 .expect("Scanning games has failed");
             let inactive_count = inactive_games.len();
-            for id in inactive_games {
-                let _ = ctx.db().games().remove(&id).await;
-            }
             if inactive_count > 0 {
-                info!("Removed {} inactive games", inactive_count);
+                match ctx.db().games().remove_batch(&inactive_games).await {
+                    Ok(_) => {
+                        info!("Removed {} inactive games", inactive_count);
+                    }
+                    Err(e) => {
+                        warn!(
+                            "Removing {} inactive games has failed: {:?}",
+                            inactive_count, e
+                        );
+                    }
+                }
             } else {
                 debug!("Removed no inactive games");
             }

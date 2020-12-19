@@ -12,6 +12,9 @@ extern crate chrono;
 extern crate envconfig;
 extern crate log;
 
+#[macro_use]
+extern crate derivative;
+
 fn main() {
     let mut rt = Builder::new()
         .threaded_scheduler()

@@ -1,4 +1,4 @@
-use log::info;
+use log::{debug, info, warn};
 use nanoid::nanoid;
 use sled::Db;
 use std::collections::HashSet;
@@ -46,6 +46,8 @@ impl<T: Persist> Database<T> {
         info!("Database for \"{}\" ready", self.path);
 
         while let Some(cmd) = self.receiver.recv().await {
+            debug!("Received query: {:?}", cmd);
+
             match cmd {
                 Command::Get { key, responder } => {
                     let _ = responder.send(self.get(&key));
@@ -55,6 +57,9 @@ impl<T: Persist> Database<T> {
                 }
                 Command::Remove { key, responder } => {
                     let _ = responder.send(self.remove(&key));
+                }
+                Command::RemoveBatch { keys, responder } => {
+                    let _ = responder.send(self.remove_batch(&keys));
                 }
                 Command::Count { responder } => {
                     let _ = responder.send(self.total_count());
@@ -89,8 +94,27 @@ impl<T: Persist> Database<T> {
         self.flush()
     }
 
-    fn remove(&self, id: &str) -> Result<bool, sled::Error> {
-        self.db.remove(id).expect("Removing item failed");
+    fn remove(&self, key: &str) -> Result<bool, sled::Error> {
+        match self.db.remove(key).expect("Removing item failed") {
+            Some(_) => self.flush(),
+            None => {
+                warn!("No item with key \"{}\" found for removal", key);
+                Ok(false)
+            }
+        }
+    }
+
+    fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, sled::Error> {
+        let batch = sled::Batch::default();
+        for key in keys {
+            match self.db.remove(key).expect("Removing item failed") {
+                Some(_) => {}
+                None => {
+                    warn!("No item with key \"{}\" found for removal", key);
+                }
+            }
+        }
+        self.db.apply_batch(batch)?;
         self.flush()
     }
 

@@ -1,4 +1,5 @@
 use super::{Command, Persist, QueryError};
+use log::debug;
 use std::{collections::HashSet, fmt, marker::PhantomData};
 use tokio::sync::{mpsc, oneshot};
 
@@ -22,9 +23,14 @@ impl<T: Persist> Client<T> {
         let (tx, rx): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
         let cmd = cmd_provider(tx);
         let res = self.sender.clone().send(cmd).await;
+        debug!("Sent query");
+
         match res {
             Ok(_) => match rx.await {
-                Ok(res) => Ok(res),
+                Ok(res) => {
+                    debug!("Received answer for query");
+                    Ok(res)
+                }
                 Err(error) => Err(QueryError::new(&fmt::format(format_args!(
                     "Retrieving result has failed: {}",
                     error.to_string(),
@@ -73,6 +79,15 @@ impl<T: Persist> Client<T> {
         .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
+    pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, QueryError> {
+        self.run_query(|responder| Command::RemoveBatch {
+            keys: keys.clone(),
+            responder,
+        })
+        .await
+        .and_then(|x| x.map_err(QueryError::from_sled))
+    }
+
     pub async fn total_count(&self) -> Result<usize, QueryError> {
         self.run_query(|responder| Command::Count { responder })
             .await
@@ -81,6 +96,8 @@ impl<T: Persist> Client<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::Client;
     use crate::{
         db::{Database, Persist},
@@ -148,6 +165,35 @@ mod tests {
             .await
             .expect("Reading game has failed");
         assert!(removed_game.is_none());
+    }
+
+    #[tokio::test]
+    async fn should_remove_games() {
+        let client = init_client();
+        let mut ids = HashSet::new();
+        for x in &["A", "B", "C"] {
+            let g = Game::new("admin", *x);
+            client.persist(&g).await.expect("Game persist failed");
+            ids.insert(String::from(*x));
+        }
+
+        let game_count = client
+            .total_count()
+            .await
+            .expect("Reading count has failed");
+        assert_eq!(game_count, 3);
+
+        let res = client
+            .remove_batch(&ids)
+            .await
+            .expect("Removing games failed");
+        assert!(res);
+
+        let game_count = client
+            .total_count()
+            .await
+            .expect("Reading count has failed");
+        assert_eq!(game_count, 0);
     }
 
     #[tokio::test]
