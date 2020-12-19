@@ -32,7 +32,7 @@ impl<T: Persist> Database<T> {
             sender,
         };
 
-        repo.purge_data()
+        repo.purge()
             .expect("Cleanup of existing database has failed");
 
         repo
@@ -82,6 +82,9 @@ impl<T: Persist> Database<T> {
                         }
                     }
                     let _ = data.responder.send(Ok(matching_ids));
+                }
+                Command::Purge { data } => {
+                    let _ = data.responder.send(self.purge());
                 }
             }
         }
@@ -134,8 +137,8 @@ impl<T: Persist> Database<T> {
         self.db.flush().map(|_| true)
     }
 
-    fn purge_data(&self) -> Result<usize, sled::Error> {
-        let res = self.db.clear().and_then(|()| self.db.flush());
+    fn purge(&self) -> Result<bool, sled::Error> {
+        let res = self.db.clear().and_then(|()| self.db.flush()).map(|_| true);
         info!("Purged database \"{}\"", self.path);
 
         res
