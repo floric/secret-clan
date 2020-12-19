@@ -70,15 +70,12 @@ impl<T: Persist> Database<T> {
                 } => {
                     let mut matching_ids = HashSet::new();
                     for x in self.db.iter() {
-                        match x {
-                            Ok((_, val)) => {
-                                let val = T::try_from(val).ok().unwrap();
-                                let matches = scan_function(&val);
-                                if matches {
-                                    matching_ids.insert(String::from(val.id()));
-                                }
+                        if let Ok((_, val)) = x {
+                            let val = T::try_from(val).ok().unwrap();
+                            let matches = scan_function(&val);
+                            if matches {
+                                matching_ids.insert(String::from(val.id()));
                             }
-                            Err(_) => {}
                         }
                     }
                     let _ = data.responder.send(Ok(matching_ids));

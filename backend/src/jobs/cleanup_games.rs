@@ -3,7 +3,7 @@ use chrono::{Duration, Utc};
 use log::{debug, info, warn};
 
 pub fn cleanup_games(ctx: &'static AppContext) -> impl Fn() {
-    let cleanup_periodically = move || {
+    move || {
         tokio::task::spawn(async move {
             let inactive_games = ctx
                 .db()
@@ -28,9 +28,7 @@ pub fn cleanup_games(ctx: &'static AppContext) -> impl Fn() {
                 debug!("Removed no inactive games");
             }
         });
-    };
-
-    cleanup_periodically
+    }
 }
 
 // Game is inactive if no admin is present and last activity happened five minutes ago

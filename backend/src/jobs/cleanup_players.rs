@@ -3,7 +3,7 @@ use chrono::{Duration, Utc};
 use log::{debug, info, warn};
 
 pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
-    let cleanup_periodically = move || {
+    move || {
         tokio::task::spawn(async move {
             let inactive_players = ctx
                 .db()
@@ -16,18 +16,12 @@ pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
             // remove players from maybe existing game
             for id in inactive_players.clone() {
                 let player = ctx.db().players().get(&id).await;
-                match player.expect("Reading player has failed") {
-                    Some(player) => {
-                        let game = ctx.db().games().get(player.game_token()).await;
-                        match game.expect("Reading game has failed") {
-                            Some(mut game) => {
-                                game.remove_player(&id);
-                                let _ = ctx.db().games().persist(&game).await;
-                            }
-                            None => {}
-                        }
+                if let Some(player) = player.expect("Reading player has failed") {
+                    let game = ctx.db().games().get(player.game_token()).await;
+                    if let Some(mut game) = game.expect("Reading game has failed") {
+                        game.remove_player(&id);
+                        let _ = ctx.db().games().persist(&game).await;
                     }
-                    None => {}
                 }
             }
 
@@ -47,9 +41,7 @@ pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
                 debug!("Removed no inactive players");
             }
         });
-    };
-
-    cleanup_periodically
+    }
 }
 
 // Player is active after one minute without an active connection
