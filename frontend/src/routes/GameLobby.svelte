@@ -35,6 +35,9 @@
     });
     if (!res.ok) {
       details = null;
+      if (refreshId) {
+        clearInterval(refreshId);
+      }
       return;
     }
 

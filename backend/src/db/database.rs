@@ -1,6 +1,7 @@
-use log::{debug, info};
+use log::{debug, info, warn};
 use nanoid::nanoid;
 use sled::Db;
+use std::collections::HashSet;
 use tokio::sync::mpsc::{self};
 
 use super::{Command, Persist};
@@ -21,13 +22,14 @@ impl<T: Persist> Database<T> {
         })
         .expect("opening database has failed");
 
-        let (tx, rx): (mpsc::Sender<Command<T>>, mpsc::Receiver<Command<T>>) = mpsc::channel(32);
+        let (sender, receiver): (mpsc::Sender<Command<T>>, mpsc::Receiver<Command<T>>) =
+            mpsc::channel(32);
 
         let repo = Database {
             db,
             path: String::from(path),
-            receiver: rx,
-            sender: tx,
+            receiver,
+            sender,
         };
 
         repo.purge_data()
@@ -47,39 +49,80 @@ impl<T: Persist> Database<T> {
             debug!("Received query: {:?}", cmd);
 
             match cmd {
-                Command::Get { key, responder } => {
-                    let _ = responder.send(self.find_by_id(&key));
+                Command::Get { key, data } => {
+                    let _ = data.responder.send(self.get(&key));
                 }
-                Command::Persist { value, responder } => {
-                    let _ = responder.send(self.persist(&value));
+                Command::Persist { value, data } => {
+                    let _ = data.responder.send(self.persist(&value));
                 }
-                Command::Remove { key, responder } => {
-                    let _ = responder.send(self.remove(&key));
+                Command::Remove { key, data } => {
+                    let _ = data.responder.send(self.remove(&key));
                 }
-                Command::Count { responder } => {
-                    let _ = responder.send(self.total_count());
+                Command::RemoveBatch { keys, data } => {
+                    let _ = data.responder.send(self.remove_batch(&keys));
+                }
+                Command::Count { data } => {
+                    let _ = data.responder.send(self.total_count());
+                }
+                Command::Scan {
+                    scan_function,
+                    data,
+                } => {
+                    let mut matching_ids = HashSet::new();
+                    for x in self.db.iter() {
+                        match x {
+                            Ok((_, val)) => {
+                                let val = T::try_from(val).ok().unwrap();
+                                let matches = scan_function(&val);
+                                if matches {
+                                    matching_ids.insert(String::from(val.id()));
+                                }
+                            }
+                            Err(_) => {}
+                        }
+                    }
+                    let _ = data.responder.send(Ok(matching_ids));
                 }
             }
         }
     }
 
-    fn persist(&self, elem: &T) -> Result<bool, String> {
+    fn persist(&self, elem: &T) -> Result<bool, sled::Error> {
         self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
-        self.flush().map_err(|e| e.to_string()).map(|_| true)
+        self.flush()
     }
 
-    fn remove(&self, id: &str) -> Result<bool, String> {
-        self.db.remove(id).expect("Removing item failed");
-        self.flush().map_err(|e| e.to_string()).map(|_| true)
+    fn remove(&self, key: &str) -> Result<bool, sled::Error> {
+        match self.db.remove(key).expect("Removing item failed") {
+            Some(_) => self.flush(),
+            None => {
+                warn!("No item with key \"{}\" found for removal", key);
+                Ok(false)
+            }
+        }
     }
 
-    fn find_by_id(&self, id: &str) -> Option<T> {
+    fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, sled::Error> {
+        let batch = sled::Batch::default();
+        for key in keys {
+            match self.db.remove(key).expect("Removing item failed") {
+                Some(_) => {}
+                None => {
+                    warn!("No item with key \"{}\" found for removal", key);
+                }
+            }
+        }
+        self.db.apply_batch(batch)?;
+        self.flush()
+    }
+
+    fn get(&self, id: &str) -> Result<Option<T>, sled::Error> {
         let success = self.db.get(id);
         match success {
-            Ok(res) => res.and_then(|g| T::try_from(g).ok()),
-            Err(_) => None,
+            Ok(res) => Ok(res.and_then(|g| T::try_from(g).ok())),
+            Err(err) => Err(err),
         }
     }
 

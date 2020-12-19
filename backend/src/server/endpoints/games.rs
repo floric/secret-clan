@@ -21,13 +21,20 @@ pub async fn get_game_filter(
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
     match extract_verified_id(authorization, ctx) {
-        Some(token) => match ctx.db().games().find_by_id(game_token).await {
+        Some(token) => match ctx
+            .db()
+            .games()
+            .get(game_token)
+            .await
+            .expect("Reading game has failed")
+        {
             Some(game) => {
                 match ctx
                     .db()
                     .players()
-                    .find_by_id(&token)
+                    .get(&token)
                     .await
+                    .expect("Reading player has failed")
                     .filter(|player| {
                         game.player_ids().contains(player.id())
                             || game.admin_id().is_some()
@@ -60,7 +67,12 @@ pub async fn get_games_count_filter(ctx: &AppContext) -> Result<impl warp::Reply
         total: usize,
     };
 
-    let total = ctx.db().games().total_count().await;
+    let total = ctx
+        .db()
+        .games()
+        .total_count()
+        .await
+        .expect("Reading games count has failed");
 
     Ok(warp::reply::with_status(
         warp::reply::json(&GetGamesResponse { total }),
@@ -72,10 +84,13 @@ pub async fn create_game_filter(ctx: &AppContext) -> Result<impl warp::Reply, In
     fn generate_game_token() -> String {
         let mut rng = thread_rng();
 
-        iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric).to_ascii_uppercase())
-            .take(TOKEN_CHARS_COUNT)
-            .collect()
+        String::from_utf8(
+            iter::repeat(())
+                .map(|()| rng.sample(Alphanumeric).to_ascii_uppercase())
+                .take(TOKEN_CHARS_COUNT)
+                .collect(),
+        )
+        .unwrap()
     }
 
     let game_token = generate_game_token();
@@ -101,7 +116,13 @@ pub async fn attend_game_filter(
     game_token: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    match ctx.db().games().find_by_id(&game_token).await {
+    match ctx
+        .db()
+        .games()
+        .get(&game_token)
+        .await
+        .expect("Reading game has failed")
+    {
         Some(mut game) => {
             let player = create_new_player(&game_token, ctx).await;
 
@@ -123,19 +144,19 @@ pub async fn leave_game_filter(
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
-    match ctx.db().games().find_by_id(&game_token).await {
+    match ctx
+        .db()
+        .games()
+        .get(&game_token)
+        .await
+        .expect("Reading game has failed")
+    {
         Some(mut game) => match extract_verified_id(authorization, ctx) {
             Some(player_id) => {
                 game.remove_player(&player_id);
-                match game.admin_id() {
-                    Some(_) => match ctx.db().games().persist(&game).await {
-                        Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                        Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                    },
-                    None => match ctx.db().games().remove(game.token()).await {
-                        Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                        Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                    },
+                match ctx.db().games().persist(&game).await {
+                    Ok(_) => Ok(reply_with_error(StatusCode::OK)),
+                    Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
                 }
             }
             None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
@@ -287,10 +308,10 @@ mod tests {
         let updated_admin = ctx
             .db()
             .players()
-            .find_by_id(admin.id())
+            .get(admin.id())
             .await
             .expect("Reading admin failed");
-        assert!(updated_admin.last_action_time().gt(&first_time));
+        assert!(updated_admin.unwrap().last_action_time().gt(&first_time));
     }
 
     #[tokio::test]
@@ -351,10 +372,10 @@ mod tests {
         let updated_game = ctx
             .db()
             .games()
-            .find_by_id(GAME_TOKEN)
+            .get(GAME_TOKEN)
             .await
             .expect("Couldnt find game");
-        assert!(!updated_game.player_ids().contains(player.id()));
+        assert!(!updated_game.unwrap().player_ids().contains(player.id()));
     }
 
     #[tokio::test]
@@ -382,9 +403,10 @@ mod tests {
         let updated_game = ctx
             .db()
             .games()
-            .find_by_id(GAME_TOKEN)
+            .get(GAME_TOKEN)
             .await
-            .expect("Couldnt find game");
+            .expect("Couldnt find game")
+            .unwrap();
         assert!(updated_game.player_ids().is_empty());
         assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());
     }

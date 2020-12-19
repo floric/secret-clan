@@ -10,11 +10,13 @@ fn generate_random_name() -> String {
     Generator::default().next().unwrap()
 }
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
+#[derivative(Debug)]
 pub struct Player {
     id: String,
     name: String,
     game_token: String,
+    #[derivative(Debug = "ignore")]
     user_token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,

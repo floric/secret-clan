@@ -1,7 +1,7 @@
 use std::thread;
 
 use crate::config::AppConfig;
-use flexi_logger::{DeferredNow, Level, Logger, Record};
+use flexi_logger::{style, DeferredNow, Level, Logger, Record};
 use log::info;
 
 pub fn custom_format(
@@ -9,14 +9,15 @@ pub fn custom_format(
     now: &mut DeferredNow,
     record: &Record,
 ) -> Result<(), std::io::Error> {
+    let level = record.level();
     write!(
         w,
-        "[{}] {} [{:?}|{}] {}",
+        "[{}] {} ({})[{}] {}",
         now.now().format("%Y-%m-%d %H:%M:%S%.3f %:z"),
-        record.level(),
+        style(level, level),
         thread::current().name().unwrap_or("-"),
-        record.module_path().unwrap_or("-"),
-        &record.args()
+        style(level, record.module_path().unwrap_or("-")),
+        style(level, &record.args())
     )
 }
 

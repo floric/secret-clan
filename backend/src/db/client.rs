@@ -1,8 +1,12 @@
-use std::marker::PhantomData;
-
+use super::{Command, CommandData, Persist, QueryError};
+use log::debug;
+use nanoid::nanoid;
+use std::{
+    collections::HashSet,
+    fmt::{self, Debug},
+    marker::PhantomData,
+};
 use tokio::sync::{mpsc, oneshot};
-
-use super::{Command, Persist};
 
 pub struct Client<T: Persist> {
     phantom: PhantomData<T>,
@@ -17,46 +21,92 @@ impl<T: Persist> Client<T> {
         }
     }
 
-    async fn run_query<R>(&self, cmd_provider: impl Fn(oneshot::Sender<R>) -> Command<T>) -> R {
+    async fn run_query<R: Debug>(
+        &self,
+        cmd_provider: impl Fn(CommandData<R>) -> Command<T>,
+    ) -> Result<R, QueryError> {
         let (tx, rx): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
-        let cmd = cmd_provider(tx);
-        let _ = self.sender.clone().send(cmd).await;
+        let id = nanoid!();
+        let data = CommandData {
+            responder: tx,
+            id: String::from(&id),
+        };
+        let cmd = cmd_provider(data);
+        let res = self.sender.clone().send(cmd).await;
+        debug!("Sent query \"{}\"", &id);
 
-        let res = rx.await;
-        res.unwrap()
+        match res {
+            Ok(_) => match rx.await {
+                Ok(res) => {
+                    debug!("Received answer for query \"{}\": {:?}", &id, res);
+                    Ok(res)
+                }
+                Err(error) => Err(QueryError::new(&fmt::format(format_args!(
+                    "Retrieving result has failed: {}",
+                    error.to_string(),
+                )))),
+            },
+            Err(error) => Err(QueryError::new(&fmt::format(format_args!(
+                "Sending query has failed: {}",
+                error.to_string(),
+            )))),
+        }
     }
 
-    pub async fn find_by_id(&self, id: &str) -> Option<T> {
-        self.run_query(|tx| Command::Get {
+    pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
+        self.run_query(|data| Command::Get {
             key: String::from(id),
-            responder: tx,
+            data,
         })
         .await
+        .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
-    pub async fn persist(&self, elem: &T) -> Result<bool, String> {
-        self.run_query(|tx| Command::Persist {
+    pub async fn scan(&self, scan_function: fn(&T) -> bool) -> Result<HashSet<String>, QueryError> {
+        self.run_query(|data| Command::Scan {
+            scan_function,
+            data,
+        })
+        .await
+        .and_then(|x| x.map_err(QueryError::from_sled))
+    }
+
+    pub async fn persist(&self, elem: &T) -> Result<bool, QueryError> {
+        self.run_query(|data| Command::Persist {
             value: elem.clone(),
-            responder: tx,
+            data,
         })
         .await
+        .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
-    pub async fn remove(&self, key: &str) -> Result<bool, String> {
-        self.run_query(|tx| Command::Remove {
+    pub async fn remove(&self, key: &str) -> Result<bool, QueryError> {
+        self.run_query(|data| Command::Remove {
             key: String::from(key),
-            responder: tx,
+            data,
         })
         .await
+        .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
-    pub async fn total_count(&self) -> usize {
-        self.run_query(|tx| Command::Count { responder: tx }).await
+    pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, QueryError> {
+        self.run_query(|data| Command::RemoveBatch {
+            keys: keys.clone(),
+            data,
+        })
+        .await
+        .and_then(|x| x.map_err(QueryError::from_sled))
+    }
+
+    pub async fn total_count(&self) -> Result<usize, QueryError> {
+        self.run_query(|data| Command::Count { data }).await
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::Client;
     use crate::{
         db::{Database, Persist},
@@ -68,7 +118,7 @@ mod tests {
         let mut repo = Database::init("games");
 
         let sender = repo.sender();
-        tokio::spawn(async move {
+        tokio::task::spawn(async move {
             repo.start_listening().await;
         });
 
@@ -78,14 +128,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_find_game() {
+    async fn should_get_game() {
         let client = init_client();
         let game = Game::new("admin", "token");
         let game_id = String::from(game.id());
 
         client.persist(&game).await.expect("Game persist failed");
 
-        let res = client.find_by_id(&game_id).await;
+        let res = client.get(&game_id).await.expect("Reading game has failed");
 
         assert!(res.is_some());
         assert_eq!(res.unwrap().id(), game_id);
@@ -107,7 +157,10 @@ mod tests {
         let game = Game::new("admin", "token");
         client.persist(&game).await.expect("Game persist failed");
 
-        let persisted_game = client.find_by_id(&game.id()).await;
+        let persisted_game = client
+            .get(&game.id())
+            .await
+            .expect("Reading game has failed");
         assert!(persisted_game.is_some());
 
         let res = client
@@ -116,14 +169,49 @@ mod tests {
             .expect("Removing game failed");
         assert!(res);
 
-        let removed_game = client.find_by_id(&game.id()).await;
+        let removed_game = client
+            .get(&game.id())
+            .await
+            .expect("Reading game has failed");
         assert!(removed_game.is_none());
     }
 
     #[tokio::test]
-    async fn should_not_find_game() {
+    async fn should_remove_games() {
         let client = init_client();
-        let res = client.find_by_id("unknown").await;
+        let mut ids = HashSet::new();
+        for x in &["A", "B", "C"] {
+            let g = Game::new("admin", *x);
+            client.persist(&g).await.expect("Game persist failed");
+            ids.insert(String::from(*x));
+        }
+
+        let game_count = client
+            .total_count()
+            .await
+            .expect("Reading count has failed");
+        assert_eq!(game_count, 3);
+
+        let res = client
+            .remove_batch(&ids)
+            .await
+            .expect("Removing games failed");
+        assert!(res);
+
+        let game_count = client
+            .total_count()
+            .await
+            .expect("Reading count has failed");
+        assert_eq!(game_count, 0);
+    }
+
+    #[tokio::test]
+    async fn should_not_get_game() {
+        let client = init_client();
+        let res = client
+            .get("unknown")
+            .await
+            .expect("Reading game has failed");
 
         assert!(res.is_none());
     }
@@ -142,6 +230,12 @@ mod tests {
 
         futures::future::join_all(threads).await;
 
-        assert_eq!(client.total_count().await, 1000);
+        assert_eq!(
+            client
+                .total_count()
+                .await
+                .expect("Reading count has failed"),
+            1000
+        );
     }
 }
