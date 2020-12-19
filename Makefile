@@ -4,6 +4,9 @@ watch-fe:
 watch-be:
 	cd backend && LOG_LEVEL=debug cargo watch -x 'run' -w 'src'
 
+bench:
+	cd backend && cargo bench
+
 build:
 	DOCKER_BUILDKIT=1 docker build -t secret_clan .
 
