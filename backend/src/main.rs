@@ -16,7 +16,7 @@ fn main() {
     let mut rt = Builder::new()
         .threaded_scheduler()
         .enable_all()
-        .thread_name("threadpool")
+        .thread_name("sc")
         .build()
         .expect("Creating runtime failed");
 

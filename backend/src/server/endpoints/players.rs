@@ -11,7 +11,13 @@ pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::
         name: String,
     }
 
-    match ctx.db().players().find_by_id(&id).await {
+    match ctx
+        .db()
+        .players()
+        .find_by_id(&id)
+        .await
+        .expect("Reading player has failed")
+    {
         Some(player) => Ok(warp::reply::with_status(
             warp::reply::json(&GetPlayerResponse {
                 id: String::from(player.id()),
@@ -35,7 +41,13 @@ pub async fn edit_player_filter(
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
     match extract_verified_id(authorization, ctx).filter(|token_id| token_id == id) {
-        Some(player_id) => match ctx.db().players().find_by_id(&player_id).await {
+        Some(player_id) => match ctx
+            .db()
+            .players()
+            .find_by_id(&player_id)
+            .await
+            .expect("Reading player has failed")
+        {
             Some(mut player) => {
                 player.set_name(&input.name);
                 ctx.db()
@@ -128,7 +140,7 @@ mod tests {
             .expect("Reading player failed");
 
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
-        assert_eq!(updated_player.name(), "new name");
+        assert_eq!(updated_player.unwrap().name(), "new name");
     }
 
     #[tokio::test]
@@ -164,6 +176,6 @@ mod tests {
             reply.unwrap().into_response().status(),
             StatusCode::UNAUTHORIZED
         );
-        assert_eq!(updated_player.name(), player.name());
+        assert_eq!(updated_player.unwrap().name(), player.name());
     }
 }

@@ -22,13 +22,14 @@ impl<T: Persist> Database<T> {
         })
         .expect("opening database has failed");
 
-        let (tx, rx): (mpsc::Sender<Command<T>>, mpsc::Receiver<Command<T>>) = mpsc::channel(32);
+        let (sender, receiver): (mpsc::Sender<Command<T>>, mpsc::Receiver<Command<T>>) =
+            mpsc::channel(32);
 
         let repo = Database {
             db,
             path: String::from(path),
-            receiver: rx,
-            sender: tx,
+            receiver,
+            sender,
         };
 
         repo.purge_data()
@@ -63,8 +64,7 @@ impl<T: Persist> Database<T> {
                     responder,
                 } => {
                     let mut matching_ids = HashSet::new();
-                    let iter = self.db.iter();
-                    for x in iter {
+                    for x in self.db.iter() {
                         match x {
                             Ok((_, val)) => {
                                 let val = T::try_from(val).ok().unwrap();
@@ -76,29 +76,29 @@ impl<T: Persist> Database<T> {
                             Err(_) => {}
                         }
                     }
-                    let _ = responder.send(matching_ids);
+                    let _ = responder.send(Ok(matching_ids));
                 }
             }
         }
     }
 
-    fn persist(&self, elem: &T) -> Result<bool, String> {
+    fn persist(&self, elem: &T) -> Result<bool, sled::Error> {
         self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
-        self.flush().map_err(|e| e.to_string()).map(|_| true)
+        self.flush()
     }
 
-    fn remove(&self, id: &str) -> Result<bool, String> {
+    fn remove(&self, id: &str) -> Result<bool, sled::Error> {
         self.db.remove(id).expect("Removing item failed");
-        self.flush().map_err(|e| e.to_string()).map(|_| true)
+        self.flush()
     }
 
-    fn find_by_id(&self, id: &str) -> Option<T> {
+    fn find_by_id(&self, id: &str) -> Result<Option<T>, sled::Error> {
         let success = self.db.get(id);
         match success {
-            Ok(res) => res.and_then(|g| T::try_from(g).ok()),
-            Err(_) => None,
+            Ok(res) => Ok(res.and_then(|g| T::try_from(g).ok())),
+            Err(err) => Err(err),
         }
     }
 
