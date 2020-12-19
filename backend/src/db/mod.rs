@@ -69,6 +69,9 @@ pub enum Command<T: Persist> {
         key: String,
         data: CommandData<Result<bool, sled::Error>>,
     },
+    Purge {
+        data: CommandData<Result<bool, sled::Error>>,
+    },
     RemoveBatch {
         keys: HashSet<String>,
         data: CommandData<Result<bool, sled::Error>>,

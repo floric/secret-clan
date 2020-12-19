@@ -52,22 +52,22 @@ impl Game {
     pub fn remove_player(&mut self, player_id: &str) {
         if self.player_ids.contains(player_id) {
             self.player_ids.remove(player_id);
-        } else {
-            match self.admin_id.to_owned().filter(|id| id == player_id) {
-                Some(_) => {
-                    if self.player_ids.iter().next().is_some() {
-                        let next_player_id = self.player_ids.iter().next().unwrap().to_owned();
-                        self.admin_id = Some(String::from(&next_player_id));
-                        self.player_ids.remove(&next_player_id);
-                    } else {
-                        // abandon game as admin is the last player
-                        self.admin_id = None;
-                    }
-                }
-                None => {
-                    // game is already abandoned or requesting user is no admin or player
-                }
+        } else if self
+            .admin_id
+            .to_owned()
+            .filter(|id| id == player_id)
+            .is_some()
+        {
+            if self.player_ids.iter().next().is_some() {
+                let next_player_id = self.player_ids.iter().next().unwrap().to_owned();
+                self.admin_id = Some(String::from(&next_player_id));
+                self.player_ids.remove(&next_player_id);
+            } else {
+                // abandon game as admin is the last player
+                self.admin_id = None;
             }
+        } else {
+            // game is already abandoned or requesting user is no admin or player
         }
     }
 }

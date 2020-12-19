@@ -32,7 +32,7 @@ impl<T: Persist> Database<T> {
             sender,
         };
 
-        repo.purge_data()
+        repo.purge()
             .expect("Cleanup of existing database has failed");
 
         repo
@@ -70,18 +70,18 @@ impl<T: Persist> Database<T> {
                 } => {
                     let mut matching_ids = HashSet::new();
                     for x in self.db.iter() {
-                        match x {
-                            Ok((_, val)) => {
-                                let val = T::try_from(val).ok().unwrap();
-                                let matches = scan_function(&val);
-                                if matches {
-                                    matching_ids.insert(String::from(val.id()));
-                                }
+                        if let Ok((_, val)) = x {
+                            let val = T::try_from(val).ok().unwrap();
+                            let matches = scan_function(&val);
+                            if matches {
+                                matching_ids.insert(String::from(val.id()));
                             }
-                            Err(_) => {}
                         }
                     }
                     let _ = data.responder.send(Ok(matching_ids));
+                }
+                Command::Purge { data } => {
+                    let _ = data.responder.send(self.purge());
                 }
             }
         }
@@ -134,8 +134,8 @@ impl<T: Persist> Database<T> {
         self.db.flush().map(|_| true)
     }
 
-    fn purge_data(&self) -> Result<usize, sled::Error> {
-        let res = self.db.clear().and_then(|()| self.db.flush());
+    fn purge(&self) -> Result<bool, sled::Error> {
+        let res = self.db.clear().and_then(|()| self.db.flush()).map(|_| true);
         info!("Purged database \"{}\"", self.path);
 
         res

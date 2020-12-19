@@ -1,3 +1,3 @@
 #!/bin/bash
 
-secret-clan
+secret_clan

@@ -7,7 +7,6 @@ use std::{
     marker::PhantomData,
 };
 use tokio::sync::{mpsc, oneshot};
-
 pub struct Client<T: Persist> {
     phantom: PhantomData<T>,
     sender: mpsc::Sender<Command<T>>,
@@ -25,10 +24,10 @@ impl<T: Persist> Client<T> {
         &self,
         cmd_provider: impl Fn(CommandData<R>) -> Command<T>,
     ) -> Result<R, QueryError> {
-        let (tx, rx): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
+        let (responder, receiver): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
         let id = nanoid!();
         let data = CommandData {
-            responder: tx,
+            responder,
             id: String::from(&id),
         };
         let cmd = cmd_provider(data);
@@ -36,18 +35,20 @@ impl<T: Persist> Client<T> {
         debug!("Sent query \"{}\"", &id);
 
         match res {
-            Ok(_) => match rx.await {
+            Ok(_) => match receiver.await {
                 Ok(res) => {
                     debug!("Received answer for query \"{}\": {:?}", &id, res);
                     Ok(res)
                 }
                 Err(error) => Err(QueryError::new(&fmt::format(format_args!(
-                    "Retrieving result has failed: {}",
+                    "Retrieving result for query \"{}\" has failed: {}",
+                    id,
                     error.to_string(),
                 )))),
             },
             Err(error) => Err(QueryError::new(&fmt::format(format_args!(
-                "Sending query has failed: {}",
+                "Sending query for query \"{}\" has failed: {}",
+                id,
                 error.to_string(),
             )))),
         }
@@ -96,6 +97,12 @@ impl<T: Persist> Client<T> {
         })
         .await
         .and_then(|x| x.map_err(QueryError::from_sled))
+    }
+
+    pub async fn purge(&self) -> Result<bool, QueryError> {
+        self.run_query(|data| Command::Purge { data })
+            .await
+            .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
     pub async fn total_count(&self) -> Result<usize, QueryError> {
