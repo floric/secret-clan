@@ -84,10 +84,13 @@ pub async fn create_game_filter(ctx: &AppContext) -> Result<impl warp::Reply, In
     fn generate_game_token() -> String {
         let mut rng = thread_rng();
 
-        iter::repeat(())
-            .map(|()| rng.sample(Alphanumeric).to_ascii_uppercase())
-            .take(TOKEN_CHARS_COUNT)
-            .collect()
+        String::from_utf8(
+            iter::repeat(())
+                .map(|()| rng.sample(Alphanumeric).to_ascii_uppercase())
+                .take(TOKEN_CHARS_COUNT)
+                .collect(),
+        )
+        .unwrap()
     }
 
     let game_token = generate_game_token();

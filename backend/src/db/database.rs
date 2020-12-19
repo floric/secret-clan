@@ -49,24 +49,24 @@ impl<T: Persist> Database<T> {
             debug!("Received query: {:?}", cmd);
 
             match cmd {
-                Command::Get { key, responder } => {
-                    let _ = responder.send(self.get(&key));
+                Command::Get { key, data } => {
+                    let _ = data.responder.send(self.get(&key));
                 }
-                Command::Persist { value, responder } => {
-                    let _ = responder.send(self.persist(&value));
+                Command::Persist { value, data } => {
+                    let _ = data.responder.send(self.persist(&value));
                 }
-                Command::Remove { key, responder } => {
-                    let _ = responder.send(self.remove(&key));
+                Command::Remove { key, data } => {
+                    let _ = data.responder.send(self.remove(&key));
                 }
-                Command::RemoveBatch { keys, responder } => {
-                    let _ = responder.send(self.remove_batch(&keys));
+                Command::RemoveBatch { keys, data } => {
+                    let _ = data.responder.send(self.remove_batch(&keys));
                 }
-                Command::Count { responder } => {
-                    let _ = responder.send(self.total_count());
+                Command::Count { data } => {
+                    let _ = data.responder.send(self.total_count());
                 }
                 Command::Scan {
                     scan_function,
-                    responder,
+                    data,
                 } => {
                     let mut matching_ids = HashSet::new();
                     for x in self.db.iter() {
@@ -81,7 +81,7 @@ impl<T: Persist> Database<T> {
                             Err(_) => {}
                         }
                     }
-                    let _ = responder.send(Ok(matching_ids));
+                    let _ = data.responder.send(Ok(matching_ids));
                 }
             }
         }

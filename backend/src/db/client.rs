@@ -1,6 +1,11 @@
-use super::{Command, Persist, QueryError};
+use super::{Command, CommandData, Persist, QueryError};
 use log::debug;
-use std::{collections::HashSet, fmt, marker::PhantomData};
+use nanoid::nanoid;
+use std::{
+    collections::HashSet,
+    fmt::{self, Debug},
+    marker::PhantomData,
+};
 use tokio::sync::{mpsc, oneshot};
 
 pub struct Client<T: Persist> {
@@ -16,19 +21,24 @@ impl<T: Persist> Client<T> {
         }
     }
 
-    async fn run_query<R>(
+    async fn run_query<R: Debug>(
         &self,
-        cmd_provider: impl Fn(oneshot::Sender<R>) -> Command<T>,
+        cmd_provider: impl Fn(CommandData<R>) -> Command<T>,
     ) -> Result<R, QueryError> {
         let (tx, rx): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
-        let cmd = cmd_provider(tx);
+        let id = nanoid!();
+        let data = CommandData {
+            responder: tx,
+            id: String::from(&id),
+        };
+        let cmd = cmd_provider(data);
         let res = self.sender.clone().send(cmd).await;
-        debug!("Sent query");
+        debug!("Sent query \"{}\"", &id);
 
         match res {
             Ok(_) => match rx.await {
                 Ok(res) => {
-                    debug!("Received answer for query");
+                    debug!("Received answer for query \"{}\": {:?}", &id, res);
                     Ok(res)
                 }
                 Err(error) => Err(QueryError::new(&fmt::format(format_args!(
@@ -44,53 +54,52 @@ impl<T: Persist> Client<T> {
     }
 
     pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
-        self.run_query(|responder| Command::Get {
+        self.run_query(|data| Command::Get {
             key: String::from(id),
-            responder,
+            data,
         })
         .await
         .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
     pub async fn scan(&self, scan_function: fn(&T) -> bool) -> Result<HashSet<String>, QueryError> {
-        self.run_query(|responder| Command::Scan {
+        self.run_query(|data| Command::Scan {
             scan_function,
-            responder,
+            data,
         })
         .await
         .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
     pub async fn persist(&self, elem: &T) -> Result<bool, QueryError> {
-        self.run_query(|responder| Command::Persist {
+        self.run_query(|data| Command::Persist {
             value: elem.clone(),
-            responder,
+            data,
         })
         .await
         .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
     pub async fn remove(&self, key: &str) -> Result<bool, QueryError> {
-        self.run_query(|responder| Command::Remove {
+        self.run_query(|data| Command::Remove {
             key: String::from(key),
-            responder,
+            data,
         })
         .await
         .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
     pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, QueryError> {
-        self.run_query(|responder| Command::RemoveBatch {
+        self.run_query(|data| Command::RemoveBatch {
             keys: keys.clone(),
-            responder,
+            data,
         })
         .await
         .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
     pub async fn total_count(&self) -> Result<usize, QueryError> {
-        self.run_query(|responder| Command::Count { responder })
-            .await
+        self.run_query(|data| Command::Count { data }).await
     }
 }
 

@@ -16,7 +16,7 @@ pub fn custom_format(
         now.now().format("%Y-%m-%d %H:%M:%S%.3f %:z"),
         style(level, level),
         thread::current().name().unwrap_or("-"),
-        record.module_path().unwrap_or("-"),
+        style(level, record.module_path().unwrap_or("-")),
         style(level, &record.args())
     )
 }

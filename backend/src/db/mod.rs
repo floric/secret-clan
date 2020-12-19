@@ -43,35 +43,37 @@ impl fmt::Display for QueryError {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
+pub struct CommandData<R: Debug> {
+    id: String,
+    #[derivative(Debug = "ignore")]
+    responder: oneshot::Sender<R>,
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Command<T: Persist> {
     Get {
         key: String,
-        #[derivative(Debug = "ignore")]
-        responder: oneshot::Sender<Result<Option<T>, sled::Error>>,
+        data: CommandData<Result<Option<T>, sled::Error>>,
     },
     Scan {
         #[derivative(Debug = "ignore")]
         scan_function: fn(&T) -> bool,
-        #[derivative(Debug = "ignore")]
-        responder: oneshot::Sender<Result<HashSet<String>, sled::Error>>,
+        data: CommandData<Result<HashSet<String>, sled::Error>>,
     },
     Persist {
         value: T,
-        #[derivative(Debug = "ignore")]
-        responder: oneshot::Sender<Result<bool, sled::Error>>,
+        data: CommandData<Result<bool, sled::Error>>,
     },
     Remove {
         key: String,
-        #[derivative(Debug = "ignore")]
-        responder: oneshot::Sender<Result<bool, sled::Error>>,
+        data: CommandData<Result<bool, sled::Error>>,
     },
     RemoveBatch {
         keys: HashSet<String>,
-        #[derivative(Debug = "ignore")]
-        responder: oneshot::Sender<Result<bool, sled::Error>>,
+        data: CommandData<Result<bool, sled::Error>>,
     },
     Count {
-        #[derivative(Debug = "ignore")]
-        responder: oneshot::Sender<usize>,
+        data: CommandData<usize>,
     },
 }
