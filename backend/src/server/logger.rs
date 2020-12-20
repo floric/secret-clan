@@ -1,8 +1,7 @@
-use std::thread;
-
 use crate::config::AppConfig;
 use flexi_logger::{style, DeferredNow, Level, Logger, Record};
 use log::info;
+use std::thread;
 
 pub fn custom_format(
     w: &mut dyn std::io::Write,

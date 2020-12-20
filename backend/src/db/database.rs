@@ -1,10 +1,9 @@
+use super::{Command, Persist};
 use log::{debug, info, warn};
 use nanoid::nanoid;
 use sled::Db;
 use std::collections::HashSet;
 use tokio::sync::mpsc::{self};
-
-use super::{Command, Persist};
 
 pub struct Database<T: Persist> {
     path: String,

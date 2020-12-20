@@ -1,11 +1,10 @@
+use super::app_context::AppContext;
 use crate::model::player::Player;
 use hmac::{Hmac, NewMac};
 use jwt::{AlgorithmType, Error, Header, SignWithKey, Token, VerifyWithKey};
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::result::Result;
-
-use super::app_context::AppContext;
 
 pub fn generate_jwt_token(player: &Player, secret: &str) -> String {
     let key = init_key(secret);

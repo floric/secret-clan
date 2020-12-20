@@ -2,25 +2,25 @@ use crate::db::Persist;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::{collections::BTreeSet, convert::TryFrom, hash::Hash};
+use std::{collections::HashSet, convert::TryFrom};
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct Game {
     token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
     admin_id: Option<String>,
-    player_ids: BTreeSet<String>,
+    player_ids: HashSet<String>,
 }
 
 impl Game {
-    pub fn new(admin_id: &str, token: &str) -> Game {
+    pub fn new(admin_id: &str, token: &str) -> Self {
         Game {
             token: String::from(token).to_uppercase(),
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
             admin_id: Some(String::from(admin_id)),
-            player_ids: BTreeSet::new(),
+            player_ids: HashSet::new(),
         }
     }
 
@@ -28,7 +28,7 @@ impl Game {
         &self.token
     }
 
-    pub fn player_ids(&self) -> &BTreeSet<String> {
+    pub fn player_ids(&self) -> &HashSet<String> {
         &self.player_ids
     }
 
@@ -58,8 +58,7 @@ impl Game {
             .filter(|id| id == player_id)
             .is_some()
         {
-            if self.player_ids.iter().next().is_some() {
-                let next_player_id = self.player_ids.iter().next().unwrap().to_owned();
+            if let Some(next_player_id) = self.player_ids.iter().next().map(String::from) {
                 self.admin_id = Some(String::from(&next_player_id));
                 self.player_ids.remove(&next_player_id);
             } else {
@@ -70,6 +69,8 @@ impl Game {
             // game is already abandoned or requesting user is no admin or player
         }
     }
+
+    pub fn start(&mut self) {}
 }
 
 impl Persist for Game {

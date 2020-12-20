@@ -23,7 +23,7 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(game_token: &str) -> Player {
+    pub fn new(game_token: &str) -> Self {
         Player {
             id: nanoid!(),
             name: generate_random_name(),

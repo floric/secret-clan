@@ -1,7 +1,6 @@
-use std::convert::Infallible;
-
 use crate::server::{app_context::AppContext, auth::extract_verified_id, errors::reply_with_error};
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use warp::hyper::StatusCode;
 
 pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::Reply, Infallible> {
@@ -68,13 +67,12 @@ pub async fn edit_player_filter(
 
 #[cfg(test)]
 mod tests {
+    use super::{edit_player_filter, get_player_filter, EditPlayerInput};
     use crate::{
         model::player::Player,
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};
-
-    use super::{edit_player_filter, get_player_filter, EditPlayerInput};
 
     fn init_ctx() -> AppContext {
         AppContext::init()

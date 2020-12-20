@@ -112,14 +112,13 @@ impl<T: Persist> Client<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use super::Client;
     use crate::{
         db::{Database, Persist},
         model::game::Game,
     };
     use nanoid::nanoid;
+    use std::collections::HashSet;
 
     fn init_client() -> Client<Game> {
         let mut repo = Database::init("games");
