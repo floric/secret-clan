@@ -55,8 +55,8 @@ impl<T: Persist> Client<T> {
     }
 
     pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
-        let x = String::from(id);
-        self.run_query(|data| Command::Get { key: x, data })
+        let key = String::from(id);
+        self.run_query(|data| Command::Get { key, data })
             .await
             .and_then(|x| x.map_err(QueryError::from_sled))
     }

@@ -93,5 +93,3 @@ impl TryFrom<IVec> for Game {
         bincode::deserialize(&vec)
     }
 }
-
-unsafe impl Send for Game {}
