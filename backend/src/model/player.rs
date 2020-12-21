@@ -83,3 +83,5 @@ impl From<IVec> for Player {
         bincode::deserialize(&vec).unwrap()
     }
 }
+
+unsafe impl Send for Player {}

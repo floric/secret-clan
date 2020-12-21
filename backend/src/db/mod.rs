@@ -58,7 +58,7 @@ pub enum Command<T: Persist> {
     },
     Scan {
         #[derivative(Debug = "ignore")]
-        scan_function: fn(&T) -> bool,
+        scan_function: Box<dyn Fn(&T) -> bool + Send + Sync>,
         data: CommandData<Result<HashSet<String>, sled::Error>>,
     },
     Persist {
