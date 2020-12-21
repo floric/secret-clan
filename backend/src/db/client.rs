@@ -22,7 +22,7 @@ impl<T: Persist> Client<T> {
 
     async fn run_query<R: Debug>(
         &self,
-        cmd_provider: impl Fn(CommandData<R>) -> Command<T>,
+        cmd_provider: impl FnOnce(CommandData<R>) -> Command<T>,
     ) -> Result<R, QueryError> {
         let (responder, receiver): (oneshot::Sender<R>, oneshot::Receiver<R>) = oneshot::channel();
         let id = nanoid!();
@@ -55,15 +55,16 @@ impl<T: Persist> Client<T> {
     }
 
     pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
-        self.run_query(|data| Command::Get {
-            key: String::from(id),
-            data,
-        })
-        .await
-        .and_then(|x| x.map_err(QueryError::from_sled))
+        let key = String::from(id);
+        self.run_query(|data| Command::Get { key, data })
+            .await
+            .and_then(|x| x.map_err(QueryError::from_sled))
     }
 
-    pub async fn scan(&self, scan_function: fn(&T) -> bool) -> Result<HashSet<String>, QueryError> {
+    pub async fn scan(
+        &self,
+        scan_function: Box<dyn Fn(&T) -> bool + Send + Sync>,
+    ) -> Result<HashSet<String>, QueryError> {
         self.run_query(|data| Command::Scan {
             scan_function,
             data,

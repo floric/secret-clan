@@ -70,7 +70,11 @@ fn bench_scan_with_sizes(
 
                     let start = Instant::now();
                     for _i in 0..iters {
-                        let res = ctx.db().players().scan(|p| p.name().starts_with("a")).await;
+                        let res = ctx
+                            .db()
+                            .players()
+                            .scan(Box::new(|p| p.name().starts_with("a")))
+                            .await;
                         assert!(res.is_ok());
                     }
                     start.elapsed()
