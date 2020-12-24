@@ -158,7 +158,7 @@ impl<T: Persist> Database<T> {
     }
 
     fn send_result<R>(&self, data: R, sender: oneshot::Sender<R>) {
-        if let Err(_) = sender.send(data) {
+        if sender.send(data).is_err() {
             error!("Sending result to client has failed");
         }
     }
