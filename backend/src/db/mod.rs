@@ -49,6 +49,8 @@ pub struct CommandData<R: Debug> {
     responder: oneshot::Sender<R>,
 }
 
+pub type ScanFunction<T> = Box<dyn Fn(&T) -> bool + Send + Sync>;
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub enum Command<T: Persist> {
@@ -58,7 +60,7 @@ pub enum Command<T: Persist> {
     },
     Scan {
         #[derivative(Debug = "ignore")]
-        scan_function: Box<dyn Fn(&T) -> bool + Send + Sync>,
+        scan_function: ScanFunction<T>,
         data: CommandData<Result<HashSet<String>, sled::Error>>,
     },
     Persist {

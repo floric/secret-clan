@@ -1,4 +1,4 @@
-use crate::{model::player::Player, server::app_context::AppContext};
+use crate::{model::Player, server::app_context::AppContext};
 use chrono::{Duration, Utc};
 use log::{debug, info, warn};
 
@@ -62,7 +62,7 @@ async fn execute_cleanup_players(ctx: &AppContext, duration: Duration) -> bool {
 #[cfg(test)]
 mod tests {
     use super::execute_cleanup_players;
-    use crate::{model::player::Player, server::app_context::AppContext};
+    use crate::{model::Player, server::app_context::AppContext};
     use chrono::Duration;
 
     fn init_ctx() -> AppContext {

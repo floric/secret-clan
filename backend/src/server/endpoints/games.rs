@@ -1,5 +1,5 @@
 use crate::{
-    model::{game::Game, player::Player},
+    model::{Game, Player},
     server::{
         app_context::AppContext, auth::extract_verified_id, auth::generate_jwt_token,
         errors::reply_with_error,
@@ -197,7 +197,7 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
 mod tests {
     use super::{attend_game_filter, create_game_filter, get_game_filter, leave_game_filter};
     use crate::{
-        model::{game::Game, player::Player},
+        model::{Game, Player},
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};

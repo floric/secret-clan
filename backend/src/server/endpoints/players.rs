@@ -69,7 +69,7 @@ pub async fn edit_player_filter(
 mod tests {
     use super::{edit_player_filter, get_player_filter, EditPlayerInput};
     use crate::{
-        model::player::Player,
+        model::Player,
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};

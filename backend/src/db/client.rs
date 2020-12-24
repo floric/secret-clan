@@ -6,6 +6,7 @@ use std::{
     fmt::{self, Debug},
 };
 use tokio::sync::{mpsc, oneshot};
+
 pub struct Client<T: Persist> {
     sender: mpsc::Sender<Command<T>>,
 }
@@ -115,7 +116,7 @@ mod tests {
     use super::Client;
     use crate::{
         db::{Database, Persist},
-        model::game::Game,
+        model::Game,
     };
     use nanoid::nanoid;
     use std::collections::HashSet;

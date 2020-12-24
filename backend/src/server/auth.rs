@@ -1,5 +1,5 @@
 use super::app_context::AppContext;
-use crate::model::player::Player;
+use crate::model::Player;
 use hmac::{Hmac, NewMac};
 use jwt::{AlgorithmType, Error, Header, SignWithKey, Token, VerifyWithKey};
 use sha2::Sha256;
@@ -47,7 +47,7 @@ fn init_key(secret: &str) -> Hmac<Sha256> {
 #[cfg(test)]
 mod tests {
     use super::{extract_verified_id, extract_verified_token, generate_jwt_token};
-    use crate::{model::player::Player, server::app_context::AppContext};
+    use crate::{model::Player, server::app_context::AppContext};
 
     const SECRET: &str = "super-secret";
 

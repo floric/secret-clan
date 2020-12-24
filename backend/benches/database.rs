@@ -2,7 +2,7 @@ use criterion::{black_box, measurement::WallTime, BenchmarkGroup, BenchmarkId, C
 use futures::executor::block_on;
 use rand::{distributions::Alphanumeric, prelude::*};
 use rand_pcg::Pcg64;
-use secret_clan::{model::player::Player, server::app_context::AppContext};
+use secret_clan::{model::Player, server::app_context::AppContext};
 use std::time::Instant;
 use task::LocalSet;
 use tokio::task;

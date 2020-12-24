@@ -2,7 +2,7 @@ use super::logger::init_logger;
 use crate::{
     config::AppConfig,
     db::{Client, Database},
-    model::{game::Game, player::Player},
+    model::{Game, Player},
 };
 use envconfig::Envconfig;
 

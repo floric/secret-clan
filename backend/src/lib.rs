@@ -3,7 +3,7 @@ use server::{app_context::AppContext, run_server};
 use tokio::runtime::Builder;
 
 mod config;
-mod db;
+pub mod db;
 pub mod jobs;
 pub mod model;
 pub mod server;

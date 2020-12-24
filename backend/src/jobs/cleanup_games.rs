@@ -1,4 +1,4 @@
-use crate::{db::Client, model::game::Game, server::app_context::AppContext};
+use crate::{db::Client, model::Game, server::app_context::AppContext};
 use chrono::{Duration, Utc};
 use log::{debug, info, warn};
 
@@ -51,7 +51,7 @@ mod tests {
     use super::execute_cleanup_games;
     use crate::{
         db::{Client, Database},
-        model::game::Game,
+        model::Game,
     };
     use chrono::Duration;
 

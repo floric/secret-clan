@@ -1,4 +1,4 @@
-use super::{Command, Persist};
+use super::{Command, Persist, ScanFunction};
 use log::{debug, error, info, warn};
 use nanoid::nanoid;
 use rayon::prelude::*;
@@ -45,6 +45,20 @@ impl<T: Persist> Database<T> {
         self.sender.clone()
     }
 
+    /// A database connection is etablished by creating a database instance, which should should then be started in a separate thread.
+    /// The communication between resources and the database is established with channels. Simply use a client to send messages to the database thread in an easy accesible way.
+    /// Of course it's also possible to send messages through the channel directly without using the client.
+    ///
+    /// Example:
+    /// ```
+    /// use secret_clan::{model::Game, db::{Database, Client}};
+    /// let mut repo: Database<Game> = Database::init("test");
+    /// let sender = repo.sender();
+    /// std::thread::spawn(move || {
+    ///     repo.start_listening();
+    /// });
+    /// let client = Client::new(sender);
+    /// ```
     pub async fn start_listening(&mut self) {
         info!("Database for \"{}\" ready", self.path);
 
@@ -71,21 +85,7 @@ impl<T: Persist> Database<T> {
                     scan_function,
                     data,
                 } => {
-                    let matching_ids = self
-                        .db
-                        .iter()
-                        .par_bridge()
-                        .filter_map(|x| x.ok())
-                        .filter_map(|(_, x)| T::try_from(x).ok())
-                        .filter_map(|y| {
-                            if scan_function(&y) {
-                                Some(String::from(y.id()))
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<HashSet<String>>();
-                    self.send_result(Ok(matching_ids), data.responder);
+                    self.send_result(Ok(self.scan(scan_function)), data.responder);
                 }
                 Command::Purge { data } => {
                     self.send_result(self.purge(), data.responder);
@@ -131,6 +131,22 @@ impl<T: Persist> Database<T> {
             Ok(res) => Ok(res.and_then(|g| T::try_from(g).ok())),
             Err(err) => Err(err),
         }
+    }
+
+    fn scan(&self, scan_function: ScanFunction<T>) -> HashSet<String> {
+        self.db
+            .iter()
+            .par_bridge()
+            .filter_map(|x| x.ok())
+            .filter_map(|(_, x)| T::try_from(x).ok())
+            .filter_map(|y| {
+                if scan_function(&y) {
+                    Some(String::from(y.id()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashSet<String>>()
     }
 
     fn total_count(&self) -> usize {
