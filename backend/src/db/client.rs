@@ -159,6 +159,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn should_purge_games() {
+        let client = init_client();
+
+        client
+            .persist(&Game::new("admin", "token"))
+            .await
+            .expect("Game persist failed");
+        client
+            .persist(&Game::new("admin", "token2"))
+            .await
+            .expect("Game persist failed");
+
+        assert_eq!(client.total_count().await.unwrap(), 2);
+
+        client.purge().await.expect("Perging has failed");
+
+        assert_eq!(client.total_count().await.unwrap(), 0);
+    }
+
+    #[tokio::test]
     async fn should_remove_game() {
         let client = init_client();
         let game = Game::new("admin", "token");
