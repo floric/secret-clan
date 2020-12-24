@@ -11,13 +11,12 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
     let mut db_group = c.benchmark_group("database");
     db_group.bench_function("persist", |b| {
         b.iter_custom(|iters| {
-            let t = local.run_until(async move {
+            let t = local.run_until(async {
                 let _ = ctx.db().players().purge().await;
                 let start = Instant::now();
                 for _ in 0..iters {
                     let player = Player::new("game");
-                    let res = ctx.db().players().persist(black_box(&player)).await;
-                    assert!(res.is_ok());
+                    let _ = ctx.db().players().persist(black_box(&player)).await;
                 }
                 start.elapsed()
             });
@@ -28,7 +27,7 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
 
     db_group.bench_function("get", |b| {
         b.iter_custom(|iters| {
-            let t = local.run_until(async move {
+            let t = local.run_until(async {
                 let _ = ctx.db().players().purge().await;
                 let player = Player::new("game");
                 let _ = ctx.db().players().persist(&player).await;
@@ -36,8 +35,7 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
                 let start = Instant::now();
                 let id = player.id();
                 for _ in 0..iters {
-                    let res = ctx.db().players().get(black_box(id)).await;
-                    assert!(res.is_ok());
+                    let _ = ctx.db().players().get(black_box(id)).await;
                 }
                 start.elapsed()
             });
@@ -46,7 +44,7 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
         });
     });
 
-    bench_scan_with_sizes(&mut db_group, ctx, local, vec![10, 100, 1000]);
+    bench_scan_with_sizes(&mut db_group, ctx, local, vec![10, 100, 1000, 10000]);
 }
 
 fn bench_scan_with_sizes(
@@ -58,7 +56,7 @@ fn bench_scan_with_sizes(
     for size in sizes {
         db_group.bench_with_input(BenchmarkId::new("scan", size), &size, |b, player_count| {
             b.iter_custom(|iters| {
-                let t = local.run_until(async move {
+                let t = local.run_until(async {
                     let _ = ctx.db().players().purge().await;
                     let mut rng = Pcg64::seed_from_u64(123);
                     for _ in 0..*player_count {
@@ -70,12 +68,11 @@ fn bench_scan_with_sizes(
 
                     let start = Instant::now();
                     for _i in 0..iters {
-                        let res = ctx
+                        let _ = ctx
                             .db()
                             .players()
                             .scan(Box::new(|p| p.name().starts_with("a")))
                             .await;
-                        assert!(res.is_ok());
                     }
                     start.elapsed()
                 });

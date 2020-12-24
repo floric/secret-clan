@@ -1,9 +1,13 @@
 use super::{Command, Persist};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use nanoid::nanoid;
+use rayon::prelude::*;
 use sled::Db;
 use std::collections::HashSet;
-use tokio::sync::mpsc::{self};
+use tokio::sync::{
+    mpsc::{self},
+    oneshot::{self},
+};
 
 pub struct Database<T: Persist> {
     path: String,
@@ -49,38 +53,42 @@ impl<T: Persist> Database<T> {
 
             match cmd {
                 Command::Get { key, data } => {
-                    let _ = data.responder.send(self.get(&key));
+                    self.send_result(self.get(&key), data.responder);
                 }
                 Command::Persist { value, data } => {
-                    let _ = data.responder.send(self.persist(&value));
+                    self.send_result(self.persist(&value), data.responder);
                 }
                 Command::Remove { key, data } => {
-                    let _ = data.responder.send(self.remove(&key));
+                    self.send_result(self.remove(&key), data.responder);
                 }
                 Command::RemoveBatch { keys, data } => {
-                    let _ = data.responder.send(self.remove_batch(&keys));
+                    self.send_result(self.remove_batch(&keys), data.responder);
                 }
                 Command::Count { data } => {
-                    let _ = data.responder.send(self.total_count());
+                    self.send_result(self.total_count(), data.responder);
                 }
                 Command::Scan {
                     scan_function,
                     data,
                 } => {
-                    let mut matching_ids = HashSet::new();
-                    for x in self.db.iter() {
-                        if let Ok((_, val)) = x {
-                            let val = T::try_from(val).ok().unwrap();
-                            let matches = scan_function(&val);
-                            if matches {
-                                matching_ids.insert(String::from(val.id()));
+                    let matching_ids = self
+                        .db
+                        .iter()
+                        .par_bridge()
+                        .filter_map(|x| x.ok())
+                        .filter_map(|(_, x)| T::try_from(x).ok())
+                        .filter_map(|y| {
+                            if scan_function(&y) {
+                                Some(String::from(y.id()))
+                            } else {
+                                None
                             }
-                        }
-                    }
-                    let _ = data.responder.send(Ok(matching_ids));
+                        })
+                        .collect::<HashSet<String>>();
+                    self.send_result(Ok(matching_ids), data.responder);
                 }
                 Command::Purge { data } => {
-                    let _ = data.responder.send(self.purge());
+                    self.send_result(self.purge(), data.responder);
                 }
             }
         }
@@ -131,6 +139,12 @@ impl<T: Persist> Database<T> {
 
     fn flush(&self) -> Result<bool, sled::Error> {
         self.db.flush().map(|_| true)
+    }
+
+    fn send_result<R>(&self, data: R, sender: oneshot::Sender<R>) {
+        if let Err(_) = sender.send(data) {
+            error!("Sending result to client has failed");
+        }
     }
 
     fn purge(&self) -> Result<bool, sled::Error> {

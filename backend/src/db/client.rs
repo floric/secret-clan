@@ -4,20 +4,15 @@ use nanoid::nanoid;
 use std::{
     collections::HashSet,
     fmt::{self, Debug},
-    marker::PhantomData,
 };
 use tokio::sync::{mpsc, oneshot};
 pub struct Client<T: Persist> {
-    phantom: PhantomData<T>,
     sender: mpsc::Sender<Command<T>>,
 }
 
 impl<T: Persist> Client<T> {
     pub fn new(sender: mpsc::Sender<Command<T>>) -> Self {
-        Client {
-            phantom: PhantomData,
-            sender,
-        }
+        Client { sender }
     }
 
     async fn run_query<R: Debug>(
@@ -54,11 +49,15 @@ impl<T: Persist> Client<T> {
         }
     }
 
+    fn map_result<R>(res: Result<R, sled::Error>) -> Result<R, QueryError> {
+        res.map_err(QueryError::from_sled)
+    }
+
     pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
         let key = String::from(id);
         self.run_query(|data| Command::Get { key, data })
             .await
-            .and_then(|x| x.map_err(QueryError::from_sled))
+            .and_then(Self::map_result)
     }
 
     pub async fn scan(
@@ -70,7 +69,7 @@ impl<T: Persist> Client<T> {
             data,
         })
         .await
-        .and_then(|x| x.map_err(QueryError::from_sled))
+        .and_then(Self::map_result)
     }
 
     pub async fn persist(&self, elem: &T) -> Result<bool, QueryError> {
@@ -79,7 +78,7 @@ impl<T: Persist> Client<T> {
             data,
         })
         .await
-        .and_then(|x| x.map_err(QueryError::from_sled))
+        .and_then(Self::map_result)
     }
 
     pub async fn remove(&self, key: &str) -> Result<bool, QueryError> {
@@ -88,7 +87,7 @@ impl<T: Persist> Client<T> {
             data,
         })
         .await
-        .and_then(|x| x.map_err(QueryError::from_sled))
+        .and_then(Self::map_result)
     }
 
     pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, QueryError> {
@@ -97,13 +96,13 @@ impl<T: Persist> Client<T> {
             data,
         })
         .await
-        .and_then(|x| x.map_err(QueryError::from_sled))
+        .and_then(Self::map_result)
     }
 
     pub async fn purge(&self) -> Result<bool, QueryError> {
         self.run_query(|data| Command::Purge { data })
             .await
-            .and_then(|x| x.map_err(QueryError::from_sled))
+            .and_then(Self::map_result)
     }
 
     pub async fn total_count(&self) -> Result<usize, QueryError> {

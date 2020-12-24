@@ -37,6 +37,7 @@ names = "0.11"
 nanoid = "0.3"
 rand = "0.8"
 rand_pcg = "0.3"
+rayon = "1.5"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 serde_urlencoded = "0.7"
