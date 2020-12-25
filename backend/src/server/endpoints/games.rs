@@ -30,7 +30,7 @@ pub async fn get_game_filter(
             .await
             .expect("Reading game has failed")
         {
-            Some(game) => {
+            Some(mut game) => {
                 match ctx
                     .db()
                     .players()
@@ -49,6 +49,7 @@ pub async fn get_game_filter(
                             .persist(&player)
                             .await
                             .expect("Persisting heartbeat has failed");
+                        game.make_public_readable();
                         Ok(warp::reply::with_status(
                             warp::reply::json(&game),
                             StatusCode::OK,
@@ -234,7 +235,7 @@ mod tests {
         start_game_filter,
     };
     use crate::{
-        model::{Game, GameState, Player},
+        model::{Game, GameState, Party, Player, Role},
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};
@@ -458,8 +459,14 @@ mod tests {
             .games()
             .get(GAME_TOKEN)
             .await
-            .expect("Couldnt find game");
-        assert_eq!(updated_game.unwrap().state(), &GameState::Started);
+            .expect("Couldnt find game")
+            .unwrap();
+        assert_eq!(updated_game.state(), &GameState::Started);
+        assert_eq!(
+            updated_game.assigned_roles().get(player.id()).unwrap(),
+            &Role::new("Good", Party::Good)
+        );
+        assert_eq!(updated_game.assigned_roles().len(), 1);
     }
 
     #[tokio::test]
