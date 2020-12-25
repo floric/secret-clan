@@ -26,7 +26,7 @@ impl<T: Persist> Database<T> {
         .expect("opening database has failed");
 
         let (sender, receiver): (mpsc::Sender<Command<T>>, mpsc::Receiver<Command<T>>) =
-            mpsc::channel(32);
+            mpsc::channel(256);
 
         let repo = Database {
             db,

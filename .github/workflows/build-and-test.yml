@@ -13,12 +13,13 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - name: Build
-        run: cargo build --bins --release
-      - name: Lint
-        run: cargo clippy --release
       - name: Test
-        run: cargo test --release
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: "0.16.0"
+          args: "--"
+      - name: Lint
+        run: cargo clippy
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
