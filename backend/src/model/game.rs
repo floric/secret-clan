@@ -5,12 +5,42 @@ use sled::IVec;
 use std::{collections::HashSet, convert::TryFrom};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+pub enum GameState {
+    Initialized,
+    Abandoned,
+    Started,
+}
+
+/// This struct defines a game session. Each valid game needs to have an admin who is responsible for defining game settings.
+/// The admin is also a player but currently not added redundantly to player_ids as well as admin_id.
+///
+/// Please note that each method here only mutates the struct state but still needs to be persisted to the database separately.
+///
+/// Example:
+/// ```no_run
+/// use secret_clan::{model::Game, db::{Database, Client}};
+/// let mut repo: Database<Game> = Database::init("test");
+/// let sender = repo.sender();
+/// std::thread::spawn(move || {
+///     repo.start_listening();
+/// });
+/// std::thread::spawn(move || {
+///     async move {
+///         let client = Client::new(sender.clone());
+///         let mut game = Game::new("admin", "GAME");
+///         game.start();
+///         let _ = client.persist(&game).await;
+///     }
+/// });
+/// ```
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct Game {
     token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
     admin_id: Option<String>,
     player_ids: HashSet<String>,
+    state: GameState,
 }
 
 impl Game {
@@ -21,6 +51,7 @@ impl Game {
             last_action_time: Utc::now(),
             admin_id: Some(String::from(admin_id)),
             player_ids: HashSet::new(),
+            state: GameState::Initialized,
         }
     }
 
@@ -38,6 +69,10 @@ impl Game {
 
     pub fn last_action_time(&self) -> &DateTime<Utc> {
         &self.last_action_time
+    }
+
+    pub fn state(&self) -> &GameState {
+        &self.state
     }
 
     pub fn add_player(&mut self, player_id: &str) {
@@ -62,15 +97,17 @@ impl Game {
                 self.admin_id = Some(String::from(&next_player_id));
                 self.player_ids.remove(&next_player_id);
             } else {
-                // abandon game as admin is the last player
                 self.admin_id = None;
+                self.state = GameState::Abandoned
             }
         } else {
             // game is already abandoned or requesting user is no admin or player
         }
     }
 
-    pub fn start(&mut self) {}
+    pub fn start(&mut self) {
+        self.state = GameState::Started;
+    }
 }
 
 impl Persist for Game {

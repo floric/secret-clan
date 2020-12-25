@@ -1,19 +1,19 @@
 pub mod app_context;
 mod auth;
 mod endpoints;
-mod errors;
 mod logger;
+mod reply;
 
 use self::{
     app_context::AppContext,
     endpoints::{
         games::{
             attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
-            leave_game_filter,
+            leave_game_filter, start_game_filter,
         },
         players::{edit_player_filter, get_player_filter, EditPlayerInput},
     },
-    errors::handle_rejection,
+    reply::handle_rejection,
 };
 use log::warn;
 use std::fs;
@@ -53,7 +53,7 @@ pub async fn run_server(ctx: &'static AppContext) {
                     warp::put().and_then(move || async move { create_game_filter(ctx).await }),
                 )
                 .or(
-                    // POST /api/games/attend
+                    // POST /api/games/:token/attend
                     warp::post().and(warp::path!(String / "attend")).and_then(
                         move |game_token: String| async move {
                             attend_game_filter(&game_token, ctx).await
@@ -61,13 +61,24 @@ pub async fn run_server(ctx: &'static AppContext) {
                     ),
                 )
                 .or(
-                    // POST /api/games/leave
+                    // POST /api/games/:token/leave
                     warp::post()
                         .and(warp::path!(String / "leave"))
                         .and(warp::header(AUTHORIZATION))
                         .and_then(
                             move |game_token: String, authorization: String| async move {
                                 leave_game_filter(&game_token, &authorization, ctx).await
+                            },
+                        ),
+                )
+                .or(
+                    // POST /api/games/:token/start
+                    warp::post()
+                        .and(warp::path!(String / "start"))
+                        .and(warp::header(AUTHORIZATION))
+                        .and_then(
+                            move |game_token: String, authorization: String| async move {
+                                start_game_filter(&game_token, &authorization, ctx).await
                             },
                         ),
                 )

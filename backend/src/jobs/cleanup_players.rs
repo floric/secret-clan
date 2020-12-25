@@ -33,7 +33,7 @@ async fn execute_cleanup_players(ctx: &AppContext, duration: Duration) -> bool {
             let game = ctx.db().games().get(player.game_token()).await;
             if let Some(mut game) = game.expect("Reading game has failed") {
                 game.remove_player(&id);
-                if let Err(_) = ctx.db().games().persist(&game).await {
+                if ctx.db().games().persist(&game).await.is_err() {
                     warn!("Removing player has failed");
                 }
             }
@@ -65,7 +65,7 @@ async fn execute_cleanup_players(ctx: &AppContext, duration: Duration) -> bool {
 mod tests {
     use super::execute_cleanup_players;
     use crate::{
-        model::{Game, Player},
+        model::{Game, GameState, Player},
         server::app_context::AppContext,
     };
     use chrono::Duration;
@@ -103,6 +103,16 @@ mod tests {
             .expect("Game should still exist")
             .admin_id()
             .is_none());
+        assert_eq!(
+            ctx.db()
+                .games()
+                .get(player.game_token())
+                .await
+                .unwrap()
+                .expect("Game should still exist")
+                .state(),
+            &GameState::Abandoned
+        );
     }
 
     #[tokio::test]

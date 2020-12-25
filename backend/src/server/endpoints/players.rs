@@ -1,4 +1,4 @@
-use crate::server::{app_context::AppContext, auth::extract_verified_id, errors::reply_with_error};
+use crate::server::{app_context::AppContext, auth::extract_verified_id, reply::reply_error};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::hyper::StatusCode;
@@ -24,7 +24,7 @@ pub async fn get_player_filter(id: &str, ctx: &AppContext) -> Result<impl warp::
             }),
             StatusCode::OK,
         )),
-        None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
+        None => Ok(reply_error(StatusCode::NOT_FOUND)),
     }
 }
 
@@ -59,9 +59,9 @@ pub async fn edit_player_filter(
                     StatusCode::OK,
                 ))
             }
-            None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+            None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
         },
-        None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+        None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
     }
 }
 

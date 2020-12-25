@@ -1,8 +1,10 @@
 use crate::{
     model::{Game, Player},
     server::{
-        app_context::AppContext, auth::extract_verified_id, auth::generate_jwt_token,
-        errors::reply_with_error,
+        app_context::AppContext,
+        auth::extract_verified_id,
+        auth::generate_jwt_token,
+        reply::{reply_error, reply_error_with_details, reply_success},
     },
 };
 use log::debug;
@@ -52,12 +54,12 @@ pub async fn get_game_filter(
                             StatusCode::OK,
                         ))
                     }
-                    None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
+                    None => Ok(reply_error(StatusCode::NOT_FOUND)),
                 }
             }
-            None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
+            None => Ok(reply_error(StatusCode::NOT_FOUND)),
         },
-        None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+        None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
     }
 }
 
@@ -132,10 +134,10 @@ pub async fn attend_game_filter(
                     warp::reply::json(&player),
                     StatusCode::OK,
                 )),
-                Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
             }
         }
-        None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
+        None => Ok(reply_error(StatusCode::NOT_FOUND)),
     }
 }
 
@@ -155,13 +157,45 @@ pub async fn leave_game_filter(
             Some(player_id) => {
                 game.remove_player(&player_id);
                 match ctx.db().games().persist(&game).await {
-                    Ok(_) => Ok(reply_with_error(StatusCode::OK)),
-                    Err(_) => Ok(reply_with_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                    Ok(_) => Ok(reply_success(StatusCode::OK)),
+                    Err(_) => Ok(reply_error_with_details(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Writing player has failed",
+                    )),
                 }
             }
-            None => Ok(reply_with_error(StatusCode::UNAUTHORIZED)),
+            None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
         },
-        None => Ok(reply_with_error(StatusCode::NOT_FOUND)),
+        None => Ok(reply_error(StatusCode::NOT_FOUND)),
+    }
+}
+
+pub async fn start_game_filter(
+    game_token: &str,
+    authorization: &str,
+    ctx: &AppContext,
+) -> Result<impl warp::Reply, Infallible> {
+    match ctx
+        .db()
+        .games()
+        .get(&game_token)
+        .await
+        .expect("Reading game has failed")
+    {
+        Some(mut game) => match extract_verified_id(authorization, ctx)
+            .filter(|_| game.admin_id().is_some())
+            .filter(|id| id == game.admin_id().as_ref().unwrap())
+        {
+            Some(_) => {
+                game.start();
+                match ctx.db().games().persist(&game).await {
+                    Ok(_) => Ok(reply_error(StatusCode::OK)),
+                    Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                }
+            }
+            None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
+        },
+        None => Ok(reply_error(StatusCode::NOT_FOUND)),
     }
 }
 
@@ -195,9 +229,12 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
 
 #[cfg(test)]
 mod tests {
-    use super::{attend_game_filter, create_game_filter, get_game_filter, leave_game_filter};
+    use super::{
+        attend_game_filter, create_game_filter, get_game_filter, leave_game_filter,
+        start_game_filter,
+    };
     use crate::{
-        model::{Game, Player},
+        model::{Game, GameState, Player},
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};
@@ -213,7 +250,6 @@ mod tests {
         let ctx = init_ctx();
 
         let reply = get_game_filter("invalid", "auth", &ctx).await;
-
         assert_eq!(
             reply.unwrap().into_response().status(),
             StatusCode::UNAUTHORIZED
@@ -227,7 +263,6 @@ mod tests {
         let token = generate_jwt_token(&Player::new("game"), &ctx.config().auth_secret);
 
         let reply = get_game_filter("game", &token, &ctx).await;
-
         assert_eq!(
             reply.unwrap().into_response().status(),
             StatusCode::NOT_FOUND
@@ -253,7 +288,6 @@ mod tests {
         let token = generate_jwt_token(&admin, &ctx.config().auth_secret);
 
         let reply = get_game_filter(GAME_TOKEN, &token, &ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
     }
 
@@ -278,7 +312,6 @@ mod tests {
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
 
         let reply = get_game_filter(GAME_TOKEN, &token, &ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
     }
 
@@ -302,7 +335,6 @@ mod tests {
             .expect("Writing game failed");
 
         let reply = get_game_filter(GAME_TOKEN, &token, &ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
 
         let updated_admin = ctx
@@ -319,7 +351,6 @@ mod tests {
         let ctx = init_ctx();
 
         let reply = create_game_filter(&ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::CREATED);
     }
 
@@ -328,7 +359,6 @@ mod tests {
         let ctx = init_ctx();
 
         let reply = attend_game_filter("test", &ctx).await;
-
         assert_eq!(
             reply.unwrap().into_response().status(),
             StatusCode::NOT_FOUND
@@ -346,7 +376,6 @@ mod tests {
             .expect("Writing game failed");
 
         let reply = attend_game_filter(GAME_TOKEN, &ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
     }
 
@@ -393,11 +422,9 @@ mod tests {
             .persist(&game)
             .await
             .expect("Writing game failed");
-
         assert_eq!(game.admin_id().as_ref().unwrap(), admin.id());
 
         let reply = leave_game_filter(GAME_TOKEN, &token, &ctx).await;
-
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
 
         let updated_game = ctx
@@ -409,5 +436,69 @@ mod tests {
             .unwrap();
         assert!(updated_game.player_ids().is_empty());
         assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());
+    }
+
+    #[tokio::test]
+    async fn should_start_game() {
+        let ctx = init_ctx();
+        let player = Player::new(GAME_TOKEN);
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        ctx.db()
+            .games()
+            .persist(&Game::new(player.id(), GAME_TOKEN))
+            .await
+            .expect("Writing game failed");
+
+        let reply = start_game_filter(GAME_TOKEN, &token, &ctx).await;
+        assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
+
+        let updated_game = ctx
+            .db()
+            .games()
+            .get(GAME_TOKEN)
+            .await
+            .expect("Couldnt find game");
+        assert_eq!(updated_game.unwrap().state(), &GameState::Started);
+    }
+
+    #[tokio::test]
+    async fn should_not_start_game() {
+        let ctx = init_ctx();
+        let player = Player::new(GAME_TOKEN);
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        ctx.db()
+            .games()
+            .persist(&Game::new("admin", GAME_TOKEN))
+            .await
+            .expect("Writing game failed");
+
+        let reply = start_game_filter(GAME_TOKEN, &token, &ctx).await;
+        assert_eq!(
+            reply.unwrap().into_response().status(),
+            StatusCode::UNAUTHORIZED
+        );
+
+        let updated_game = ctx
+            .db()
+            .games()
+            .get(GAME_TOKEN)
+            .await
+            .expect("Couldnt find game");
+        assert_eq!(updated_game.unwrap().state(), &GameState::Initialized);
+    }
+
+    #[tokio::test]
+    async fn should_not_start_unknown_game() {
+        let ctx = init_ctx();
+        let player = Player::new(GAME_TOKEN);
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        let reply = start_game_filter(GAME_TOKEN, &token, &ctx).await;
+        assert_eq!(
+            reply.unwrap().into_response().status(),
+            StatusCode::NOT_FOUND
+        );
     }
 }
