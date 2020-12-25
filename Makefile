@@ -4,6 +4,9 @@ watch-fe:
 watch-be:
 	cd backend && LOG_LEVEL=debug cargo watch -x 'run' -w 'src'
 
+test-be:
+	cd backend && cargo tarpaulin --out Html
+
 bench:
 	cd backend && cargo bench
 

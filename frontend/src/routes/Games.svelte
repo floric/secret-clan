@@ -1,6 +1,6 @@
 <script lang="typescript">
   import { push } from "svelte-spa-router";
-  import type { Game } from "../types/Game";
+  import type { Game, GameStats } from "../types/Game";
   import type { Player } from "../types/Player";
   import ActionRow from "../components/buttons/ActionRow.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
@@ -53,10 +53,27 @@
       // TODO Handle all API errors in a generic way
     }
   }
+  const loadStats = async () => {
+    const res = await fetch(`/api/games/`);
+    if (!res.ok) {
+      return;
+    }
+
+    return (await res.json()) as GameStats;
+  };
 </script>
 
 <Dialog>
   <DialogHeader>Start Game</DialogHeader>
+  <p class="mb-4">
+    {#await loadStats()}
+      Loading stats...
+    {:then { total }}
+      There are currently
+      {total}
+      active games.
+    {/await}
+  </p>
   <SecondaryButton on:click={createGame}>Create new game</SecondaryButton>
 
   <Divider><span slot="text">or</span></Divider>

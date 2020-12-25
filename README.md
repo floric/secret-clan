@@ -43,9 +43,9 @@ After that, start development with two terminals and the following commands:
 
 This will start watch modes for the server and frontend and will automatically update the code and restart the server. The update process is visible in the terminal output.
 
-Run the backend tests with the following command:
+Run the backend tests with the following command and also update the coverage report:
 
-`cargo test`
+`make test-be`
 
 ## Production Build
 
