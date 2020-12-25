@@ -27,6 +27,24 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
             block_on(t)
         });
     });
+    db_group.bench_function("persist-batch", |b| {
+        b.iter_custom(|iters| {
+            let t = local.run_until(async {
+                let _ = ctx.db().players().purge().await;
+                let start = Instant::now();
+                for _ in 0..iters {
+                    let mut players = vec![];
+                    for _ in 0..100 {
+                        players.push(Player::new("game"));
+                    }
+                    let _ = ctx.db().players().persist_batch(black_box(&players)).await;
+                }
+                start.elapsed()
+            });
+
+            block_on(t)
+        });
+    });
 
     db_group.sampling_mode(SamplingMode::Linear);
     db_group.bench_function("get", |b| {
@@ -78,7 +96,7 @@ fn bench_scan_with_sizes(
                         let _ = ctx
                             .db()
                             .players()
-                            .scan(Box::new(|p| p.name().starts_with("a")))
+                            .scan(Box::new(|p| p.name().starts_with(black_box("a"))))
                             .await;
                     }
                     start.elapsed()

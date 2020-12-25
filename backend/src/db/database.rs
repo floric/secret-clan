@@ -104,7 +104,7 @@ impl<T: Persist> Database<T> {
         self.flush()
     }
 
-    fn persist_batch(&self, values: &Vec<T>) -> Result<bool, sled::Error> {
+    fn persist_batch(&self, values: &[T]) -> Result<bool, sled::Error> {
         let batch = sled::Batch::default();
         for elem in values {
             self.db

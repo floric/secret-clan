@@ -82,9 +82,9 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
-    pub async fn persist_batch(&self, values: &Vec<T>) -> Result<bool, QueryError> {
+    pub async fn persist_batch(&self, values: &[T]) -> Result<bool, QueryError> {
         self.run_query(|data| Command::PersistBatch {
-            values: values.clone(),
+            values: values.to_vec(),
             data,
         })
         .await

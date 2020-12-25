@@ -151,7 +151,7 @@ impl Game {
             all_roles.push(good_role.clone());
         }
         if total_count % 2 == 1 {
-            all_roles.push(good_role.clone());
+            all_roles.push(good_role);
         }
 
         all_roles
