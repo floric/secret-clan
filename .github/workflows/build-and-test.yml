@@ -1,4 +1,4 @@
-name: Build, Lint and Test
+name: Build, Lint, Audit and Test
 on: push
 jobs:
   backend:
@@ -9,17 +9,28 @@ jobs:
         shell: bash
         working-directory: backend
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Fetch Dependencies
+        uses: actions-rs/install@v0.1
         with:
-          toolchain: stable
-      - name: Test
+          crate: secret_clan
+          version: latest
+          use-tool-cache: true
+      - name: Build and Test
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: "0.16.0"
           args: "-r backend"
       - name: Lint
-        run: cargo clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+      - name: Audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -28,7 +39,8 @@ jobs:
         shell: bash
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Setup Environment
         uses: actions/setup-node@v2.1.2
         with:
@@ -36,9 +48,9 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: Fetch Dependencies
         run: npm install
-      - name: Check Dependencies
-        run: npm audit
       - name: Build
         run: npm run build:prod
       - name: Lint
         run: npm run lint
+      - name: Audit
+        run: npm audit
