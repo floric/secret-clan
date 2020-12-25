@@ -67,6 +67,10 @@ pub enum Command<T: Persist> {
         value: T,
         data: CommandData<Result<bool, sled::Error>>,
     },
+    PersistBatch {
+        values: Vec<T>,
+        data: CommandData<Result<bool, sled::Error>>,
+    },
     Remove {
         key: String,
         data: CommandData<Result<bool, sled::Error>>,

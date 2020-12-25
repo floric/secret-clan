@@ -1,4 +1,6 @@
-use criterion::{black_box, measurement::WallTime, BenchmarkGroup, BenchmarkId, Criterion};
+use criterion::{
+    black_box, measurement::WallTime, BenchmarkGroup, BenchmarkId, Criterion, SamplingMode,
+};
 use futures::executor::block_on;
 use rand::{distributions::Alphanumeric, prelude::*};
 use rand_pcg::Pcg64;
@@ -9,6 +11,7 @@ use tokio::task;
 
 pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSet) {
     let mut db_group = c.benchmark_group("database");
+    db_group.sampling_mode(SamplingMode::Linear);
     db_group.bench_function("persist", |b| {
         b.iter_custom(|iters| {
             let t = local.run_until(async {
@@ -25,6 +28,7 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
         });
     });
 
+    db_group.sampling_mode(SamplingMode::Linear);
     db_group.bench_function("get", |b| {
         b.iter_custom(|iters| {
             let t = local.run_until(async {
@@ -44,6 +48,7 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
         });
     });
 
+    db_group.sampling_mode(SamplingMode::Flat);
     bench_scan_with_sizes(&mut db_group, ctx, local, vec![10, 100, 1000, 10000]);
 }
 
@@ -59,12 +64,14 @@ fn bench_scan_with_sizes(
                 let t = local.run_until(async {
                     let _ = ctx.db().players().purge().await;
                     let mut rng = Pcg64::seed_from_u64(123);
+                    let mut players = vec![];
                     for _ in 0..*player_count {
                         let random_name =
                             String::from_utf8(vec![rng.sample(Alphanumeric)]).unwrap();
                         let player = Player::new(&random_name);
-                        let _ = ctx.db().players().persist(&player).await;
+                        players.push(player);
                     }
+                    let _ = ctx.db().players().persist_batch(&players).await;
 
                     let start = Instant::now();
                     for _i in 0..iters {

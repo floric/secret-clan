@@ -82,6 +82,15 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
+    pub async fn persist_batch(&self, values: &Vec<T>) -> Result<bool, QueryError> {
+        self.run_query(|data| Command::PersistBatch {
+            values: values.clone(),
+            data,
+        })
+        .await
+        .and_then(Self::map_result)
+    }
+
     pub async fn remove(&self, key: &str) -> Result<bool, QueryError> {
         self.run_query(|data| Command::Remove {
             key: String::from(key),
@@ -156,6 +165,25 @@ mod tests {
             .persist(&Game::new("admin", "token"))
             .await
             .expect("Game persist failed");
+        assert_eq!(client.total_count().await.unwrap(), 1);
+    }
+
+    #[tokio::test]
+    async fn should_persist_games() {
+        let client = init_client();
+
+        let mut games = vec![];
+        for i in 0..100 {
+            games.push(Game::new(
+                "admin",
+                &std::fmt::format(format_args!("token{}", i)),
+            ));
+        }
+        client
+            .persist_batch(&games)
+            .await
+            .expect("Game persist failed");
+        assert_eq!(client.total_count().await.unwrap(), 100);
     }
 
     #[tokio::test]

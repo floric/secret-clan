@@ -72,6 +72,9 @@ impl<T: Persist> Database<T> {
                 Command::Persist { value, data } => {
                     self.send_result(self.persist(&value), data.responder);
                 }
+                Command::PersistBatch { values, data } => {
+                    self.send_result(self.persist_batch(&values), data.responder);
+                }
                 Command::Remove { key, data } => {
                     self.send_result(self.remove(&key), data.responder);
                 }
@@ -98,6 +101,17 @@ impl<T: Persist> Database<T> {
         self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
+        self.flush()
+    }
+
+    fn persist_batch(&self, values: &Vec<T>) -> Result<bool, sled::Error> {
+        let batch = sled::Batch::default();
+        for elem in values {
+            self.db
+                .insert(elem.id(), elem.clone())
+                .expect("Persisting item failed");
+        }
+        self.db.apply_batch(batch)?;
         self.flush()
     }
 
