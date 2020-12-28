@@ -378,6 +378,14 @@ mod tests {
 
         let reply = attend_game_filter(GAME_TOKEN, &ctx).await;
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
+
+        let updated_game = ctx
+            .db()
+            .games()
+            .get(GAME_TOKEN)
+            .await
+            .expect("Couldn't find game");
+        assert_eq!(updated_game.unwrap().state(), &GameState::Initialized);
     }
 
     #[tokio::test]
@@ -404,8 +412,38 @@ mod tests {
             .games()
             .get(GAME_TOKEN)
             .await
-            .expect("Couldnt find game");
-        assert!(!updated_game.unwrap().player_ids().contains(player.id()));
+            .expect("Couldn't find game")
+            .unwrap();
+        assert!(!updated_game.player_ids().contains(player.id()));
+        assert_eq!(updated_game.state(), &GameState::Initialized);
+    }
+
+    #[tokio::test]
+    async fn should_abandone_game() {
+        let ctx = init_ctx();
+
+        let player = Player::new(GAME_TOKEN);
+        let game = Game::new(player.id(), GAME_TOKEN);
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        ctx.db()
+            .games()
+            .persist(&game)
+            .await
+            .expect("Writing game failed");
+
+        let reply = leave_game_filter(GAME_TOKEN, &token, &ctx).await;
+        assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
+
+        let updated_game = ctx
+            .db()
+            .games()
+            .get(GAME_TOKEN)
+            .await
+            .expect("Couldn't find game")
+            .unwrap();
+        assert!(!updated_game.player_ids().contains(player.id()));
+        assert_eq!(updated_game.state(), &GameState::Abandoned);
     }
 
     #[tokio::test]
@@ -433,10 +471,11 @@ mod tests {
             .games()
             .get(GAME_TOKEN)
             .await
-            .expect("Couldnt find game")
+            .expect("Couldn't find game")
             .unwrap();
         assert!(updated_game.player_ids().is_empty());
         assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());
+        assert_eq!(updated_game.state(), &GameState::Initialized);
     }
 
     #[tokio::test]
@@ -459,7 +498,7 @@ mod tests {
             .games()
             .get(GAME_TOKEN)
             .await
-            .expect("Couldnt find game")
+            .expect("Couldn't find game")
             .unwrap();
         assert_eq!(updated_game.state(), &GameState::Started);
         assert_eq!(
@@ -492,7 +531,7 @@ mod tests {
             .games()
             .get(GAME_TOKEN)
             .await
-            .expect("Couldnt find game");
+            .expect("Couldn't find game");
         assert_eq!(updated_game.unwrap().state(), &GameState::Initialized);
     }
 

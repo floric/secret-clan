@@ -91,6 +91,9 @@ impl Game {
         match self.admin_id {
             Some(_) => {
                 self.player_ids.insert(String::from(player_id));
+                if self.state == GameState::Abandoned {
+                    self.state = GameState::Initialized;
+                }
             }
             None => self.admin_id = Some(String::from(player_id)),
         }

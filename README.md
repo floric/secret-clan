@@ -45,7 +45,7 @@ This will start watch modes for the server and frontend and will automatically u
 
 Run the backend tests with the following command and also update the coverage report:
 
-`make test-be`
+`make test-be` (Note, that this command requires Tarpaulin; alternatively simply use `cargo test`)
 
 ## Production Build
 
@@ -61,7 +61,7 @@ Run the following command to start the image created previously. This will start
 
 Frontend: [Node 14, preferred installation with NVM](https://github.com/nvm-sh/nvm)
 
-Backend: [Rust](https://www.rust-lang.org/learn/get-started), [Cargo Watch](https://crates.io/crates/cargo-watch)
+Backend: [Rust](https://www.rust-lang.org/learn/get-started), [Cargo Watch](https://crates.io/crates/cargo-watch), [Tarpaulin](https://github.com/xd009642/tarpaulin), [Criterion](https://github.com/bheisler/criterion.rs)
 
 General: [Docker Desktop](https://www.docker.com/get-started)
 
