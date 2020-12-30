@@ -2,28 +2,19 @@
   import { push } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
-  import { Game, GameDetails, GameState } from "../types/Game";
-  import type { PublicPlayer } from "../types/Player";
+  import { GameDetails, GameState } from "../types/Game";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
-  import Settings from "./pages/Settings.svelte";
-  import ActiveGame from "./pages/ActiveGame.svelte";
+  import Settings from "./tasks/Settings.svelte";
+  import WaitForTask from "./tasks/WaitForTask.svelte";
+  import { TaskType } from "../types/Tasks";
 
   export let params: { token?: string } = {};
   let details: GameDetails | null = null;
   let refreshId: number | null = null;
 
-  const fetchPlayerById = async (id: string): Promise<PublicPlayer | null> => {
-    const res = await fetch(`/api/players/${id}`);
-    if (!res.ok) {
-      return null;
-    }
-
-    return (await res.json()) as PublicPlayer;
-  };
-
   const refreshGame = async () => {
-    const res = await fetch(`/api/games/${params.token}`, {
+    const res = await fetch(`/api/games/${params.token}/details`, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
       },
@@ -36,19 +27,7 @@
       return;
     }
 
-    const game = (await res.json()) as Game;
-    const [admin, ...players] = await Promise.all([
-      fetchPlayerById(game.admin_id),
-      ...game.player_ids.map(fetchPlayerById),
-    ]);
-
-    details = {
-      game,
-      participants: {
-        admin,
-        players,
-      },
-    };
+    details = (await res.json()) as GameDetails;
   };
 
   const leaveGame = async () => {
@@ -81,10 +60,10 @@
       <p>Loading game</p>
     {:then _}
       {#if details !== null}
-        {#if details.game.state === GameState.Initialized}
+        {#if details.openTasks.length === 0}
+          <WaitForTask {leaveGame} />
+        {:else if details.openTasks[0][TaskType.Settings]}
           <Settings {leaveGame} {refreshGame} {details} token={params.token} />
-        {:else if details.game.state === GameState.Started}
-          <ActiveGame {leaveGame} />
         {:else}
           <p>Unsupported Game State.</p>
         {/if}

@@ -2,7 +2,7 @@ use super::{Command, CommandData, Persist, QueryError};
 use log::debug;
 use nanoid::nanoid;
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     fmt::{self, Debug},
 };
 use tokio::sync::{mpsc, oneshot};
@@ -16,6 +16,7 @@ impl<T: Persist> Client<T> {
         Client { sender }
     }
 
+    #[inline]
     async fn run_query<R: Debug>(
         &self,
         cmd_provider: impl FnOnce(CommandData<R>) -> Command<T>,
@@ -50,6 +51,7 @@ impl<T: Persist> Client<T> {
         }
     }
 
+    #[inline]
     fn map_result<R>(res: Result<R, sled::Error>) -> Result<R, QueryError> {
         res.map_err(QueryError::from_sled)
     }
@@ -57,6 +59,13 @@ impl<T: Persist> Client<T> {
     pub async fn get(&self, id: &str) -> Result<Option<T>, QueryError> {
         let key = String::from(id);
         self.run_query(|data| Command::Get { key, data })
+            .await
+            .and_then(Self::map_result)
+    }
+
+    pub async fn get_batch(&self, ids: &[String]) -> Result<HashMap<String, T>, QueryError> {
+        let keys = ids.iter().map(String::from).collect();
+        self.run_query(|data| Command::GetBatch { keys, data })
             .await
             .and_then(Self::map_result)
     }
@@ -155,6 +164,22 @@ mod tests {
 
         assert!(res.is_some());
         assert_eq!(res.unwrap().id(), game_id);
+    }
+
+    #[tokio::test]
+    async fn should_get_games() {
+        let client = init_client();
+        let game = Game::new("admin", "token");
+        let game_id = String::from(game.id());
+
+        client.persist(&game).await.expect("Game persist failed");
+
+        let res = client
+            .get_batch(&vec![game_id, String::from("unknown")])
+            .await
+            .expect("Reading game has failed");
+
+        assert_eq!(res.len(), 1);
     }
 
     #[tokio::test]

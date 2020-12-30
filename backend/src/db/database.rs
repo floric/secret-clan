@@ -3,7 +3,7 @@ use log::{debug, error, info, warn};
 use nanoid::nanoid;
 use rayon::prelude::*;
 use sled::Db;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tokio::sync::{
     mpsc::{self},
     oneshot::{self},
@@ -68,6 +68,9 @@ impl<T: Persist> Database<T> {
             match cmd {
                 Command::Get { key, data } => {
                     self.send_result(self.get(&key), data.responder);
+                }
+                Command::GetBatch { keys, data } => {
+                    self.send_result(self.get_batch(&keys), data.responder);
                 }
                 Command::Persist { value, data } => {
                     self.send_result(self.persist(&value), data.responder);
@@ -147,11 +150,25 @@ impl<T: Persist> Database<T> {
         }
     }
 
+    fn get_batch(&self, ids: &[String]) -> Result<HashMap<String, T>, sled::Error> {
+        let mut result = HashMap::new();
+
+        for id in ids {
+            if let Ok(val) = self.db.get(id) {
+                if let Some(val) = val.and_then(|g| T::try_from(g).ok()) {
+                    result.insert(String::from(id), val);
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
     fn scan(&self, scan_function: ScanFunction<T>) -> HashSet<String> {
         self.db
             .iter()
             .par_bridge()
-            .filter_map(|x| x.ok())
+            .filter_map(Result::ok)
             .filter_map(|(_, x)| T::try_from(x).ok())
             .filter_map(|y| {
                 if scan_function(&y) {
@@ -167,10 +184,12 @@ impl<T: Persist> Database<T> {
         self.db.len()
     }
 
+    #[inline]
     fn flush(&self) -> Result<bool, sled::Error> {
         self.db.flush().map(|_| true)
     }
 
+    #[inline]
     fn send_result<R>(&self, data: R, sender: oneshot::Sender<R>) {
         if sender.send(data).is_err() {
             error!("Sending result to client has failed");

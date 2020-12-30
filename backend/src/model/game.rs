@@ -1,3 +1,4 @@
+use super::{role::Party, Role};
 use crate::db::Persist;
 use chrono::{DateTime, Utc};
 use rand::prelude::*;
@@ -7,8 +8,6 @@ use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
 };
-
-use super::{role::Party, Role};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum GameState {
@@ -40,6 +39,7 @@ pub enum GameState {
 /// });
 /// ```
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Game {
     token: String,
     creation_time: DateTime<Utc>,
@@ -50,6 +50,15 @@ pub struct Game {
     assigned_roles: HashMap<String, Role>,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GameResponse {
+    token: String,
+    admin_id: Option<String>,
+    player_ids: HashSet<String>,
+    state: GameState,
+}
+
 impl Game {
     pub fn new(admin_id: &str, token: &str) -> Self {
         Game {
@@ -57,9 +66,9 @@ impl Game {
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
             admin_id: Some(String::from(admin_id)),
-            player_ids: HashSet::new(),
+            player_ids: HashSet::with_capacity(10),
             state: GameState::Initialized,
-            assigned_roles: HashMap::new(),
+            assigned_roles: HashMap::with_capacity(10),
         }
     }
 
@@ -73,6 +82,17 @@ impl Game {
 
     pub fn admin_id(&self) -> &Option<String> {
         &self.admin_id
+    }
+
+    pub fn all_player_ids(&self) -> Vec<String> {
+        let mut ids = vec![];
+        if let Some(id) = &self.admin_id {
+            ids.push(String::from(id));
+        }
+        for id in &self.player_ids {
+            ids.push(String::from(id));
+        }
+        ids
     }
 
     pub fn last_action_time(&self) -> &DateTime<Utc> {
@@ -120,8 +140,13 @@ impl Game {
         }
     }
 
-    pub fn make_public_readable(&mut self) {
-        self.assigned_roles = HashMap::new();
+    pub fn to_response(&self) -> GameResponse {
+        GameResponse {
+            admin_id: self.admin_id.to_owned(),
+            player_ids: self.player_ids.to_owned(),
+            state: self.state.to_owned(),
+            token: self.token.to_owned(),
+        }
     }
 
     pub fn start(&mut self) {

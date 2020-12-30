@@ -4,7 +4,7 @@ mod database;
 use sled::IVec;
 use std::{
     clone::Clone,
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     convert::TryFrom,
     fmt::{self, Debug},
 };
@@ -57,6 +57,10 @@ pub enum Command<T: Persist> {
     Get {
         key: String,
         data: CommandData<Result<Option<T>, sled::Error>>,
+    },
+    GetBatch {
+        keys: Vec<String>,
+        data: CommandData<Result<HashMap<String, T>, sled::Error>>,
     },
     Scan {
         #[derivative(Debug = "ignore")]

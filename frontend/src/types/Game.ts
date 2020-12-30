@@ -1,4 +1,5 @@
-import type { PublicPlayer } from "./Player";
+import type { Player } from "./Player";
+import { Tasks } from "./Tasks";
 
 export enum GameState {
   Initialized = "Initialized",
@@ -7,19 +8,15 @@ export enum GameState {
 
 export type Game = {
   token: string;
-  creation_time: string;
-  last_action_time: string;
-  player_ids: Array<string>;
-  admin_id: string;
+  playerIds: Array<string>;
+  adminId: string;
   state: GameState;
 };
 
 export type GameDetails = {
   game: Game;
-  participants: {
-    admin: PublicPlayer;
-    players: Array<PublicPlayer>;
-  };
+  players: Record<string, Player>;
+  openTasks: Array<Tasks>;
 };
 
 export type GameStats = {

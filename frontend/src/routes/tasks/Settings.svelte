@@ -12,6 +12,7 @@
     export let leaveGame: () => Promise<void>;
     export let refreshGame: () => Promise<void>;
     const claims = getClaims();
+    const currentName = details.players[claims.sub].name;
 
     const startGame = async () => {
         await fetch(`/api/games/${token}/start`, {
@@ -29,7 +30,7 @@
             return;
         }
 
-        await fetch(`/api/players/${claims.sub}`, {
+        await fetch(`/api/tasks/settings`, {
             headers: {
                 Authorization: `Bearer ${getToken()}`,
                 "Content-Type": "application/json",
@@ -56,25 +57,26 @@
             <TextInput
                 id="name"
                 placeholder="Name"
-                value={[...details.participants.players, details.participants.admin].find((x) => x.id === claims.sub).name}
+                value={currentName}
                 on:change={onChangeName} />
         </div>
     </div>
     <div>
         <h4 class="font-bold mb-4">Players</h4>
         <ul>
-            <li>
-                {details.participants.admin.name}
-                <span class="font-bold">(Admin)</span>
-            </li>
-            {#each details.participants.players as p}
-                <li>{p.name}</li>
+            {#each Object.values(details.players) as p}
+                <li>
+                    {p.name}
+                    {#if p.id === details.game.adminId}
+                        <span class="font-bold">(Admin)</span>
+                    {/if}
+                </li>
             {/each}
         </ul>
     </div>
 </div>
 <ActionRow>
-    {#if details.game.admin_id === claims.sub}
+    {#if details.game.adminId === claims.sub}
         <PrimaryButton on:click={startGame}>Start</PrimaryButton>
     {:else}
         <p>Wait for the game to start.</p>

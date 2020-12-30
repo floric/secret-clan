@@ -1,5 +1,5 @@
 use crate::{
-    model::{Game, Player},
+    model::{Game, GameResponse, Player, PlayerResponse, Tasks},
     server::{
         app_context::AppContext,
         auth::extract_verified_id,
@@ -10,12 +10,22 @@ use crate::{
 use log::debug;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::Serialize;
-use std::{convert::Infallible, iter};
+use std::{
+    collections::{HashMap, VecDeque},
+    convert::Infallible,
+    iter,
+};
 use warp::hyper::StatusCode;
 
 // this value determines the findability of a game and is a tradeoff between security and user friendliness
 // 5 tokens mean a chance of finding a random game of 1:60466176.
 const TOKEN_CHARS_COUNT: usize = 5;
+
+#[derive(Serialize)]
+struct AttendGameReponse {
+    game: GameResponse,
+    token: String,
+}
 
 pub async fn get_game_filter(
     game_token: &str,
@@ -23,18 +33,49 @@ pub async fn get_game_filter(
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
     match extract_verified_id(authorization, ctx) {
-        Some(token) => match ctx
+        Some(_) => match ctx
             .db()
             .games()
             .get(game_token)
             .await
             .expect("Reading game has failed")
         {
-            Some(mut game) => {
+            Some(game) => Ok(warp::reply::with_status(
+                warp::reply::json(&game.to_response()),
+                StatusCode::OK,
+            )),
+            None => Ok(reply_error(StatusCode::NOT_FOUND)),
+        },
+        None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
+    }
+}
+
+pub async fn get_game_details_filter(
+    game_token: &str,
+    authorization: &str,
+    ctx: &AppContext,
+) -> Result<impl warp::Reply, Infallible> {
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct GetGameDetailsResponse {
+        game: GameResponse,
+        players: HashMap<String, PlayerResponse>,
+        open_tasks: VecDeque<Tasks>,
+    }
+
+    match extract_verified_id(authorization, ctx) {
+        Some(player_id) => match ctx
+            .db()
+            .games()
+            .get(game_token)
+            .await
+            .expect("Reading game has failed")
+        {
+            Some(game) => {
                 match ctx
                     .db()
                     .players()
-                    .get(&token)
+                    .get(&player_id)
                     .await
                     .expect("Reading player has failed")
                     .filter(|player| {
@@ -49,11 +90,26 @@ pub async fn get_game_filter(
                             .persist(&player)
                             .await
                             .expect("Persisting heartbeat has failed");
-                        game.make_public_readable();
-                        Ok(warp::reply::with_status(
-                            warp::reply::json(&game),
-                            StatusCode::OK,
-                        ))
+
+                        match ctx.db().players().get_batch(&game.all_player_ids()).await {
+                            Ok(players) => Ok(warp::reply::with_status(
+                                warp::reply::json(&GetGameDetailsResponse {
+                                    game: game.to_response(),
+                                    players: players
+                                        .iter()
+                                        .map(|(id, player)| {
+                                            (String::from(id), player.to_response())
+                                        })
+                                        .collect(),
+                                    open_tasks: player.open_tasks().to_owned(),
+                                }),
+                                StatusCode::OK,
+                            )),
+                            Err(_) => Ok(reply_error_with_details(
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "Reading players has failed",
+                            )),
+                        }
                     }
                     None => Ok(reply_error(StatusCode::NOT_FOUND)),
                 }
@@ -100,16 +156,10 @@ pub async fn create_game_filter(ctx: &AppContext) -> Result<impl warp::Reply, In
     let player = create_new_player(&game_token, ctx).await;
     let new_game = create_new_game(player.id(), &game_token, ctx).await;
 
-    #[derive(Serialize)]
-    struct CreateGameReponse {
-        game: Game,
-        admin: Player,
-    };
-
     Ok(warp::reply::with_status(
-        warp::reply::json(&CreateGameReponse {
-            game: new_game,
-            admin: player,
+        warp::reply::json(&AttendGameReponse {
+            game: new_game.to_response(),
+            token: String::from(player.user_token()),
         }),
         StatusCode::CREATED,
     ))
@@ -130,9 +180,13 @@ pub async fn attend_game_filter(
             let player = create_new_player(&game_token, ctx).await;
 
             game.add_player(player.id());
+
             match ctx.db().games().persist(&game).await {
                 Ok(_) => Ok(warp::reply::with_status(
-                    warp::reply::json(&player),
+                    warp::reply::json(&AttendGameReponse {
+                        game: game.to_response(),
+                        token: String::from(player.user_token()),
+                    }),
                     StatusCode::OK,
                 )),
                 Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
@@ -217,6 +271,7 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
     let mut player = Player::new(game_token);
     let user_token = generate_jwt_token(&player, &ctx.config().auth_secret);
     player.update_token(&user_token);
+    player.add_task(Tasks::Settings {});
 
     ctx.db()
         .players()
@@ -231,8 +286,8 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
 #[cfg(test)]
 mod tests {
     use super::{
-        attend_game_filter, create_game_filter, get_game_filter, leave_game_filter,
-        start_game_filter,
+        attend_game_filter, create_game_filter, get_game_details_filter, get_game_filter,
+        leave_game_filter, start_game_filter,
     };
     use crate::{
         model::{Game, GameState, Party, Player, Role},
@@ -335,7 +390,7 @@ mod tests {
             .await
             .expect("Writing game failed");
 
-        let reply = get_game_filter(GAME_TOKEN, &token, &ctx).await;
+        let reply = get_game_details_filter(GAME_TOKEN, &token, &ctx).await;
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
 
         let updated_admin = ctx

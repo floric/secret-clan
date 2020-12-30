@@ -15,9 +15,9 @@
   let inputToken = "";
   let inputName = "";
 
-  type CreateGameResponse = {
+  type AttendGameResponse = {
     game: Game;
-    admin: Player;
+    token: string;
   };
 
   async function createGame() {
@@ -26,9 +26,9 @@
         method: "PUT",
       });
 
-      const newGame = (await res.json()) as CreateGameResponse;
-      saveToken(newGame.admin.user_token);
-      await push(`/games/${newGame.game.token}`);
+      const game = (await res.json()) as AttendGameResponse;
+      saveToken(game.token);
+      await push(`/games/${game.game.token}`);
     } catch (err) {
       // TODO Handle all API errors in a generic way
     }
@@ -45,8 +45,8 @@
         return;
       }
 
-      const player = (await res.json()) as Player;
-      saveToken(player.user_token);
+      const game = (await res.json()) as AttendGameResponse;
+      saveToken(game.token);
 
       await push(`/games/${inputToken?.trim()}`);
     } catch (err) {

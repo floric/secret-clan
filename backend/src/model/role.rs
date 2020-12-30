@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum Party {
     Good,
     Bad,
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Role {
     name: String,
     party: Party,

@@ -3,17 +3,20 @@ mod auth;
 mod endpoints;
 mod logger;
 mod reply;
+mod tasks;
 
 use self::{
     app_context::AppContext,
     endpoints::{
         games::{
-            attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
-            leave_game_filter, start_game_filter,
+            attend_game_filter, create_game_filter, get_game_details_filter, get_game_filter,
+            get_games_count_filter, leave_game_filter, start_game_filter,
         },
-        players::{edit_player_filter, get_player_filter, EditPlayerInput},
+        players::get_player_filter,
+        tasks::apply_task,
     },
     reply::handle_rejection,
+    tasks::settings::{SettingsResult, SettingsTask},
 };
 use log::warn;
 use std::fs;
@@ -83,6 +86,15 @@ pub async fn run_server(ctx: &'static AppContext) {
                         ),
                 )
                 .or(
+                    // GET /api/games/:token/details
+                    warp::get()
+                        .and(warp::path!(String / "details"))
+                        .and(warp::header(AUTHORIZATION))
+                        .and_then(move |token: String, authorization: String| async move {
+                            get_game_details_filter(&token, &authorization, ctx).await
+                        }),
+                )
+                .or(
                     // GET /api/games/:token
                     warp::get()
                         .and(warp::path!(String))
@@ -97,20 +109,21 @@ pub async fn run_server(ctx: &'static AppContext) {
         // GET /api/players/:id
         warp::get()
             .and(warp::path!(String))
-            .and_then(move |id: String| async move { get_player_filter(&id, ctx).await })
-            .or(
-                // POST /api/players/:id
-                warp::post()
-                    .and(warp::path!(String))
-                    .and(warp::body::json())
-                    .and(warp::header(AUTHORIZATION))
-                    .and_then(
-                        move |id: String, input: EditPlayerInput, authorization: String| async move {
-                            edit_player_filter(&id, &input, &authorization, ctx).await
-                        },
-                    )),
+            .and_then(move |id: String| async move { get_player_filter(&id, ctx).await }),
     );
-    let api_route = warp::path("api").and(game_route.or(player_route));
+    let tasks_route = warp::path("tasks").and(
+        // POST /api/tasks/settings
+        warp::post()
+            .and(warp::path!("settings"))
+            .and(warp::body::json())
+            .and(warp::header(AUTHORIZATION))
+            .and_then(
+                move |input: SettingsResult, authorization: String| async move {
+                    apply_task(SettingsTask {}, input, &authorization, ctx).await
+                },
+            ),
+    );
+    let api_route = warp::path("api").and(game_route.or(player_route).or(tasks_route));
 
     let static_route = warp::path("static").and(warp::fs::dir(static_path));
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));

@@ -1,10 +1,11 @@
+use super::task::Tasks;
 use crate::db::Persist;
 use chrono::{DateTime, Utc};
 use names::Generator;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::hash::Hash;
+use std::{collections::VecDeque, hash::Hash};
 
 fn generate_random_name() -> String {
     Generator::default().next().unwrap()
@@ -12,6 +13,7 @@ fn generate_random_name() -> String {
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
 #[derivative(Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Player {
     id: String,
     name: String,
@@ -20,6 +22,16 @@ pub struct Player {
     user_token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
+    open_tasks: VecDeque<Tasks>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
+#[derivative(Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerResponse {
+    id: String,
+    name: String,
+    game_token: String,
 }
 
 impl Player {
@@ -31,6 +43,7 @@ impl Player {
             user_token: String::from(""),
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
+            open_tasks: VecDeque::new(),
         }
     }
 
@@ -52,6 +65,10 @@ impl Player {
         &self.game_token
     }
 
+    pub fn user_token(&self) -> &str {
+        &self.user_token
+    }
+
     pub fn update_token(&mut self, new_token: &str) {
         self.user_token = String::from(new_token);
     }
@@ -62,6 +79,28 @@ impl Player {
 
     pub fn last_action_time(&self) -> DateTime<Utc> {
         self.last_action_time
+    }
+
+    pub fn add_task(&mut self, task: Tasks) {
+        self.open_tasks.push_back(task);
+    }
+
+    pub fn resolve_task(&mut self, task: Tasks) {
+        if let Some(_) = self.open_tasks.front().filter(|t| *t == &task) {
+            self.open_tasks.pop_front();
+        }
+    }
+
+    pub fn open_tasks(&self) -> &VecDeque<Tasks> {
+        &self.open_tasks
+    }
+
+    pub fn to_response(&self) -> PlayerResponse {
+        PlayerResponse {
+            id: self.id.to_owned(),
+            name: self.name.to_owned(),
+            game_token: self.game_token.to_owned(),
+        }
     }
 }
 

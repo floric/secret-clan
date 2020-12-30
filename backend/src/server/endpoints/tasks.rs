@@ -1,0 +1,115 @@
+use crate::server::{
+    app_context::AppContext,
+    auth::extract_verified_id,
+    reply::{reply_error, reply_error_with_details, reply_success},
+    tasks::Task,
+};
+use log::warn;
+use std::convert::Infallible;
+use warp::hyper::StatusCode;
+
+pub async fn apply_task<T>(
+    task: impl Task<T>,
+    input: T,
+    authorization: &str,
+    ctx: &AppContext,
+) -> Result<impl warp::Reply, Infallible> {
+    match extract_verified_id(authorization, ctx) {
+        Some(player_id) => match ctx
+            .db()
+            .players()
+            .get(&player_id)
+            .await
+            .expect("Reading player has failed")
+        {
+            Some(mut player) => {
+                // Check if task is assigned
+                if let None = player
+                    .open_tasks()
+                    .front()
+                    .filter(|t| *t == &task.get_type())
+                {
+                    // Prevent leaking information about non-active tasks of other players by sending still ok
+                    warn!(
+                        "Player {} doesn't have task {:?} to resolve",
+                        player.id(),
+                        task.get_type()
+                    );
+                    return Ok(reply_success(StatusCode::OK));
+                }
+
+                match task.apply_result(input, &mut player, ctx).await {
+                    Ok(_) => {
+                        if task.resolve_after_first_answer() {
+                            player.resolve_task(task.get_type());
+                            if let Err(_) = ctx.db().players().persist(&player).await {
+                                return Ok(reply_error_with_details(
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    "Updating player has failed",
+                                ));
+                            }
+                        }
+
+                        Ok(reply_success(StatusCode::OK))
+                    }
+                    Err(err) => Ok(reply_error_with_details(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &err,
+                    )),
+                }
+            }
+            None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
+        },
+        None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        model::Player,
+        server::{
+            app_context::AppContext,
+            auth::generate_jwt_token,
+            endpoints::tasks::apply_task,
+            tasks::settings::{SettingsResult, SettingsTask},
+        },
+    };
+    use warp::{hyper::StatusCode, Reply};
+
+    fn init_ctx() -> AppContext {
+        AppContext::init()
+    }
+
+    #[tokio::test]
+    async fn should_do_nothing_for_unassigned_tasks() {
+        let ctx = init_ctx();
+        let player = Player::new("GAME");
+        ctx.db()
+            .players()
+            .persist(&player)
+            .await
+            .expect("Persisting player has failed");
+        let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
+
+        let res = apply_task(
+            SettingsTask {},
+            SettingsResult {
+                name: String::from("Test"),
+            },
+            &authorization,
+            &ctx,
+        )
+        .await;
+        assert_eq!(res.unwrap().into_response().status(), StatusCode::OK);
+
+        let updated_player = ctx
+            .db()
+            .players()
+            .get(player.id())
+            .await
+            .expect("Reading player has failed")
+            .unwrap();
+        assert_eq!(updated_player.name(), player.name());
+    }
+}
