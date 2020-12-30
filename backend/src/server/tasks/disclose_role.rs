@@ -18,7 +18,7 @@ impl Task for DiscloseRoleResult {
     }
 
     async fn apply_result(&self, player: &mut Player, _: &AppContext) -> Result<(), String> {
-        if self.acknowledge == false {
+        if !self.acknowledge {
             // TODO Maybe cancel game in case a player doesn't understand role
             info!(
                 "Player {} hasn't acknowledged the role. The game needs to be cancelled.",

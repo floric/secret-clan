@@ -87,7 +87,12 @@ impl Player {
     }
 
     pub fn resolve_task(&mut self, task: TaskType) {
-        if let Some(_) = self.open_tasks.front().filter(|t| t.get_type() == task) {
+        if self
+            .open_tasks
+            .front()
+            .filter(|t| t.get_type() == task)
+            .is_some()
+        {
             self.open_tasks.pop_front();
         } else {
             warn!("Task {:?} not resolved", task);

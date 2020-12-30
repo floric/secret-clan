@@ -25,10 +25,11 @@ pub async fn apply_task<T: Task>(
         {
             Some(mut player) => {
                 // Check if task is assigned
-                if let None = player
+                if player
                     .open_tasks()
                     .front()
                     .filter(|def| def.get_type() == task.get_type())
+                    .is_none()
                 {
                     // Prevent leaking information about assigned tasks of other players by sending still OK
                     warn!(
@@ -43,7 +44,7 @@ pub async fn apply_task<T: Task>(
                     Ok(_) => {
                         if task.resolve_after_first_answer() {
                             player.resolve_task(task.get_type());
-                            if let Err(_) = ctx.db().players().persist(&player).await {
+                            if ctx.db().players().persist(&player).await.is_err() {
                                 return Ok(reply_error_with_details(
                                     StatusCode::INTERNAL_SERVER_ERROR,
                                     "Updating player has failed",
