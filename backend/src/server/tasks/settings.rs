@@ -1,6 +1,5 @@
-use super::Task;
 use crate::{
-    model::{Player, Tasks},
+    model::{Player, Task, TaskType},
     server::app_context::AppContext,
 };
 use async_trait::async_trait;
@@ -12,25 +11,18 @@ pub struct SettingsResult {
     pub name: String,
 }
 
-pub struct SettingsTask {}
-
 #[async_trait]
-impl Task<SettingsResult> for SettingsTask {
-    fn get_type(&self) -> Tasks {
-        Tasks::Settings {}
+impl Task for SettingsResult {
+    fn get_type(&self) -> TaskType {
+        TaskType::Settings
     }
 
-    async fn apply_result(
-        &self,
-        res: SettingsResult,
-        player: &mut Player,
-        ctx: &AppContext,
-    ) -> Result<bool, String> {
-        player.set_name(&res.name);
+    async fn apply_result(&self, player: &mut Player, ctx: &AppContext) -> Result<(), String> {
+        player.set_name(&self.name);
         match ctx.db().players().persist(player).await {
             Ok(_) => {
                 debug!("Applied settings player {}", player.id());
-                Ok(true)
+                Ok(())
             }
             Err(err) => Err(std::fmt::format(format_args!(
                 "Writing name of player {} has failed: {:?}",
@@ -48,12 +40,10 @@ impl Task<SettingsResult> for SettingsTask {
 #[cfg(test)]
 mod tests {
     use crate::{
-        model::{Player, Tasks},
+        model::{Player, TaskDefinition},
         server::{
-            app_context::AppContext,
-            auth::generate_jwt_token,
-            endpoints::tasks::apply_task,
-            tasks::settings::{SettingsResult, SettingsTask},
+            app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task,
+            tasks::settings::SettingsResult,
         },
     };
     use warp::{hyper::StatusCode, Reply};
@@ -66,7 +56,7 @@ mod tests {
     async fn should_change_name() {
         let ctx = init_ctx();
         let mut player = Player::new("GAME");
-        player.add_task(Tasks::Settings {});
+        player.assign_task(TaskDefinition::Settings {});
         ctx.db()
             .players()
             .persist(&player)
@@ -75,7 +65,6 @@ mod tests {
         let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
 
         let res = apply_task(
-            SettingsTask {},
             SettingsResult {
                 name: String::from("Test"),
             },

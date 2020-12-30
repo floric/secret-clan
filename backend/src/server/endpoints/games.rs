@@ -1,5 +1,5 @@
 use crate::{
-    model::{Game, GameResponse, Player, PlayerResponse, Tasks},
+    model::{Game, GameResponse, GameState, Player, PlayerResponse, TaskDefinition, TaskType},
     server::{
         app_context::AppContext,
         auth::extract_verified_id,
@@ -60,7 +60,7 @@ pub async fn get_game_details_filter(
     struct GetGameDetailsResponse {
         game: GameResponse,
         players: HashMap<String, PlayerResponse>,
-        open_tasks: VecDeque<Tasks>,
+        open_tasks: VecDeque<TaskDefinition>,
     }
 
     match extract_verified_id(authorization, ctx) {
@@ -175,6 +175,7 @@ pub async fn attend_game_filter(
         .get(&game_token)
         .await
         .expect("Reading game has failed")
+        .filter(|game| game.state() != &GameState::Started)
     {
         Some(mut game) => {
             let player = create_new_player(&game_token, ctx).await;
@@ -241,13 +242,34 @@ pub async fn start_game_filter(
             .filter(|_| game.admin_id().is_some())
             .filter(|id| id == game.admin_id().as_ref().unwrap())
         {
-            Some(_) => {
-                game.start();
-                match ctx.db().games().persist(&game).await {
-                    Ok(_) => Ok(reply_error(StatusCode::OK)),
-                    Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
+            Some(_) => match ctx.db().players().get_batch(&game.all_player_ids()).await {
+                Ok(mut players) => {
+                    game.start();
+                    let players = players
+                        .values_mut()
+                        .map(|p| {
+                            p.resolve_task(TaskType::Settings);
+                            p.assign_task(TaskDefinition::DiscloseRole {
+                                role: game
+                                    .assigned_roles()
+                                    .get(p.id())
+                                    .expect("Player is missing role")
+                                    .clone(),
+                            });
+                            p.clone()
+                        })
+                        .collect::<Vec<_>>();
+                    let (persist_players, persist_game) = tokio::join!(
+                        ctx.db().players().persist_batch(&players),
+                        ctx.db().games().persist(&game)
+                    );
+                    match persist_players.and(persist_game) {
+                        Ok(_) => Ok(reply_error(StatusCode::OK)),
+                        Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                    }
                 }
-            }
+                Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
+            },
             None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
         },
         None => Ok(reply_error(StatusCode::NOT_FOUND)),
@@ -271,7 +293,7 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
     let mut player = Player::new(game_token);
     let user_token = generate_jwt_token(&player, &ctx.config().auth_secret);
     player.update_token(&user_token);
-    player.add_task(Tasks::Settings {});
+    player.assign_task(TaskDefinition::Settings {});
 
     ctx.db()
         .players()
@@ -415,6 +437,25 @@ mod tests {
         let ctx = init_ctx();
 
         let reply = attend_game_filter("test", &ctx).await;
+        assert_eq!(
+            reply.unwrap().into_response().status(),
+            StatusCode::NOT_FOUND
+        );
+    }
+
+    #[tokio::test]
+    async fn should_not_attend_started_game() {
+        let ctx = init_ctx();
+
+        let mut game = Game::new("admin", GAME_TOKEN);
+        game.start();
+        ctx.db()
+            .games()
+            .persist(&game)
+            .await
+            .expect("Writing game failed");
+
+        let reply = attend_game_filter(GAME_TOKEN, &ctx).await;
         assert_eq!(
             reply.unwrap().into_response().status(),
             StatusCode::NOT_FOUND

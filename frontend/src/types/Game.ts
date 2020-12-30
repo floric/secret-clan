@@ -1,5 +1,5 @@
 import type { Player } from "./Player";
-import { Tasks } from "./Tasks";
+import type { Tasks, TaskType } from "./Tasks";
 
 export enum GameState {
   Initialized = "Initialized",

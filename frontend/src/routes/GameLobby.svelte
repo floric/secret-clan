@@ -2,24 +2,25 @@
   import { push } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
-  import { GameDetails, GameState } from "../types/Game";
+  import { GameDetails } from "../types/Game";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
+  import DiscloseRole from "./tasks/DiscloseRole.svelte";
   import { TaskType } from "../types/Tasks";
+  import { sendRequest } from "../utils/requests";
 
   export let params: { token?: string } = {};
   let details: GameDetails | null = null;
   let refreshId: number | null = null;
 
   const refreshGame = async () => {
-    const res = await fetch(`/api/games/${params.token}/details`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-    });
-    if (!res.ok) {
+    const res = await sendRequest<GameDetails>(
+      `/api/games/${params.token}/details`,
+      "GET"
+    );
+    if (!res) {
       details = null;
       if (refreshId) {
         clearInterval(refreshId);
@@ -27,17 +28,12 @@
       return;
     }
 
-    details = (await res.json()) as GameDetails;
+    details = res;
   };
 
   const leaveGame = async () => {
     if (getToken()) {
-      await fetch(`/api/games/${params.token}/leave`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-        method: "POST",
-      });
+      await sendRequest(`/api/games/${params.token}/leave`, "POST");
     }
     if (refreshId) {
       clearInterval(refreshId);
@@ -63,7 +59,12 @@
         {#if details.openTasks.length === 0}
           <WaitForTask {leaveGame} />
         {:else if details.openTasks[0][TaskType.Settings]}
-          <Settings {leaveGame} {refreshGame} {details} token={params.token} />
+          <Settings {leaveGame} {refreshGame} {details} />
+        {:else if details.openTasks[0][TaskType.DiscloseRole]}
+          <DiscloseRole
+            {leaveGame}
+            {refreshGame}
+            role={details.openTasks[0][TaskType.DiscloseRole].role} />
         {:else}
           <p>Unsupported Game State.</p>
         {/if}

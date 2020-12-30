@@ -16,7 +16,7 @@ use self::{
         tasks::apply_task,
     },
     reply::handle_rejection,
-    tasks::settings::{SettingsResult, SettingsTask},
+    tasks::{disclose_role::DiscloseRoleResult, settings::SettingsResult},
 };
 use log::warn;
 use std::fs;
@@ -119,8 +119,20 @@ pub async fn run_server(ctx: &'static AppContext) {
             .and(warp::header(AUTHORIZATION))
             .and_then(
                 move |input: SettingsResult, authorization: String| async move {
-                    apply_task(SettingsTask {}, input, &authorization, ctx).await
+                    apply_task(input, &authorization, ctx).await
                 },
+            )
+            .or(
+                // POST /api/tasks/disclose-role
+                warp::post()
+                    .and(warp::path!("disclose-role"))
+                    .and(warp::body::json())
+                    .and(warp::header(AUTHORIZATION))
+                    .and_then(
+                        move |input: DiscloseRoleResult, authorization: String| async move {
+                            apply_task(input, &authorization, ctx).await
+                        },
+                    ),
             ),
     );
     let api_route = warp::path("api").and(game_route.or(player_route).or(tasks_route));

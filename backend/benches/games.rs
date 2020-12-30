@@ -2,8 +2,7 @@ use criterion::{black_box, Criterion};
 use futures::executor::block_on;
 use secret_clan::model::Game;
 use std::time::Instant;
-use task::LocalSet;
-use tokio::task;
+use tokio::task::LocalSet;
 
 pub async fn bench_games(c: &mut Criterion, local: &LocalSet) {
     let mut db_group = c.benchmark_group("games");

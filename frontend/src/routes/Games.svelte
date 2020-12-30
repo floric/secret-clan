@@ -1,7 +1,6 @@
 <script lang="typescript">
   import { push } from "svelte-spa-router";
   import type { Game, GameStats } from "../types/Game";
-  import type { Player } from "../types/Player";
   import ActionRow from "../components/buttons/ActionRow.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
   import SecondaryButton from "../components/buttons/Secondary.svelte";
@@ -11,6 +10,7 @@
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { saveToken } from "../utils/auth";
   import TextInput from "../components/inputs/TextInput.svelte";
+  import { sendRequest } from "../utils/requests";
 
   let inputToken = "";
   let inputName = "";
@@ -22,11 +22,10 @@
 
   async function createGame() {
     try {
-      const res = await fetch("/api/games", {
-        method: "PUT",
-      });
-
-      const game = (await res.json()) as AttendGameResponse;
+      const game = await sendRequest<AttendGameResponse>("/api/games", "PUT");
+      if (!game) {
+        throw new Error("Game creation failed");
+      }
       saveToken(game.token);
       await push(`/games/${game.game.token}`);
     } catch (err) {
@@ -36,16 +35,15 @@
 
   async function attendGame() {
     try {
-      const res = await fetch(`/api/games/${inputToken}/attend`, {
-        method: "POST",
-      });
-
-      if (!res.ok) {
+      const game = await sendRequest<AttendGameResponse>(
+        `/api/games/${inputToken}/attend`,
+        "POST"
+      );
+      if (!game) {
         // TODO Check name and if game exists, show helpful message
         return;
       }
 
-      const game = (await res.json()) as AttendGameResponse;
       saveToken(game.token);
 
       await push(`/games/${inputToken?.trim()}`);
@@ -54,12 +52,12 @@
     }
   }
   const loadStats = async () => {
-    const res = await fetch(`/api/games/`);
-    if (!res.ok) {
-      return;
+    const stats = await sendRequest<GameStats>(`/api/games/`, "GET");
+    if (!stats) {
+      return { total: 0 };
     }
 
-    return (await res.json()) as GameStats;
+    return stats;
   };
 </script>
 

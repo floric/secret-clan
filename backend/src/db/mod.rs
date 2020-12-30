@@ -69,22 +69,22 @@ pub enum Command<T: Persist> {
     },
     Persist {
         value: T,
-        data: CommandData<Result<bool, sled::Error>>,
+        data: CommandData<Result<(), sled::Error>>,
     },
     PersistBatch {
         values: Vec<T>,
-        data: CommandData<Result<bool, sled::Error>>,
+        data: CommandData<Result<(), sled::Error>>,
     },
     Remove {
         key: String,
-        data: CommandData<Result<bool, sled::Error>>,
+        data: CommandData<Result<(), sled::Error>>,
     },
     Purge {
-        data: CommandData<Result<bool, sled::Error>>,
+        data: CommandData<Result<(), sled::Error>>,
     },
     RemoveBatch {
         keys: HashSet<String>,
-        data: CommandData<Result<bool, sled::Error>>,
+        data: CommandData<Result<(), sled::Error>>,
     },
     Count {
         data: CommandData<usize>,

@@ -1,6 +1,7 @@
-use super::task::Tasks;
+use super::{TaskDefinition, TaskType};
 use crate::db::Persist;
 use chrono::{DateTime, Utc};
+use log::warn;
 use names::Generator;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
@@ -22,7 +23,7 @@ pub struct Player {
     user_token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
-    open_tasks: VecDeque<Tasks>,
+    open_tasks: VecDeque<TaskDefinition>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
@@ -81,17 +82,19 @@ impl Player {
         self.last_action_time
     }
 
-    pub fn add_task(&mut self, task: Tasks) {
+    pub fn assign_task(&mut self, task: TaskDefinition) {
         self.open_tasks.push_back(task);
     }
 
-    pub fn resolve_task(&mut self, task: Tasks) {
-        if let Some(_) = self.open_tasks.front().filter(|t| *t == &task) {
+    pub fn resolve_task(&mut self, task: TaskType) {
+        if let Some(_) = self.open_tasks.front().filter(|t| t.get_type() == task) {
             self.open_tasks.pop_front();
+        } else {
+            warn!("Task {:?} not resolved", task);
         }
     }
 
-    pub fn open_tasks(&self) -> &VecDeque<Tasks> {
+    pub fn open_tasks(&self) -> &VecDeque<TaskDefinition> {
         &self.open_tasks
     }
 

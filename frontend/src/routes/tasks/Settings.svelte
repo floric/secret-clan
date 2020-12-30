@@ -5,22 +5,17 @@
     import ActionRow from "../../components/buttons/ActionRow.svelte";
     import TextInput from "../../components/inputs/TextInput.svelte";
     import Label from "../../components/inputs/Label.svelte";
-    import { getClaims, getToken } from "../../utils/auth";
+    import { getClaims } from "../../utils/auth";
+    import { sendRequest } from "../../utils/requests";
 
     export let details: GameDetails;
-    export let token: string;
     export let leaveGame: () => Promise<void>;
     export let refreshGame: () => Promise<void>;
     const claims = getClaims();
     const currentName = details.players[claims.sub].name;
 
     const startGame = async () => {
-        await fetch(`/api/games/${token}/start`, {
-            headers: {
-                Authorization: `Bearer ${getToken()}`,
-            },
-            method: "POST",
-        });
+        await sendRequest(`/api/games/${details.game.token}/start`, "POST");
         await refreshGame();
     };
 
@@ -30,14 +25,7 @@
             return;
         }
 
-        await fetch(`/api/tasks/settings`, {
-            headers: {
-                Authorization: `Bearer ${getToken()}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ name }),
-            method: "POST",
-        });
+        await sendRequest(`/api/tasks/settings`, "POST", { name });
         await refreshGame();
     };
 </script>
@@ -46,7 +34,7 @@
     <div>Token</div>
     <div
         class="font-extrabold mx-4 px-3 py-2 rounded-md bg-gray-200 border-black">
-        {token.toUpperCase()}
+        {details.game.token.toUpperCase()}
     </div>
 </div>
 <div class="grid md:grid-cols-3 grid-cols-1 gap-8 mb-8">

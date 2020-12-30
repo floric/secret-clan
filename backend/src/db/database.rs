@@ -100,14 +100,14 @@ impl<T: Persist> Database<T> {
         }
     }
 
-    fn persist(&self, elem: &T) -> Result<bool, sled::Error> {
+    fn persist(&self, elem: &T) -> Result<(), sled::Error> {
         self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
         self.flush()
     }
 
-    fn persist_batch(&self, values: &[T]) -> Result<bool, sled::Error> {
+    fn persist_batch(&self, values: &[T]) -> Result<(), sled::Error> {
         let batch = sled::Batch::default();
         for elem in values {
             self.db
@@ -118,17 +118,17 @@ impl<T: Persist> Database<T> {
         self.flush()
     }
 
-    fn remove(&self, key: &str) -> Result<bool, sled::Error> {
+    fn remove(&self, key: &str) -> Result<(), sled::Error> {
         match self.db.remove(key).expect("Removing item failed") {
             Some(_) => self.flush(),
             None => {
                 warn!("No item with key \"{}\" found for removal", key);
-                Ok(false)
+                Ok(())
             }
         }
     }
 
-    fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, sled::Error> {
+    fn remove_batch(&self, keys: &HashSet<String>) -> Result<(), sled::Error> {
         let batch = sled::Batch::default();
         for key in keys {
             match self.db.remove(key).expect("Removing item failed") {
@@ -185,8 +185,8 @@ impl<T: Persist> Database<T> {
     }
 
     #[inline]
-    fn flush(&self) -> Result<bool, sled::Error> {
-        self.db.flush().map(|_| true)
+    fn flush(&self) -> Result<(), sled::Error> {
+        self.db.flush().map(|_| ())
     }
 
     #[inline]
@@ -196,8 +196,8 @@ impl<T: Persist> Database<T> {
         }
     }
 
-    fn purge(&self) -> Result<bool, sled::Error> {
-        let res = self.db.clear().and_then(|()| self.db.flush()).map(|_| true);
+    fn purge(&self) -> Result<(), sled::Error> {
+        let res = self.db.clear().and_then(|()| self.db.flush()).map(|_| ());
         info!("Purged database \"{}\"", self.path);
 
         res

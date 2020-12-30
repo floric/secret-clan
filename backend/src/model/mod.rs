@@ -10,4 +10,6 @@ pub use player::Player;
 pub use player::PlayerResponse;
 pub use role::Party;
 pub use role::Role;
-pub use task::Tasks;
+pub use task::Task;
+pub use task::TaskDefinition;
+pub use task::TaskType;

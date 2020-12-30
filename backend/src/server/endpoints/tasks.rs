@@ -1,16 +1,17 @@
-use crate::server::{
-    app_context::AppContext,
-    auth::extract_verified_id,
-    reply::{reply_error, reply_error_with_details, reply_success},
-    tasks::Task,
+use crate::{
+    model::Task,
+    server::{
+        app_context::AppContext,
+        auth::extract_verified_id,
+        reply::{reply_error, reply_error_with_details, reply_success},
+    },
 };
 use log::warn;
 use std::convert::Infallible;
 use warp::hyper::StatusCode;
 
-pub async fn apply_task<T>(
-    task: impl Task<T>,
-    input: T,
+pub async fn apply_task<T: Task>(
+    task: T,
     authorization: &str,
     ctx: &AppContext,
 ) -> Result<impl warp::Reply, Infallible> {
@@ -27,9 +28,9 @@ pub async fn apply_task<T>(
                 if let None = player
                     .open_tasks()
                     .front()
-                    .filter(|t| *t == &task.get_type())
+                    .filter(|def| def.get_type() == task.get_type())
                 {
-                    // Prevent leaking information about non-active tasks of other players by sending still ok
+                    // Prevent leaking information about assigned tasks of other players by sending still OK
                     warn!(
                         "Player {} doesn't have task {:?} to resolve",
                         player.id(),
@@ -38,7 +39,7 @@ pub async fn apply_task<T>(
                     return Ok(reply_success(StatusCode::OK));
                 }
 
-                match task.apply_result(input, &mut player, ctx).await {
+                match task.apply_result(&mut player, ctx).await {
                     Ok(_) => {
                         if task.resolve_after_first_answer() {
                             player.resolve_task(task.get_type());
@@ -69,10 +70,8 @@ mod tests {
     use crate::{
         model::Player,
         server::{
-            app_context::AppContext,
-            auth::generate_jwt_token,
-            endpoints::tasks::apply_task,
-            tasks::settings::{SettingsResult, SettingsTask},
+            app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task,
+            tasks::settings::SettingsResult,
         },
     };
     use warp::{hyper::StatusCode, Reply};
@@ -93,7 +92,6 @@ mod tests {
         let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
 
         let res = apply_task(
-            SettingsTask {},
             SettingsResult {
                 name: String::from("Test"),
             },

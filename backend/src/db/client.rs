@@ -82,7 +82,7 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
-    pub async fn persist(&self, elem: &T) -> Result<bool, QueryError> {
+    pub async fn persist(&self, elem: &T) -> Result<(), QueryError> {
         self.run_query(|data| Command::Persist {
             value: elem.clone(),
             data,
@@ -91,16 +91,16 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
-    pub async fn persist_batch(&self, values: &[T]) -> Result<bool, QueryError> {
+    pub async fn persist_batch(&self, values: &[T]) -> Result<(), QueryError> {
         self.run_query(|data| Command::PersistBatch {
-            values: values.to_vec(),
+            values: values.to_owned(),
             data,
         })
         .await
         .and_then(Self::map_result)
     }
 
-    pub async fn remove(&self, key: &str) -> Result<bool, QueryError> {
+    pub async fn remove(&self, key: &str) -> Result<(), QueryError> {
         self.run_query(|data| Command::Remove {
             key: String::from(key),
             data,
@@ -109,7 +109,7 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
-    pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<bool, QueryError> {
+    pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<(), QueryError> {
         self.run_query(|data| Command::RemoveBatch {
             keys: keys.clone(),
             data,
@@ -118,7 +118,7 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
-    pub async fn purge(&self) -> Result<bool, QueryError> {
+    pub async fn purge(&self) -> Result<(), QueryError> {
         self.run_query(|data| Command::Purge { data })
             .await
             .and_then(Self::map_result)
