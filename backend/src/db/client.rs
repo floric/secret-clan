@@ -243,11 +243,10 @@ mod tests {
             .expect("Reading game has failed");
         assert!(persisted_game.is_some());
 
-        let res = client
+        client
             .remove(game.id())
             .await
             .expect("Removing game failed");
-        assert!(res);
 
         let removed_game = client
             .get(&game.id())
@@ -272,11 +271,10 @@ mod tests {
             .expect("Reading count has failed");
         assert_eq!(game_count, 3);
 
-        let res = client
+        client
             .remove_batch(&ids)
             .await
             .expect("Removing games failed");
-        assert!(res);
 
         let game_count = client
             .total_count()
