@@ -2,17 +2,18 @@
   import { push } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
-  import { GameDetails } from "../types/Game";
+  import type { GameDetails } from "../types/Game";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
   import DiscloseRole from "./tasks/DiscloseRole.svelte";
-  import { TaskType } from "../types/Tasks";
+  import { Tasks, TaskType } from "../types/Tasks";
   import { sendRequest } from "../utils/requests";
 
   export let params: { token?: string } = {};
   let details: GameDetails | null = null;
+  let currentTask: Tasks | null = null;
   let refreshId: number | null = null;
 
   const refreshGame = async () => {
@@ -29,6 +30,7 @@
     }
 
     details = res;
+    currentTask = details.openTasks.length > 0 ? details.openTasks[0] : null;
   };
 
   const leaveGame = async () => {
@@ -42,7 +44,12 @@
   };
 
   const fetchGamePeriodically = async () => {
-    await refreshGame();
+    try {
+      await refreshGame();
+    } catch (err) {
+      console.error(err);
+      await push("/errors/unexpected");
+    }
     refreshId = setInterval(() => {
       refreshGame();
     }, 3000);
@@ -50,39 +57,31 @@
 </script>
 
 <Dialog>
-  <DialogHeader>Lobby</DialogHeader>
-  <div>
-    {#await fetchGamePeriodically()}
-      <p>Loading game</p>
-    {:then _}
-      {#if details !== null}
-        {#if details.openTasks.length === 0}
-          <WaitForTask {leaveGame} />
-        {:else if details.openTasks[0][TaskType.Settings]}
-          <Settings {leaveGame} {refreshGame} {details} />
-        {:else if details.openTasks[0][TaskType.DiscloseRole]}
-          <DiscloseRole
-            {leaveGame}
-            {refreshGame}
-            role={details.openTasks[0][TaskType.DiscloseRole].role} />
-        {:else}
-          <p>Unsupported Game State.</p>
-        {/if}
+  {#await fetchGamePeriodically()}
+    <DialogHeader>Lobby</DialogHeader>
+    <p>Loading game</p>
+  {:then _}
+    {#if details !== null}
+      {#if !currentTask}
+        <WaitForTask {leaveGame} />
+      {:else if currentTask[TaskType.Settings]}
+        <Settings {leaveGame} {refreshGame} {details} />
+      {:else if currentTask[TaskType.DiscloseRole]}
+        <DiscloseRole
+          {leaveGame}
+          {refreshGame}
+          role={currentTask[TaskType.DiscloseRole].role} />
       {:else}
-        <p>Game doesn't exist.</p>
-        <div class="flex items-center">
-          <div class="flex ml-auto">
-            <InternalLink href="/games">Back to Games</InternalLink>
-          </div>
-        </div>
+        <p>Unsupported Game State.</p>
       {/if}
-    {:catch _}
-      <p style="color: red">Loading game has failed</p>
+    {:else}
+      <DialogHeader>Lobby</DialogHeader>
+      <p>Game doesn't exist.</p>
       <div class="flex items-center">
         <div class="flex ml-auto">
           <InternalLink href="/games">Back to Games</InternalLink>
         </div>
       </div>
-    {/await}
-  </div>
+    {/if}
+  {/await}
 </Dialog>

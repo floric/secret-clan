@@ -7,7 +7,7 @@
     "build": "webpack",
     "build:prod": "cross-env NODE_ENV=production webpack",
     "lint": "eslint --ext .js,.svelte",
-    "watch": "webpack --watch"
+    "watch": "webpack --watch --progress"
   },
   "author": "Florian Richter",
   "license": "MIT",

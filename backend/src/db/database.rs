@@ -3,7 +3,7 @@ use log::{debug, error, info, warn};
 use nanoid::nanoid;
 use rayon::prelude::*;
 use sled::Db;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use tokio::sync::{
     mpsc::{self},
     oneshot::{self},
@@ -73,7 +73,7 @@ impl<T: Persist> Database<T> {
                     self.send_result(self.get_batch(&keys), data.responder);
                 }
                 Command::Persist { value, data } => {
-                    self.send_result(self.persist(&value), data.responder);
+                    self.send_result(self.persist(value), data.responder);
                 }
                 Command::PersistBatch { values, data } => {
                     self.send_result(self.persist_batch(&values), data.responder);
@@ -100,7 +100,7 @@ impl<T: Persist> Database<T> {
         }
     }
 
-    fn persist(&self, elem: &T) -> Result<(), sled::Error> {
+    fn persist(&self, elem: T) -> Result<(), sled::Error> {
         self.db
             .insert(elem.id(), elem.clone())
             .expect("Persisting item failed");
@@ -128,7 +128,7 @@ impl<T: Persist> Database<T> {
         }
     }
 
-    fn remove_batch(&self, keys: &HashSet<String>) -> Result<(), sled::Error> {
+    fn remove_batch(&self, keys: &[String]) -> Result<(), sled::Error> {
         let batch = sled::Batch::default();
         for key in keys {
             match self.db.remove(key).expect("Removing item failed") {
@@ -164,7 +164,7 @@ impl<T: Persist> Database<T> {
         Ok(result)
     }
 
-    fn scan(&self, scan_function: ScanFunction<T>) -> HashSet<String> {
+    fn scan(&self, scan_function: ScanFunction<T>) -> Vec<String> {
         self.db
             .iter()
             .par_bridge()
@@ -177,7 +177,7 @@ impl<T: Persist> Database<T> {
                     None
                 }
             })
-            .collect::<HashSet<String>>()
+            .collect()
     }
 
     fn total_count(&self) -> usize {

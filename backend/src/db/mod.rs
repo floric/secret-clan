@@ -4,7 +4,7 @@ mod database;
 use sled::IVec;
 use std::{
     clone::Clone,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     convert::TryFrom,
     fmt::{self, Debug},
 };
@@ -65,7 +65,7 @@ pub enum Command<T: Persist> {
     Scan {
         #[derivative(Debug = "ignore")]
         scan_function: ScanFunction<T>,
-        data: CommandData<Result<HashSet<String>, sled::Error>>,
+        data: CommandData<Result<Vec<String>, sled::Error>>,
     },
     Persist {
         value: T,
@@ -83,7 +83,7 @@ pub enum Command<T: Persist> {
         data: CommandData<Result<(), sled::Error>>,
     },
     RemoveBatch {
-        keys: HashSet<String>,
+        keys: Vec<String>,
         data: CommandData<Result<(), sled::Error>>,
     },
     Count {

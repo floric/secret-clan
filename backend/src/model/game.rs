@@ -168,8 +168,8 @@ impl Game {
 
     fn get_equal_good_and_bad_distribution(&self) -> Vec<Role> {
         // TODO Extract roles to separate files and define generic game integration
-        let bad_role = Role::new("Bad", Party::Bad);
-        let good_role = Role::new("Good", Party::Good);
+        let bad_role = Role::new("Bad", Party::Bad, "A bad person. Fight the law.");
+        let good_role = Role::new("Good", Party::Good, "A good person. Keep the law.");
         let mut all_roles = vec![];
 
         // add for uneven games always one good player more

@@ -5,6 +5,7 @@
     import ActionRow from "../../components/buttons/ActionRow.svelte";
     import TextInput from "../../components/inputs/TextInput.svelte";
     import Label from "../../components/inputs/Label.svelte";
+    import DialogHeader from "../../components/headers/DialogHeader.svelte";
     import { getClaims } from "../../utils/auth";
     import { sendRequest } from "../../utils/requests";
 
@@ -30,6 +31,7 @@
     };
 </script>
 
+<DialogHeader>Lobby</DialogHeader>
 <div class="mb-8 flex items-center">
     <div>Token</div>
     <div
@@ -65,9 +67,9 @@
 </div>
 <ActionRow>
     {#if details.game.adminId === claims.sub}
-        <PrimaryButton on:click={startGame}>Start</PrimaryButton>
+        <PrimaryButton onClick={startGame}>Start</PrimaryButton>
     {:else}
         <p>Wait for the game to start.</p>
     {/if}
-    <SecondaryButton on:click={leaveGame}>Leave Game</SecondaryButton>
+    <SecondaryButton onClick={leaveGame}>Leave Game</SecondaryButton>
 </ActionRow>

@@ -10,6 +10,12 @@ test-be:
 bench:
 	cd backend && cargo bench
 
+build-fe:
+	cd frontend && npm run build
+
+build-be:
+	cd backend && cargo build
+
 build:
 	DOCKER_BUILDKIT=1 docker build -t secret_clan .
 

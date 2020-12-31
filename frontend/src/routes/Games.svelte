@@ -13,7 +13,6 @@
   import { sendRequest } from "../utils/requests";
 
   let inputToken = "";
-  let inputName = "";
 
   type AttendGameResponse = {
     game: Game;
@@ -21,35 +20,27 @@
   };
 
   async function createGame() {
-    try {
-      const game = await sendRequest<AttendGameResponse>("/api/games", "PUT");
-      if (!game) {
-        throw new Error("Game creation failed");
-      }
-      saveToken(game.token);
-      await push(`/games/${game.game.token}`);
-    } catch (err) {
-      // TODO Handle all API errors in a generic way
+    const game = await sendRequest<AttendGameResponse>("/api/games", "PUT");
+    if (!game) {
+      throw new Error("Game creation failed");
     }
+    saveToken(game.token);
+    await push(`/games/${game.game.token}`);
   }
 
   async function attendGame() {
-    try {
-      const game = await sendRequest<AttendGameResponse>(
-        `/api/games/${inputToken}/attend`,
-        "POST"
-      );
-      if (!game) {
-        // TODO Check name and if game exists, show helpful message
-        return;
-      }
-
-      saveToken(game.token);
-
-      await push(`/games/${inputToken?.trim()}`);
-    } catch (err) {
-      // TODO Handle all API errors in a generic way
+    const game = await sendRequest<AttendGameResponse>(
+      `/api/games/${inputToken}/attend`,
+      "POST"
+    );
+    if (!game) {
+      // TODO Check name and if game exists, show helpful message
+      return;
     }
+
+    saveToken(game.token);
+
+    await push(`/games/${inputToken?.trim()}`);
   }
   const loadStats = async () => {
     const stats = await sendRequest<GameStats>(`/api/games/`, "GET");
@@ -62,7 +53,7 @@
 </script>
 
 <Dialog>
-  <DialogHeader>Start Game</DialogHeader>
+  <DialogHeader>Let's play</DialogHeader>
   <p class="mb-4">
     {#await loadStats()}
       Loading stats...
@@ -72,14 +63,14 @@
       active games.
     {/await}
   </p>
-  <SecondaryButton on:click={createGame}>Create new game</SecondaryButton>
+  <SecondaryButton onClick={createGame}>Create new game</SecondaryButton>
 
   <Divider><span slot="text">or</span></Divider>
 
-  <form on:submit|preventDefault={attendGame}>
+  <form>
     <div class="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
       <TextInput id="token" placeholder="Token" bind:value={inputToken} />
-      <PrimaryButton>Attend</PrimaryButton>
+      <PrimaryButton onClick={attendGame}>Attend</PrimaryButton>
     </div>
     <ActionRow>
       <div />

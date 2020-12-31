@@ -51,7 +51,7 @@ mod tests {
         let ctx = init_ctx();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
-            role: Role::new("Test", Party::Bad),
+            role: Role::new("Test", Party::Bad, ""),
         });
         ctx.db()
             .players()
@@ -74,7 +74,7 @@ mod tests {
         let ctx = init_ctx();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
-            role: Role::new("Test", Party::Good),
+            role: Role::new("Test", Party::Good, ""),
         });
         ctx.db()
             .players()

@@ -64,58 +64,53 @@ pub async fn get_game_details_filter(
     }
 
     match extract_verified_id(authorization, ctx) {
-        Some(player_id) => match ctx
-            .db()
-            .games()
-            .get(game_token)
-            .await
-            .expect("Reading game has failed")
-        {
-            Some(game) => {
-                match ctx
-                    .db()
-                    .players()
-                    .get(&player_id)
-                    .await
-                    .expect("Reading player has failed")
-                    .filter(|player| {
+        Some(player_id) => {
+            let (game, player) = tokio::join!(
+                ctx.db().games().get(game_token),
+                ctx.db().players().get(&player_id)
+            );
+
+            match game.expect("Reading game has failed") {
+                Some(game) => {
+                    match player.expect("Reading player has failed").filter(|player| {
                         game.player_ids().contains(player.id())
                             || game.admin_id().is_some()
                                 && game.admin_id().as_ref().unwrap() == player.id()
                     }) {
-                    Some(mut player) => {
-                        player.heartbeat();
-                        ctx.db()
-                            .players()
-                            .persist(&player)
-                            .await
-                            .expect("Persisting heartbeat has failed");
+                        Some(mut player) => {
+                            player.heartbeat();
+                            let all_ids = game.all_player_ids();
+                            let (_, player_ids) = tokio::join!(
+                                ctx.db().players().persist(&player),
+                                ctx.db().players().get_batch(&all_ids)
+                            );
 
-                        match ctx.db().players().get_batch(&game.all_player_ids()).await {
-                            Ok(players) => Ok(warp::reply::with_status(
-                                warp::reply::json(&GetGameDetailsResponse {
-                                    game: game.to_response(),
-                                    players: players
-                                        .iter()
-                                        .map(|(id, player)| {
-                                            (String::from(id), player.to_response())
-                                        })
-                                        .collect(),
-                                    open_tasks: player.open_tasks().to_owned(),
-                                }),
-                                StatusCode::OK,
-                            )),
-                            Err(_) => Ok(reply_error_with_details(
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                "Reading players has failed",
-                            )),
+                            match player_ids {
+                                Ok(players) => Ok(warp::reply::with_status(
+                                    warp::reply::json(&GetGameDetailsResponse {
+                                        game: game.to_response(),
+                                        players: players
+                                            .iter()
+                                            .map(|(id, player)| {
+                                                (String::from(id), player.to_response())
+                                            })
+                                            .collect(),
+                                        open_tasks: player.open_tasks().to_owned(),
+                                    }),
+                                    StatusCode::OK,
+                                )),
+                                Err(_) => Ok(reply_error_with_details(
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    "Reading players has failed",
+                                )),
+                            }
                         }
+                        None => Ok(reply_error(StatusCode::NOT_FOUND)),
                     }
-                    None => Ok(reply_error(StatusCode::NOT_FOUND)),
                 }
+                None => Ok(reply_error(StatusCode::NOT_FOUND)),
             }
-            None => Ok(reply_error(StatusCode::NOT_FOUND)),
-        },
+        }
         None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
     }
 }
@@ -599,7 +594,7 @@ mod tests {
         assert_eq!(updated_game.state(), &GameState::Started);
         assert_eq!(
             updated_game.assigned_roles().get(player.id()).unwrap(),
-            &Role::new("Good", Party::Good)
+            &Role::new("Good", Party::Good, "A good person. Keep the law.")
         );
         assert_eq!(updated_game.assigned_roles().len(), 1);
     }

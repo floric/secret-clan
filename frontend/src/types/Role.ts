@@ -1,4 +1,5 @@
 export type Role = {
   name: string;
-  party: "Good" | "Bad";
+  party: "good" | "bad";
+  description: string;
 };

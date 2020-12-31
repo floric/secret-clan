@@ -20,6 +20,7 @@ pub fn init_jobs(ctx: &'static AppContext) {
             .every(JOB_INTERVAL.seconds())
             .run(cleanup_players(ctx));
 
+        // checks every 100ms the needed execution of the jobs (based on recommended value by Clockwerk)
         loop {
             scheduler.run_pending();
             thread::sleep(Duration::from_millis(100));

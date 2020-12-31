@@ -14,6 +14,9 @@
     "/games/:token": wrap({
       asyncComponent: () => import("./routes/GameLobby.svelte"),
     }),
+    "/errors/unexpected": wrap({
+      asyncComponent: () => import("./routes/errors/Unexpected.svelte"),
+    }),
     "*": NotFound,
   };
 </script>

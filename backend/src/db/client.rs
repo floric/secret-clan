@@ -2,7 +2,7 @@ use super::{Command, CommandData, Persist, QueryError};
 use log::debug;
 use nanoid::nanoid;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::{self, Debug},
 };
 use tokio::sync::{mpsc, oneshot};
@@ -73,7 +73,7 @@ impl<T: Persist> Client<T> {
     pub async fn scan(
         &self,
         scan_function: Box<dyn Fn(&T) -> bool + Send + Sync>,
-    ) -> Result<HashSet<String>, QueryError> {
+    ) -> Result<Vec<String>, QueryError> {
         self.run_query(|data| Command::Scan {
             scan_function,
             data,
@@ -109,9 +109,9 @@ impl<T: Persist> Client<T> {
         .and_then(Self::map_result)
     }
 
-    pub async fn remove_batch(&self, keys: &HashSet<String>) -> Result<(), QueryError> {
+    pub async fn remove_batch(&self, keys: &[String]) -> Result<(), QueryError> {
         self.run_query(|data| Command::RemoveBatch {
-            keys: keys.clone(),
+            keys: keys.to_owned(),
             data,
         })
         .await
@@ -137,7 +137,6 @@ mod tests {
         model::Game,
     };
     use nanoid::nanoid;
-    use std::collections::HashSet;
 
     fn init_client() -> Client<Game> {
         let mut repo = Database::init("games");
@@ -258,11 +257,11 @@ mod tests {
     #[tokio::test]
     async fn should_remove_games() {
         let client = init_client();
-        let mut ids = HashSet::new();
+        let mut ids = vec![];
         for x in &["A", "B", "C"] {
             let g = Game::new("admin", *x);
             client.persist(&g).await.expect("Game persist failed");
-            ids.insert(String::from(*x));
+            ids.push(String::from(*x));
         }
 
         let game_count = client
