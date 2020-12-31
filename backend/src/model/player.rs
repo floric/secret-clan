@@ -24,6 +24,7 @@ pub struct Player {
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
     open_tasks: VecDeque<TaskDefinition>,
+    acknowledged_role: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
@@ -45,6 +46,7 @@ impl Player {
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
             open_tasks: VecDeque::new(),
+            acknowledged_role: false,
         }
     }
 
@@ -68,6 +70,14 @@ impl Player {
 
     pub fn user_token(&self) -> &str {
         &self.user_token
+    }
+
+    pub fn acknowledged_role(&self) -> &bool {
+        &self.acknowledged_role
+    }
+
+    pub fn acknowledge_role(&mut self) {
+        self.acknowledged_role = true;
     }
 
     pub fn update_token(&mut self, new_token: &str) {

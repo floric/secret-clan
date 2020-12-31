@@ -23,7 +23,7 @@ pub async fn apply_task<T: Task>(
             .await
             .expect("Reading player has failed")
         {
-            Some(mut player) => {
+            Some(player) => {
                 // Check if task is assigned
                 if player
                     .open_tasks()
@@ -39,10 +39,17 @@ pub async fn apply_task<T: Task>(
                     );
                     return Ok(reply_success(StatusCode::OK));
                 }
-
-                match task.apply_result(&mut player, ctx).await {
+                let player_id = player.id().to_owned();
+                match task.apply_result(player, ctx).await {
                     Ok(_) => {
                         if task.resolve_after_first_answer() {
+                            let mut player = ctx
+                                .db()
+                                .players()
+                                .get(&player_id)
+                                .await
+                                .expect("Loading player has failed")
+                                .unwrap();
                             player.resolve_task(task.get_type());
                             if ctx.db().players().persist(&player).await.is_err() {
                                 return Ok(reply_error_with_details(
@@ -72,7 +79,7 @@ mod tests {
         model::Player,
         server::{
             app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task,
-            tasks::settings::SettingsResult,
+            tasks::settings::SettingsTask,
         },
     };
     use warp::{hyper::StatusCode, Reply};
@@ -93,7 +100,7 @@ mod tests {
         let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
 
         let res = apply_task(
-            SettingsResult {
+            SettingsTask {
                 name: String::from("Test"),
             },
             &authorization,

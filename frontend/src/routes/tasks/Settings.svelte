@@ -54,7 +54,9 @@
     <div>
         <h4 class="font-bold mb-4">Players</h4>
         <ul>
-            {#each Object.values(details.players) as p}
+            {#each Object.values(details.players).sort((a, b) =>
+                a.name.localeCompare(b.name)
+            ) as p}
                 <li>
                     {p.name}
                     {#if p.id === details.game.adminId}

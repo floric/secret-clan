@@ -7,19 +7,19 @@ use log::debug;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct SettingsResult {
+pub struct SettingsTask {
     pub name: String,
 }
 
 #[async_trait]
-impl Task for SettingsResult {
+impl Task for SettingsTask {
     fn get_type(&self) -> TaskType {
         TaskType::Settings
     }
 
-    async fn apply_result(&self, player: &mut Player, ctx: &AppContext) -> Result<(), String> {
+    async fn apply_result(&self, mut player: Player, ctx: &AppContext) -> Result<(), String> {
         player.set_name(&self.name);
-        match ctx.db().players().persist(player).await {
+        match ctx.db().players().persist(&player).await {
             Ok(_) => {
                 debug!("Applied settings player {}", player.id());
                 Ok(())
@@ -43,7 +43,7 @@ mod tests {
         model::{Player, TaskDefinition},
         server::{
             app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task,
-            tasks::settings::SettingsResult,
+            tasks::settings::SettingsTask,
         },
     };
     use warp::{hyper::StatusCode, Reply};
@@ -65,7 +65,7 @@ mod tests {
         let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
 
         let res = apply_task(
-            SettingsResult {
+            SettingsTask {
                 name: String::from("Test"),
             },
             &authorization,

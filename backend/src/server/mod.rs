@@ -16,7 +16,7 @@ use self::{
         tasks::apply_task,
     },
     reply::handle_rejection,
-    tasks::{disclose_role::DiscloseRoleResult, settings::SettingsResult},
+    tasks::{disclose_role::DiscloseRoleTask, settings::SettingsTask},
 };
 use log::warn;
 use std::fs;
@@ -118,7 +118,7 @@ pub async fn run_server(ctx: &'static AppContext) {
             .and(warp::body::json())
             .and(warp::header(AUTHORIZATION))
             .and_then(
-                move |input: SettingsResult, authorization: String| async move {
+                move |input: SettingsTask, authorization: String| async move {
                     apply_task(input, &authorization, ctx).await
                 },
             )
@@ -129,7 +129,7 @@ pub async fn run_server(ctx: &'static AppContext) {
                     .and(warp::body::json())
                     .and(warp::header(AUTHORIZATION))
                     .and_then(
-                        move |input: DiscloseRoleResult, authorization: String| async move {
+                        move |input: DiscloseRoleTask, authorization: String| async move {
                             apply_task(input, &authorization, ctx).await
                         },
                     ),

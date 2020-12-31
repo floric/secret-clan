@@ -1,23 +1,24 @@
 use crate::{
-    model::{Player, Task, TaskType},
+    model::{Player, Task, TaskDefinition, TaskType},
     server::app_context::AppContext,
 };
 use async_trait::async_trait;
+use chrono::{Duration, Utc};
 use log::info;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct DiscloseRoleResult {
+pub struct DiscloseRoleTask {
     acknowledge: bool,
 }
 
 #[async_trait]
-impl Task for DiscloseRoleResult {
+impl Task for DiscloseRoleTask {
     fn get_type(&self) -> TaskType {
         TaskType::DiscloseRole
     }
 
-    async fn apply_result(&self, player: &mut Player, _: &AppContext) -> Result<(), String> {
+    async fn apply_result(&self, mut player: Player, ctx: &AppContext) -> Result<(), String> {
         if !self.acknowledge {
             // TODO Maybe cancel game in case a player doesn't understand role
             info!(
@@ -25,7 +26,49 @@ impl Task for DiscloseRoleResult {
                 player.id()
             );
         }
-        Ok(())
+
+        player.acknowledge_role();
+        if let Err(err) = ctx.db().players().persist(&player).await {
+            return Err(err.to_string());
+        }
+
+        match ctx.db().games().get(player.game_token()).await {
+            Ok(game) => match game {
+                Some(game) => match ctx.db().players().get_batch(&game.all_player_ids()).await {
+                    Ok(mut all_players) => {
+                        let all_have_acknowledged_role =
+                            all_players.values().all(|p| *p.acknowledged_role());
+
+                        if all_have_acknowledged_role {
+                            let time_limit = Utc::now()
+                                .checked_add_signed(Duration::minutes(15))
+                                .expect("Adding duration should succeed");
+                            let updated_players = all_players
+                                .values_mut()
+                                .map(|p| {
+                                    p.assign_task(TaskDefinition::Discuss { time_limit });
+                                    p.clone()
+                                })
+                                .collect::<Vec<_>>();
+                            if ctx
+                                .db()
+                                .players()
+                                .persist_batch(&updated_players)
+                                .await
+                                .is_err()
+                            {
+                                return Err(String::from("Adding discuss task has failed"));
+                            }
+                        }
+
+                        Ok(())
+                    }
+                    Err(err) => Err(err.to_string()),
+                },
+                None => Err(String::from("Game associated with player not found")),
+            },
+            Err(err) => Err(String::from(err.to_string())),
+        }
     }
 
     fn resolve_after_first_answer(&self) -> bool {
@@ -35,9 +78,9 @@ impl Task for DiscloseRoleResult {
 
 #[cfg(test)]
 mod tests {
-    use super::DiscloseRoleResult;
+    use super::DiscloseRoleTask;
     use crate::{
-        model::{Party, Player, Role, TaskDefinition},
+        model::{Game, Party, Player, Role, TaskDefinition, TaskType},
         server::{app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task},
     };
     use warp::{hyper::StatusCode, Reply};
@@ -47,7 +90,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_disclose_role_acknowledge() {
+    async fn should_disclose_role_and_acknowledge() {
         let ctx = init_ctx();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
@@ -59,14 +102,30 @@ mod tests {
             .await
             .expect("Persisting player has failed");
         let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
+        let game = Game::new(player.id(), "GAME");
+        ctx.db()
+            .games()
+            .persist(&game)
+            .await
+            .expect("Persisting game has failed");
 
-        let res = apply_task(
-            DiscloseRoleResult { acknowledge: true },
-            &authorization,
-            &ctx,
-        )
-        .await;
+        let res = apply_task(DiscloseRoleTask { acknowledge: true }, &authorization, &ctx).await;
         assert_eq!(res.unwrap().into_response().status(), StatusCode::OK);
+
+        assert_eq!(
+            ctx.db()
+                .players()
+                .get(player.id())
+                .await
+                .expect("Reading player has failed")
+                .unwrap()
+                .open_tasks()
+                .iter()
+                .next()
+                .unwrap()
+                .get_type(),
+            TaskType::Discuss
+        );
     }
 
     #[tokio::test]
@@ -82,9 +141,15 @@ mod tests {
             .await
             .expect("Persisting player has failed");
         let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
+        let game = Game::new(player.id(), "GAME");
+        ctx.db()
+            .games()
+            .persist(&game)
+            .await
+            .expect("Persisting game has failed");
 
         let res = apply_task(
-            DiscloseRoleResult { acknowledge: false },
+            DiscloseRoleTask { acknowledge: false },
             &authorization,
             &ctx,
         )

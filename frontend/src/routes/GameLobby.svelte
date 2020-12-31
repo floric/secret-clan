@@ -8,6 +8,7 @@
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
   import DiscloseRole from "./tasks/DiscloseRole.svelte";
+  import Discuss from "./tasks/Discuss.svelte";
   import { Tasks, TaskType } from "../types/Tasks";
   import { sendRequest } from "../utils/requests";
 
@@ -71,6 +72,8 @@
           {leaveGame}
           {refreshGame}
           role={currentTask[TaskType.DiscloseRole].role} />
+      {:else if currentTask[TaskType.Discuss]}
+        <Discuss {leaveGame} />
       {:else}
         <p>Unsupported Game State.</p>
       {/if}

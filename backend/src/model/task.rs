@@ -1,6 +1,7 @@
 use super::Player;
 use crate::{model::Role, server::app_context::AppContext};
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
@@ -8,6 +9,7 @@ use serde::{Deserialize, Serialize};
 pub enum TaskType {
     Settings,
     DiscloseRole,
+    Discuss,
 }
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
@@ -15,6 +17,7 @@ pub enum TaskType {
 pub enum TaskDefinition {
     Settings {},
     DiscloseRole { role: Role },
+    Discuss { time_limit: DateTime<Utc> },
 }
 
 impl TaskDefinition {
@@ -22,6 +25,7 @@ impl TaskDefinition {
         match self {
             TaskDefinition::Settings {} => TaskType::Settings,
             TaskDefinition::DiscloseRole { role: _ } => TaskType::DiscloseRole,
+            TaskDefinition::Discuss { time_limit: _ } => TaskType::Discuss,
         }
     }
 }
@@ -32,7 +36,7 @@ pub trait Task {
     fn get_type(&self) -> TaskType;
 
     /// Applies the result of the users decision and might mutate the game state.
-    async fn apply_result(&self, player: &mut Player, ctx: &AppContext) -> Result<(), String>;
+    async fn apply_result(&self, mut player: Player, ctx: &AppContext) -> Result<(), String>;
 
     /// Determines if this task can be applied multiple times.
     fn resolve_after_first_answer(&self) -> bool;
