@@ -103,39 +103,35 @@ impl<T: Persist> Database<T> {
     fn persist(&self, elem: T) -> Result<(), sled::Error> {
         self.db
             .insert(elem.id(), elem.clone())
-            .expect("Persisting item failed");
-        self.flush()
+            .and_then(|_| self.flush())
     }
 
     fn persist_batch(&self, values: &[T]) -> Result<(), sled::Error> {
         let batch = sled::Batch::default();
         for elem in values {
-            self.db
-                .insert(elem.id(), elem.clone())
-                .expect("Persisting item failed");
+            if self.db.insert(elem.id(), elem.clone()).is_err() {
+                error!("Persisting item has failed");
+            }
         }
         self.db.apply_batch(batch)?;
         self.flush()
     }
 
     fn remove(&self, key: &str) -> Result<(), sled::Error> {
-        match self.db.remove(key).expect("Removing item failed") {
+        self.db.remove(key).and_then(|res| match res {
             Some(_) => self.flush(),
             None => {
                 warn!("No item with key \"{}\" found for removal", key);
                 Ok(())
             }
-        }
+        })
     }
 
     fn remove_batch(&self, keys: &[String]) -> Result<(), sled::Error> {
         let batch = sled::Batch::default();
         for key in keys {
-            match self.db.remove(key).expect("Removing item failed") {
-                Some(_) => {}
-                None => {
-                    warn!("No item with key \"{}\" found for removal", key);
-                }
+            if self.db.remove(key).is_err() {
+                warn!("No item with key \"{}\" found for removal", key);
             }
         }
         self.db.apply_batch(batch)?;
