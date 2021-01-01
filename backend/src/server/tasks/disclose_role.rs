@@ -28,6 +28,7 @@ impl Task for DiscloseRoleTask {
         }
 
         player.acknowledge_role();
+
         if let Err(err) = ctx.db().players().persist(&player).await {
             return Err(err.to_string());
         }
@@ -67,7 +68,7 @@ impl Task for DiscloseRoleTask {
                 },
                 None => Err(String::from("Game associated with player not found")),
             },
-            Err(err) => Err(String::from(err.to_string())),
+            Err(err) => Err(err.to_string()),
         }
     }
 
