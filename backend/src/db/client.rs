@@ -139,16 +139,12 @@ mod tests {
     use nanoid::nanoid;
 
     fn init_client() -> Client<Game> {
-        let mut repo = Database::init("games");
-
-        let sender = repo.sender();
+        let (mut repo, sender) = Database::init("games");
         tokio::task::spawn(async move {
             repo.start_listening().await;
         });
 
-        let client = Client::new(sender);
-
-        client
+        Client::new(sender)
     }
 
     #[tokio::test]

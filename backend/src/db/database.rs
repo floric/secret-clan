@@ -13,11 +13,10 @@ pub struct Database<T: Persist> {
     path: String,
     db: Db,
     receiver: mpsc::Receiver<Command<T>>,
-    sender: mpsc::Sender<Command<T>>,
 }
 
 impl<T: Persist> Database<T> {
-    pub fn init(path: &str) -> Database<T> {
+    pub fn init(path: &str) -> (Database<T>, mpsc::Sender<Command<T>>) {
         let db = sled::open(if cfg!(test) {
             format!(".sled/{}/{}", nanoid!(), &path)
         } else {
@@ -32,17 +31,11 @@ impl<T: Persist> Database<T> {
             db,
             path: String::from(path),
             receiver,
-            sender,
         };
 
         repo.purge()
             .expect("Cleanup of existing database has failed");
-
-        repo
-    }
-
-    pub fn sender(&self) -> mpsc::Sender<Command<T>> {
-        self.sender.clone()
+        (repo, sender)
     }
 
     /// A database connection is etablished by creating a database instance, which should should then be started in a separate thread.
@@ -51,9 +44,8 @@ impl<T: Persist> Database<T> {
     ///
     /// Example:
     /// ```
-    /// use secret_clan::{model::Game, db::{Database, Client}};
-    /// let mut repo: Database<Game> = Database::init("test");
-    /// let sender = repo.sender();
+    /// use secret_clan::{model::Game, db::{Database, Client, Command}};
+    /// let (mut repo, sender): (Database<Game>, tokio::sync::mpsc::Sender<Command<Game>>) = Database::init("test");
     /// std::thread::spawn(move || {
     ///     repo.start_listening();
     /// });

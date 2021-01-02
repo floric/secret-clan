@@ -6,13 +6,13 @@ use names::Generator;
 use nanoid::nanoid;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::{collections::VecDeque, hash::Hash};
+use std::collections::VecDeque;
 
 fn generate_random_name() -> String {
     Generator::default().next().unwrap()
 }
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
 #[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
@@ -27,7 +27,7 @@ pub struct Player {
     acknowledged_role: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Derivative)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
 #[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerResponse {

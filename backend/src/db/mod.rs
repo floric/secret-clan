@@ -16,6 +16,7 @@ pub use self::database::Database;
 pub trait Persist: Into<IVec> + TryFrom<IVec> + Clone + Debug + Send {
     fn id(&self) -> &str;
 }
+
 #[derive(Debug, Clone)]
 pub struct QueryError {
     message: String,

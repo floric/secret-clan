@@ -2,31 +2,34 @@ use super::logger::init_logger;
 use crate::{
     config::AppConfig,
     db::{Client, Database},
-    model::{Game, Player},
+    model::{Game, Player, Voting},
 };
 use envconfig::Envconfig;
 
 pub struct DbClients {
     games: Client<Game>,
     players: Client<Player>,
+    votings: Client<Voting>,
 }
 
 impl DbClients {
     pub fn init() -> DbClients {
-        let mut games_repo = Database::init("games");
-        let games_sender = games_repo.sender();
+        let (mut games_repo, games_sender) = Database::init("games");
+        let (mut players_repo, players_sender) = Database::init("players");
+        let (mut votings_repo, votings_sender) = Database::init("votes");
+
         tokio::task::spawn(async move {
-            games_repo.start_listening().await;
-        });
-        let mut players_repo = Database::init("players");
-        let players_sender = players_repo.sender();
-        tokio::task::spawn(async move {
-            players_repo.start_listening().await;
+            tokio::join!(
+                players_repo.start_listening(),
+                games_repo.start_listening(),
+                votings_repo.start_listening()
+            );
         });
 
         DbClients {
             games: Client::new(games_sender),
             players: Client::new(players_sender),
+            votings: Client::new(votings_sender),
         }
     }
 
@@ -36,6 +39,10 @@ impl DbClients {
 
     pub fn players(&self) -> &Client<Player> {
         &self.players
+    }
+
+    pub fn votings(&self) -> &Client<Voting> {
+        &self.votings
     }
 }
 

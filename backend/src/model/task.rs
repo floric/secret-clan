@@ -1,4 +1,4 @@
-use super::Player;
+use super::{Player, Voting};
 use crate::{model::Role, server::app_context::AppContext};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -10,14 +10,16 @@ pub enum TaskType {
     Settings,
     DiscloseRole,
     Discuss,
+    Vote,
 }
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskDefinition {
     Settings {},
     DiscloseRole { role: Role },
     Discuss { time_limit: DateTime<Utc> },
+    Vote { voting: Voting },
 }
 
 impl TaskDefinition {
@@ -26,6 +28,7 @@ impl TaskDefinition {
             TaskDefinition::Settings {} => TaskType::Settings,
             TaskDefinition::DiscloseRole { role: _ } => TaskType::DiscloseRole,
             TaskDefinition::Discuss { time_limit: _ } => TaskType::Discuss,
+            TaskDefinition::Vote { voting: _ } => TaskType::Vote,
         }
     }
 }

@@ -23,9 +23,8 @@ pub enum GameState {
 ///
 /// Example:
 /// ```no_run
-/// use secret_clan::{model::Game, db::{Database, Client}};
-/// let mut repo: Database<Game> = Database::init("test");
-/// let sender = repo.sender();
+/// use secret_clan::{model::Game, db::{Database, Client, Command}};
+/// let (mut repo, sender): (Database<Game>, tokio::sync::mpsc::Sender<Command<Game>>) = Database::init("test");
 /// std::thread::spawn(move || {
 ///     repo.start_listening();
 /// });
