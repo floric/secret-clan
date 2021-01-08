@@ -16,7 +16,7 @@ impl DbClients {
     pub fn init() -> DbClients {
         let (mut games_repo, games_sender) = Database::init("games");
         let (mut players_repo, players_sender) = Database::init("players");
-        let (mut votings_repo, votings_sender) = Database::init("votes");
+        let (mut votings_repo, votings_sender) = Database::init("votings");
 
         tokio::task::spawn(async move {
             tokio::join!(
