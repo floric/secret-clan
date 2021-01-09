@@ -7,20 +7,17 @@
     import { sendRequest } from "../../utils/requests";
 
     export let leaveGame: () => Promise<void>;
-    export let refreshGame: () => Promise<void>;
     export let role: Role;
 
     const acknowledge = async () => {
         await sendRequest(`/api/tasks/disclose-role`, "POST", {
             acknowledge: true,
         });
-        await refreshGame();
     };
     const decline = async () => {
         await sendRequest(`/api/tasks/disclose-role`, "POST", {
             acknowledge: false,
         });
-        await refreshGame();
     };
 </script>
 

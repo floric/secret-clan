@@ -70,7 +70,7 @@
         if (msg[IncomingMessageType.NewTask]) {
           const newTask = msg[IncomingMessageType.NewTask];
           currentTask = newTask.task;
-          console.log("Started settings");
+          console.log("Receive new task");
         } else {
           console.warn("Unknown task type: " + Object.keys(msg));
         }
@@ -94,7 +94,6 @@
       {:else if currentTask[TaskType.DiscloseRole]}
         <DiscloseRole
           {leaveGame}
-          {refreshGame}
           role={currentTask[TaskType.DiscloseRole].role} />
       {:else if currentTask[TaskType.Discuss]}
         <Discuss {leaveGame} />

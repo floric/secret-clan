@@ -1,5 +1,8 @@
 use crate::{
-    model::{Game, GameResponse, GameState, Player, PlayerResponse, TaskDefinition, TaskType},
+    model::{
+        Game, GameResponse, GameState, OutgoingMessage, Player, PlayerResponse, TaskDefinition,
+        TaskType,
+    },
     server::{
         app_context::AppContext,
         auth::{extract_verified_id, generate_jwt_token},
@@ -258,7 +261,28 @@ pub async fn start_game_filter(
                         ctx.db().games().persist(&game)
                     );
                     match persist_players.and(persist_game) {
-                        Ok(_) => Ok(reply_error(StatusCode::OK)),
+                        Ok(_) => {
+                            let mut send_futures = vec![];
+                            for p in players {
+                                let future = ctx.ws().send_message(
+                                    String::from(p.id()),
+                                    OutgoingMessage::NewTask {
+                                        task: TaskDefinition::DiscloseRole {
+                                            role: game
+                                                .assigned_roles()
+                                                .get(p.id())
+                                                .expect("Player is missing role")
+                                                .clone(),
+                                        },
+                                    },
+                                );
+                                send_futures.push(future);
+                            }
+                            match futures::future::try_join_all(send_futures).await {
+                                Ok(_) => Ok(reply_success(StatusCode::OK)),
+                                Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
+                            }
+                        }
                         Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
                     }
                 }

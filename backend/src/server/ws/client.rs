@@ -46,14 +46,14 @@ impl WsClient {
 
     pub async fn send_message(
         &self,
-        player_id: &str,
+        player_id: String,
         message: OutgoingMessage,
     ) -> Result<(), String> {
         self.sender
             .clone()
             .send(WsCommand::SendMessage {
                 msg: message,
-                player_id: String::from(player_id),
+                player_id,
             })
             .await
             .map_err(|err| err.to_string())

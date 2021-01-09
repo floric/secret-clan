@@ -80,7 +80,7 @@ async fn handle_incoming_message(
                     return ctx
                         .ws()
                         .send_message(
-                            player.id(),
+                            String::from(player.id()),
                             OutgoingMessage::NewTask {
                                 task: next_task.clone(),
                             },
@@ -113,6 +113,10 @@ mod tests {
             .await
             .expect("Persisting player has failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+        ctx.ws()
+            .register_active_player(player.id(), "peer-id")
+            .await
+            .expect("Registering players connection failed");
 
         let reply = handle_incoming_message(IncomingMessage::Auth { token }, &ctx, "peer-id").await;
 
@@ -129,6 +133,10 @@ mod tests {
             .await
             .expect("Persisting player has failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+        ctx.ws()
+            .register_active_player(player.id(), "peer-id")
+            .await
+            .expect("Registering players connection failed");
 
         let reply = handle_incoming_message(IncomingMessage::Auth { token }, &ctx, "peer-id").await;
 
