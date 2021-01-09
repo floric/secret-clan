@@ -3,13 +3,14 @@
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import type { GameDetails } from "../types/Game";
+  import { IncomingMessages, IncomingMessageType } from "../types/Messages";
+  import { Tasks, TaskType } from "../types/Tasks";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
   import DiscloseRole from "./tasks/DiscloseRole.svelte";
   import Discuss from "./tasks/Discuss.svelte";
-  import { Tasks, TaskType } from "../types/Tasks";
   import { sendRequest } from "../utils/requests";
 
   export let params: { token?: string } = {};
@@ -28,7 +29,6 @@
     }
 
     details = res;
-    currentTask = details.openTasks.length > 0 ? details.openTasks[0] : null;
   };
 
   const leaveGame = async () => {
@@ -65,7 +65,18 @@
       console.error("Error", ev);
     };
     ws.onmessage = (ev: MessageEvent<string>) => {
-      console.log(ev.data);
+      try {
+        const msg: IncomingMessages = JSON.parse(ev.data);
+        if (msg[IncomingMessageType.NewTask]) {
+          const newTask = msg[IncomingMessageType.NewTask];
+          currentTask = newTask.task;
+          console.log("Started settings");
+        } else {
+          console.warn("Unknown task type: " + Object.keys(msg));
+        }
+      } catch (err) {
+        console.error("Parsing task has failed");
+      }
     };
   }
 </script>

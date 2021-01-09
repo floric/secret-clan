@@ -51,13 +51,9 @@ mod tests {
 
     use super::VoteTask;
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_vote_yes() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let mut player = Player::new("GAME");
         let voting = Voting::new(

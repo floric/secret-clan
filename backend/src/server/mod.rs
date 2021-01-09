@@ -1,21 +1,21 @@
 pub mod app_context;
 mod auth;
-mod connections;
 mod endpoints;
 mod logger;
 mod reply;
 mod tasks;
+mod ws;
 
 use self::{
     app_context::AppContext,
     endpoints::{
+        active_game::handle_ws_filter,
         games::{
             attend_game_filter, create_game_filter, get_game_details_filter, get_game_filter,
             get_games_count_filter, leave_game_filter, start_game_filter,
         },
         players::get_player_filter,
         tasks::apply_task,
-        websocket::handle_ws_connection,
     },
     reply::handle_rejection,
     tasks::{disclose_role::DiscloseRoleTask, settings::SettingsTask},
@@ -144,7 +144,7 @@ pub async fn run_server(ctx: &'static AppContext) {
             // WS /api/active_game
             .or(warp::path!("active_game")
                 .and(warp::ws())
-                .map(move |ws: warp::ws::Ws| handle_ws_connection(ws, ctx))),
+                .map(move |ws: warp::ws::Ws| handle_ws_filter(ws, ctx))),
     );
 
     let static_route = warp::path("static").and(warp::fs::dir(static_path));

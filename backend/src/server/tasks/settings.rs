@@ -48,13 +48,9 @@ mod tests {
     };
     use warp::{hyper::StatusCode, Reply};
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_change_name() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::Settings {});
         ctx.db()

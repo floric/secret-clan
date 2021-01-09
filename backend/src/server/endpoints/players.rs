@@ -34,13 +34,9 @@ mod tests {
     use crate::{model::Player, server::app_context::AppContext};
     use warp::{hyper::StatusCode, Reply};
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_not_get_unknown_player() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let reply = get_player_filter("unknown", &ctx).await;
 
@@ -52,7 +48,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_get_player() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let player = Player::new("game");
         let player_id = String::from(player.id());

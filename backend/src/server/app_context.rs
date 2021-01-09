@@ -1,14 +1,10 @@
-use super::{connections::Connections, logger::init_logger};
+use super::{logger::init_logger, ws::WsClient};
 use crate::{
     config::AppConfig,
     db::{Client, Database},
-    model::{Game, OutgoingMessage, Player, Voting, WsCommand, WsRequest},
+    model::{Game, Player, Voting},
 };
 use envconfig::Envconfig;
-use futures::stream::SplitSink;
-use log::error;
-use tokio::sync::mpsc;
-use warp::ws::{Message, WebSocket};
 
 pub struct DbClients {
     games: Client<Game>,
@@ -50,10 +46,13 @@ impl DbClients {
     }
 }
 
+/// The AppContext is the central place for crosscutting topics like Database acess or reading configuration values.
+/// Each request filter gets a reference to the context to read from it or query requests by sending messages.
+/// These messages will be sent to separates threads for mutations so we can sure no mutations occure directly in this shared, readonly state object.
 pub struct AppContext {
     db: DbClients,
+    ws: WsClient,
     config: AppConfig,
-    message_sender: mpsc::Sender<WsCommand>,
 }
 
 impl AppContext {
@@ -62,18 +61,10 @@ impl AppContext {
 
         init_logger(&config);
 
-        let db = DbClients::init();
-
-        let (mut connections, message_sender) = Connections::new();
-
-        tokio::task::spawn(async move {
-            connections.start_listening().await;
-        });
-
         AppContext {
-            db,
             config,
-            message_sender,
+            db: DbClients::init(),
+            ws: WsClient::new(),
         }
     }
 
@@ -89,30 +80,7 @@ impl AppContext {
         cfg!(debug_assertions)
     }
 
-    pub async fn add_connection(&self, peer_id: &str, sender: SplitSink<WebSocket, Message>) {
-        if self
-            .message_sender
-            .clone()
-            .send((String::from(peer_id), WsRequest::AddConnection { sender }))
-            .await
-            .is_err()
-        {
-            error!("Sending connection from {} has failed", peer_id);
-        };
-    }
-
-    pub async fn send_message(
-        &self,
-        message: OutgoingMessage,
-        peer_id: &str,
-    ) -> Result<(), String> {
-        self.message_sender
-            .clone()
-            .send((
-                String::from(peer_id),
-                WsRequest::SendMessage { msg: message },
-            ))
-            .await
-            .map_err(|err| err.to_string())
+    pub fn ws(&self) -> &WsClient {
+        &self.ws
     }
 }

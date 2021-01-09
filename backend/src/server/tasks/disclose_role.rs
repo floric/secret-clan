@@ -86,13 +86,9 @@ mod tests {
     };
     use warp::{hyper::StatusCode, Reply};
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_disclose_role_and_acknowledge() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
             role: Role::new("Test", Party::Bad, ""),
@@ -131,7 +127,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_disclose_role_and_decline() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
             role: Role::new("Test", Party::Good, ""),

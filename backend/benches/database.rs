@@ -45,8 +45,6 @@ pub async fn bench_database(c: &mut Criterion, ctx: &AppContext, local: &LocalSe
             block_on(t)
         });
     });
-
-    db_group.sampling_mode(SamplingMode::Linear);
     db_group.bench_function("get", |b| {
         b.iter_custom(|iters| {
             let t = local.run_until(async {

@@ -313,13 +313,9 @@ mod tests {
 
     const GAME_TOKEN: &str = "ACDEF";
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_not_get_game_unauthorized() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let reply = get_game_filter("invalid", "auth", &ctx).await;
         assert_eq!(
@@ -330,7 +326,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_get_unknown_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let token = generate_jwt_token(&Player::new("game"), &ctx.config().auth_secret);
 
@@ -343,7 +339,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_get_game_for_admin() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let admin = Player::new(GAME_TOKEN);
         ctx.db()
@@ -365,7 +361,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_get_game_for_player() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let player = Player::new(GAME_TOKEN);
         ctx.db()
@@ -389,7 +385,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_get_game_and_send_heartbeat() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let admin = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&admin, &ctx.config().auth_secret);
@@ -420,7 +416,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_create_new_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let reply = create_game_filter(&ctx).await;
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::CREATED);
@@ -428,7 +424,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_attend_unknown_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let reply = attend_game_filter("test", &ctx).await;
         assert_eq!(
@@ -439,7 +435,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_attend_started_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let mut game = Game::new("admin", GAME_TOKEN);
         game.start();
@@ -458,7 +454,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_attend_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         ctx.db()
             .games()
@@ -480,7 +476,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_leave_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let mut game = Game::new("admin", GAME_TOKEN);
         let player = Player::new(GAME_TOKEN);
@@ -510,7 +506,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_abandone_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let player = Player::new(GAME_TOKEN);
         let game = Game::new(player.id(), GAME_TOKEN);
@@ -538,7 +534,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_leave_game_and_select_new_admin() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
 
         let admin = Player::new(GAME_TOKEN);
         let mut game = Game::new(admin.id(), GAME_TOKEN);
@@ -570,7 +566,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_start_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
 
@@ -600,7 +596,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_start_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
 
@@ -627,7 +623,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_start_unknown_game() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
 
