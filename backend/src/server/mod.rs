@@ -4,10 +4,12 @@ mod endpoints;
 mod logger;
 mod reply;
 mod tasks;
+mod ws;
 
 use self::{
     app_context::AppContext,
     endpoints::{
+        active_game::handle_ws_filter,
         games::{
             attend_game_filter, create_game_filter, get_game_details_filter, get_game_filter,
             get_games_count_filter, leave_game_filter, start_game_filter,
@@ -135,7 +137,15 @@ pub async fn run_server(ctx: &'static AppContext) {
                     ),
             ),
     );
-    let api_route = warp::path("api").and(game_route.or(player_route).or(tasks_route));
+    let api_route = warp::path("api").and(
+        game_route
+            .or(player_route)
+            .or(tasks_route)
+            // WS /api/active_game
+            .or(warp::path!("active_game")
+                .and(warp::ws())
+                .map(move |ws: warp::ws::Ws| handle_ws_filter(ws, ctx))),
+    );
 
     let static_route = warp::path("static").and(warp::fs::dir(static_path));
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));

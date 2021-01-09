@@ -9,7 +9,7 @@ use tokio::{runtime::Builder, task};
 fn criterion_benchmark(c: &mut Criterion) {
     std::env::set_var("LOG_LEVEL", "warn");
 
-    let mut rt = Builder::new()
+    let mut rt = Builder::default()
         .threaded_scheduler()
         .enable_all()
         .thread_name("sc")
@@ -18,7 +18,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     rt.block_on(async {
         let ctx: &'static AppContext = Box::leak(Box::new(AppContext::init()));
-        let local = task::LocalSet::new();
+        let local = task::LocalSet::default();
 
         bench_games(c, &local).await;
         bench_database(c, ctx, &local).await;

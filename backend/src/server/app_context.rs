@@ -1,4 +1,4 @@
-use super::logger::init_logger;
+use super::{logger::init_logger, ws::WsClient};
 use crate::{
     config::AppConfig,
     db::{Client, Database},
@@ -46,8 +46,12 @@ impl DbClients {
     }
 }
 
+/// The AppContext is the central place for crosscutting topics like Database acess or reading configuration values.
+/// Each request filter gets a reference to the context to read from it or query requests by sending messages.
+/// These messages will be sent to separates threads for mutations so we can sure no mutations occure directly in this shared, readonly state object.
 pub struct AppContext {
     db: DbClients,
+    ws: WsClient,
     config: AppConfig,
 }
 
@@ -57,9 +61,11 @@ impl AppContext {
 
         init_logger(&config);
 
-        let db = DbClients::init();
-
-        AppContext { db, config }
+        AppContext {
+            config,
+            db: DbClients::init(),
+            ws: WsClient::default(),
+        }
     }
 
     pub fn db(&self) -> &DbClients {
@@ -72,5 +78,9 @@ impl AppContext {
 
     pub fn is_dev(&self) -> bool {
         cfg!(debug_assertions)
+    }
+
+    pub fn ws(&self) -> &WsClient {
+        &self.ws
     }
 }

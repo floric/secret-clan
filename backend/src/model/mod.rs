@@ -1,4 +1,5 @@
 mod game;
+mod messages;
 mod player;
 mod role;
 mod task;
@@ -7,6 +8,8 @@ mod vote;
 pub use game::Game;
 pub use game::GameResponse;
 pub use game::GameState;
+pub use messages::IncomingMessage;
+pub use messages::OutgoingMessage;
 pub use player::Player;
 pub use player::PlayerResponse;
 pub use role::Party;

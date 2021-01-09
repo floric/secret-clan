@@ -16,7 +16,7 @@ extern crate log;
 extern crate derivative;
 
 pub fn run_app() {
-    let mut rt = Builder::new()
+    let mut rt = Builder::default()
         .threaded_scheduler()
         .enable_all()
         .thread_name("sc")

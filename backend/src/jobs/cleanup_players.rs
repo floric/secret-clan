@@ -70,13 +70,9 @@ mod tests {
     };
     use chrono::Duration;
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_cleanup_player() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let player = Player::new("GAME");
         ctx.db()
             .players()
@@ -117,7 +113,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_not_cleanup_player() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let player = Player::new("GAME");
         ctx.db()
             .players()

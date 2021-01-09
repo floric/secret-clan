@@ -139,7 +139,7 @@ impl<T: Persist> Database<T> {
     }
 
     fn get_batch(&self, ids: &[String]) -> Result<HashMap<String, T>, sled::Error> {
-        let mut result = HashMap::new();
+        let mut result = HashMap::default();
 
         for id in ids {
             if let Ok(val) = self.db.get(id) {

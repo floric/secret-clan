@@ -84,13 +84,9 @@ mod tests {
     };
     use warp::{hyper::StatusCode, Reply};
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_do_nothing_for_unassigned_tasks() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let player = Player::new("GAME");
         ctx.db()
             .players()

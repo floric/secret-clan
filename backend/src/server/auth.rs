@@ -12,7 +12,7 @@ pub fn generate_jwt_token(player: &Player, secret: &str) -> String {
         algorithm: AlgorithmType::Hs256,
         ..Default::default()
     };
-    let mut claims = BTreeMap::new();
+    let mut claims = BTreeMap::default();
     claims.insert(String::from("sub"), String::from(player.id()));
     claims.insert(String::from("name"), String::from(player.name()));
     claims.insert(String::from("game"), String::from(player.game_token()));
@@ -38,6 +38,17 @@ pub fn extract_verified_id(authorization: &str, ctx: &AppContext) -> Option<Stri
     extract_verified_token(&authorization, &ctx.config().auth_secret)
         .ok()
         .and_then(|token| token.claims().get("sub").map(String::from))
+}
+
+pub async fn extract_verified_player(authorization: &str, ctx: &AppContext) -> Option<Player> {
+    let id = extract_verified_id(authorization, ctx)?;
+
+    ctx.db()
+        .players()
+        .get(&id)
+        .await
+        .ok()
+        .and_then(|player| player)
 }
 
 fn init_key(secret: &str) -> Hmac<Sha256> {

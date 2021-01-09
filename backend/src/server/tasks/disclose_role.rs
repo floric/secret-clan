@@ -44,10 +44,11 @@ impl Task for DiscloseRoleTask {
                             let time_limit = Utc::now()
                                 .checked_add_signed(Duration::minutes(15))
                                 .expect("Adding duration should succeed");
+                            let new_task = TaskDefinition::Discuss { time_limit };
                             let updated_players = all_players
                                 .values_mut()
                                 .map(|p| {
-                                    p.assign_task(TaskDefinition::Discuss { time_limit });
+                                    p.assign_task(new_task.clone());
                                     p.clone()
                                 })
                                 .collect::<Vec<_>>();
@@ -60,6 +61,17 @@ impl Task for DiscloseRoleTask {
                             {
                                 return Err(String::from("Adding discuss task has failed"));
                             }
+
+                            let mut futures = vec![];
+                            for p in updated_players {
+                                futures.push(ctx.ws().send_message(
+                                    String::from(p.id()),
+                                    crate::model::OutgoingMessage::NewTask {
+                                        task: new_task.clone(),
+                                    },
+                                ));
+                            }
+                            return futures::future::try_join_all(futures).await.map(|_| ());
                         }
 
                         Ok(())
@@ -86,13 +98,9 @@ mod tests {
     };
     use warp::{hyper::StatusCode, Reply};
 
-    fn init_ctx() -> AppContext {
-        AppContext::init()
-    }
-
     #[tokio::test]
     async fn should_disclose_role_and_acknowledge() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
             role: Role::new("Test", Party::Bad, ""),
@@ -131,7 +139,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_disclose_role_and_decline() {
-        let ctx = init_ctx();
+        let ctx = AppContext::init();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::DiscloseRole {
             role: Role::new("Test", Party::Good, ""),

@@ -45,7 +45,7 @@ impl Player {
             user_token: String::from(""),
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
-            open_tasks: VecDeque::new(),
+            open_tasks: VecDeque::default(),
             acknowledged_role: false,
         }
     }

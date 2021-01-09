@@ -11,7 +11,7 @@ const JOB_INTERVAL: u32 = 60;
 
 pub fn init_jobs(ctx: &'static AppContext) {
     tokio::task::spawn(async move {
-        let mut scheduler = Scheduler::new();
+        let mut scheduler = Scheduler::default();
 
         scheduler
             .every(JOB_INTERVAL.seconds())

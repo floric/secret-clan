@@ -3,19 +3,20 @@
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import type { GameDetails } from "../types/Game";
+  import { IncomingMessages, IncomingMessageType } from "../types/Messages";
+  import { Tasks, TaskType } from "../types/Tasks";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
   import DiscloseRole from "./tasks/DiscloseRole.svelte";
   import Discuss from "./tasks/Discuss.svelte";
-  import { Tasks, TaskType } from "../types/Tasks";
   import { sendRequest } from "../utils/requests";
 
   export let params: { token?: string } = {};
   let details: GameDetails | null = null;
   let currentTask: Tasks | null = null;
-  let refreshId: number | null = null;
+  let ws: WebSocket | null = null;
 
   const refreshGame = async () => {
     const res = await sendRequest<GameDetails>(
@@ -24,22 +25,16 @@
     );
     if (!res) {
       details = null;
-      if (refreshId) {
-        clearInterval(refreshId);
-      }
       return;
     }
 
     details = res;
-    currentTask = details.openTasks.length > 0 ? details.openTasks[0] : null;
   };
 
   const leaveGame = async () => {
+    ws?.close();
     if (getToken()) {
       await sendRequest(`/api/games/${params.token}/leave`, "POST");
-    }
-    if (refreshId) {
-      clearInterval(refreshId);
     }
     await push("/games");
   };
@@ -51,10 +46,39 @@
       console.error(err);
       await push("/errors/unexpected");
     }
-    refreshId = setInterval(() => {
-      refreshGame();
-    }, 3000);
+    createWsConnection();
   };
+
+  async function createWsConnection() {
+    if (ws) {
+      return;
+    }
+
+    ws = new WebSocket("ws://localhost:3333/api/active_game");
+    ws.onopen = () => {
+      ws?.send(JSON.stringify({ auth: { token: getToken() } }));
+    };
+    ws.onclose = () => {
+      ws = null;
+    };
+    ws.onerror = (ev) => {
+      console.error("Error", ev);
+    };
+    ws.onmessage = (ev: MessageEvent<string>) => {
+      try {
+        const msg: IncomingMessages = JSON.parse(ev.data);
+        if (msg[IncomingMessageType.NewTask]) {
+          const newTask = msg[IncomingMessageType.NewTask];
+          currentTask = newTask.task;
+          console.log("Receive new task");
+        } else {
+          console.warn("Unknown task type: " + Object.keys(msg));
+        }
+      } catch (err) {
+        console.error("Parsing task has failed");
+      }
+    };
+  }
 </script>
 
 <Dialog>
@@ -70,7 +94,6 @@
       {:else if currentTask[TaskType.DiscloseRole]}
         <DiscloseRole
           {leaveGame}
-          {refreshGame}
           role={currentTask[TaskType.DiscloseRole].role} />
       {:else if currentTask[TaskType.Discuss]}
         <Discuss {leaveGame} />

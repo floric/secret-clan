@@ -17,7 +17,6 @@
 
     const startGame = async () => {
         await sendRequest(`/api/games/${details.game.token}/start`, "POST");
-        await refreshGame();
     };
 
     const onChangeName = async (ev: any) => {
