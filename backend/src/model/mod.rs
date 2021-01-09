@@ -3,6 +3,7 @@ mod player;
 mod role;
 mod task;
 mod vote;
+mod websocket;
 
 pub use game::Game;
 pub use game::GameResponse;
@@ -17,3 +18,7 @@ pub use task::TaskType;
 pub use vote::Vote;
 pub use vote::VoteOption;
 pub use vote::Voting;
+pub use websocket::IncomingMessage;
+pub use websocket::OutgoingMessage;
+pub use websocket::WsCommand;
+pub use websocket::WsRequest;

@@ -15,7 +15,7 @@
   export let params: { token?: string } = {};
   let details: GameDetails | null = null;
   let currentTask: Tasks | null = null;
-  let refreshId: number | null = null;
+  let ws: WebSocket | null = null;
 
   const refreshGame = async () => {
     const res = await sendRequest<GameDetails>(
@@ -24,9 +24,6 @@
     );
     if (!res) {
       details = null;
-      if (refreshId) {
-        clearInterval(refreshId);
-      }
       return;
     }
 
@@ -35,11 +32,9 @@
   };
 
   const leaveGame = async () => {
+    ws?.close();
     if (getToken()) {
       await sendRequest(`/api/games/${params.token}/leave`, "POST");
-    }
-    if (refreshId) {
-      clearInterval(refreshId);
     }
     await push("/games");
   };
@@ -51,10 +46,28 @@
       console.error(err);
       await push("/errors/unexpected");
     }
-    refreshId = setInterval(() => {
-      refreshGame();
-    }, 3000);
+    createWsConnection();
   };
+
+  async function createWsConnection() {
+    if (ws) {
+      return;
+    }
+
+    ws = new WebSocket("ws://localhost:3333/api/active_game");
+    ws.onopen = () => {
+      ws?.send(JSON.stringify({ auth: { token: getToken() } }));
+    };
+    ws.onclose = () => {
+      ws = null;
+    };
+    ws.onerror = (ev) => {
+      console.error("Error", ev);
+    };
+    ws.onmessage = (ev: MessageEvent<string>) => {
+      console.log(ev.data);
+    };
+  }
 </script>
 
 <Dialog>

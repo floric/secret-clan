@@ -1,4 +1,4 @@
-<script>
+<script lang="typescript">
   import { link } from "svelte-spa-router";
   import PrimaryButton from "../components/buttons/Primary.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";

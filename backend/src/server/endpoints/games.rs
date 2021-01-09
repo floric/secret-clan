@@ -2,8 +2,7 @@ use crate::{
     model::{Game, GameResponse, GameState, Player, PlayerResponse, TaskDefinition, TaskType},
     server::{
         app_context::AppContext,
-        auth::extract_verified_id,
-        auth::generate_jwt_token,
+        auth::{extract_verified_id, generate_jwt_token},
         reply::{reply_error, reply_error_with_details, reply_success},
     },
 };

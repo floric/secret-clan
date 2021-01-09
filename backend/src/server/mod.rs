@@ -1,5 +1,6 @@
 pub mod app_context;
 mod auth;
+mod connections;
 mod endpoints;
 mod logger;
 mod reply;
@@ -14,6 +15,7 @@ use self::{
         },
         players::get_player_filter,
         tasks::apply_task,
+        websocket::handle_ws_connection,
     },
     reply::handle_rejection,
     tasks::{disclose_role::DiscloseRoleTask, settings::SettingsTask},
@@ -135,7 +137,15 @@ pub async fn run_server(ctx: &'static AppContext) {
                     ),
             ),
     );
-    let api_route = warp::path("api").and(game_route.or(player_route).or(tasks_route));
+    let api_route = warp::path("api").and(
+        game_route
+            .or(player_route)
+            .or(tasks_route)
+            // WS /api/active_game
+            .or(warp::path!("active_game")
+                .and(warp::ws())
+                .map(move |ws: warp::ws::Ws| handle_ws_connection(ws, ctx))),
+    );
 
     let static_route = warp::path("static").and(warp::fs::dir(static_path));
     let index_route = warp::get().and(warp::path::end().and(warp::fs::file(index_path)));

@@ -40,6 +40,20 @@ pub fn extract_verified_id(authorization: &str, ctx: &AppContext) -> Option<Stri
         .and_then(|token| token.claims().get("sub").map(String::from))
 }
 
+pub async fn extract_verified_player(authorization: &str, ctx: &AppContext) -> Option<Player> {
+    let id = extract_verified_id(authorization, ctx);
+    if id.is_none() {
+        return None;
+    }
+
+    ctx.db()
+        .players()
+        .get(&id.unwrap())
+        .await
+        .ok()
+        .and_then(|player| player)
+}
+
 fn init_key(secret: &str) -> Hmac<Sha256> {
     Hmac::new_varkey(secret.as_bytes()).unwrap()
 }
