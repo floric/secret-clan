@@ -26,7 +26,7 @@ impl Voting {
             description: String::from(""),
             remaining_players: player_ids.iter().map(String::from).collect::<HashSet<_>>(),
             options: Vec::from(options),
-            votes: HashMap::new(),
+            votes: HashMap::default(),
         }
     }
 

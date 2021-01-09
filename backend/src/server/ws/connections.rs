@@ -18,8 +18,8 @@ impl Connections {
             mpsc::channel(128);
 
         let connections = Connections {
-            connections: HashMap::new(),
-            player_connections: HashMap::new(),
+            connections: HashMap::default(),
+            player_connections: HashMap::default(),
             msg_receiver,
         };
 

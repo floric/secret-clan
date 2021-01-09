@@ -8,8 +8,8 @@ pub struct WsClient {
     sender: mpsc::Sender<WsCommand>,
 }
 
-impl WsClient {
-    pub fn new() -> Self {
+impl Default for WsClient {
+    fn default() -> Self {
         let (mut connections, sender) = Connections::new();
 
         tokio::task::spawn(async move {
@@ -18,7 +18,9 @@ impl WsClient {
 
         WsClient { sender }
     }
+}
 
+impl WsClient {
     pub async fn add_connection(
         &self,
         peer_id: &str,

@@ -64,7 +64,7 @@ impl AppContext {
         AppContext {
             config,
             db: DbClients::init(),
-            ws: WsClient::new(),
+            ws: WsClient::default(),
         }
     }
 
