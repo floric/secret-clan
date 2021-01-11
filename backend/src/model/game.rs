@@ -60,6 +60,9 @@ pub struct GameResponse {
 
 impl Game {
     pub fn new(admin_id: &str, token: &str) -> Self {
+        if token.to_uppercase() != token {
+            panic!("Only uppercase characters allowed");
+        }
         Game {
             token: String::from(token).to_uppercase(),
             creation_time: Utc::now(),

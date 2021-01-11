@@ -2,7 +2,7 @@ watch-fe:
 	cd frontend && npm run watch
 
 watch-be:
-	cd backend && LOG_LEVEL=debug cargo watch -x 'run' -w 'src' -c -i target-check
+	cd backend && LOG_LEVEL=info cargo watch -x 'run --target-dir watch-target' -w 'src' -c
 
 test-be:
 	cd backend && cargo tarpaulin --out Html

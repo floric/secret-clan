@@ -1,5 +1,6 @@
 # Backend
 backend/target/
+backend/watch-target/
 backend/.sled/
 backend/tarpaulin-report.html
 

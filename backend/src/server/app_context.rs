@@ -1,10 +1,11 @@
 use super::{logger::init_logger, ws::WsClient};
 use crate::{
     config::AppConfig,
-    db::{Client, Database},
+    db::{ChangeListener, Client, Database},
     model::{Game, Player, Voting},
 };
 use envconfig::Envconfig;
+use tokio::sync::mpsc;
 
 pub struct DbClients {
     games: Client<Game>,
@@ -13,6 +14,32 @@ pub struct DbClients {
 }
 
 impl DbClients {
+    pub fn init_with_changes() -> (DbClients, ChangeListener) {
+        let (mut games_repo, games_sender) = Database::init("games");
+        let (mut players_repo, players_sender) = Database::init("players");
+        let (mut votings_repo, votings_sender) = Database::init("votings");
+
+        let (players, player_changes): (Client<Player>, mpsc::Receiver<Player>) =
+            Client::new_with_change_handler(players_sender);
+
+        tokio::task::spawn(async move {
+            tokio::join!(
+                players_repo.start_listening(),
+                games_repo.start_listening(),
+                votings_repo.start_listening()
+            );
+        });
+
+        (
+            DbClients {
+                games: Client::new(games_sender),
+                votings: Client::new(votings_sender),
+                players,
+            },
+            ChangeListener::new(player_changes),
+        )
+    }
+
     pub fn init() -> DbClients {
         let (mut games_repo, games_sender) = Database::init("games");
         let (mut players_repo, players_sender) = Database::init("players");
@@ -28,8 +55,8 @@ impl DbClients {
 
         DbClients {
             games: Client::new(games_sender),
-            players: Client::new(players_sender),
             votings: Client::new(votings_sender),
+            players: Client::new(players_sender),
         }
     }
 
@@ -57,15 +84,26 @@ pub struct AppContext {
 
 impl AppContext {
     pub fn init() -> AppContext {
+        let (config, ws) = AppContext::init_config_and_ws();
+        let db = DbClients::init();
+
+        AppContext { config, ws, db }
+    }
+
+    pub fn init_with_changes() -> (AppContext, ChangeListener) {
+        let (config, ws) = AppContext::init_config_and_ws();
+        let (db, changes) = DbClients::init_with_changes();
+
+        (AppContext { config, ws, db }, changes)
+    }
+
+    fn init_config_and_ws() -> (AppConfig, WsClient) {
         let config = AppConfig::init_from_env().expect("Loading server config failed");
+        let ws = WsClient::default();
 
         init_logger(&config);
 
-        AppContext {
-            config,
-            db: DbClients::init(),
-            ws: WsClient::default(),
-        }
+        (config, ws)
     }
 
     pub fn db(&self) -> &DbClients {

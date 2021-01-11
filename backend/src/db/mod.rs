@@ -1,3 +1,4 @@
+mod change_listener;
 mod client;
 mod database;
 
@@ -10,6 +11,7 @@ use std::{
 };
 use tokio::sync::oneshot;
 
+pub use self::change_listener::ChangeListener;
 pub use self::client::Client;
 pub use self::database::Database;
 
