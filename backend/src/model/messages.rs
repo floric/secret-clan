@@ -15,7 +15,5 @@ pub enum OutgoingMessage {
     Welcome {},
     NewTask { task: TaskDefinition },
     PlayerUpdated { player: Player },
-    PlayerLeft { player_id: String },
-    PlayerAttended { player: Player },
     GameUpdated { game: Game },
 }

@@ -21,6 +21,8 @@ impl DbClients {
 
         let (players, player_changes): (Client<Player>, mpsc::Receiver<Player>) =
             Client::new_with_change_handler(players_sender);
+        let (games, game_changes): (Client<Game>, mpsc::Receiver<Game>) =
+            Client::new_with_change_handler(games_sender);
 
         tokio::task::spawn(async move {
             tokio::join!(
@@ -32,11 +34,11 @@ impl DbClients {
 
         (
             DbClients {
-                games: Client::new(games_sender),
                 votings: Client::new(votings_sender),
+                games,
                 players,
             },
-            ChangeListener::new(player_changes),
+            ChangeListener::new(player_changes, game_changes),
         )
     }
 

@@ -1,18 +1,29 @@
-use crate::{model::Player, server::app_context::AppContext};
+use crate::{
+    model::{Game, Player},
+    server::app_context::AppContext,
+};
 use log::error;
 use tokio::sync::mpsc;
 
 pub struct ChangeListener {
     players: mpsc::Receiver<Player>,
+    games: mpsc::Receiver<Game>,
 }
 
 impl ChangeListener {
-    pub fn new(players: mpsc::Receiver<Player>) -> Self {
-        ChangeListener { players }
+    pub fn new(players: mpsc::Receiver<Player>, games: mpsc::Receiver<Game>) -> Self {
+        ChangeListener { players, games }
     }
 
     pub async fn start_listening(&mut self, ctx: &AppContext) {
-        while let Some(player) = self.players.recv().await {
+        tokio::join!(
+            ChangeListener::listen_to_players(&mut self.players, ctx),
+            ChangeListener::listen_to_games(&mut self.games, ctx)
+        );
+    }
+
+    async fn listen_to_players(players: &mut mpsc::Receiver<Player>, ctx: &AppContext) {
+        while let Some(player) = players.recv().await {
             match ctx.db().games().get(player.game_token()).await {
                 Ok(game) => {
                     if let Some(game) = game {
@@ -34,6 +45,24 @@ impl ChangeListener {
                     }
                 }
                 Err(_) => {}
+            }
+        }
+    }
+
+    async fn listen_to_games(games: &mut mpsc::Receiver<Game>, ctx: &AppContext) {
+        while let Some(game) = games.recv().await {
+            // inform all players of game about updated game
+            for player_id in game.all_player_ids() {
+                if let Err(err) = ctx
+                    .ws()
+                    .send_message(
+                        player_id,
+                        crate::model::OutgoingMessage::GameUpdated { game: game.clone() },
+                    )
+                    .await
+                {
+                    error!("Sending GameUpdated has failed: {}", &err);
+                }
             }
         }
     }

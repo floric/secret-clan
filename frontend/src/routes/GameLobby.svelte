@@ -68,9 +68,18 @@
       try {
         const msg: IncomingMessages = JSON.parse(ev.data);
         if (msg[IncomingMessageType.NewTask]) {
-          const newTask = msg[IncomingMessageType.NewTask];
-          currentTask = newTask.task;
-          console.log("Receive new task");
+          const { task } = msg[IncomingMessageType.NewTask];
+          currentTask = task;
+        } else if (msg[IncomingMessageType.PlayerUpdated]) {
+          const { player } = msg[IncomingMessageType.PlayerUpdated];
+          if (details) {
+            details.players[player.id] = player;
+          }
+        } else if (msg[IncomingMessageType.GameUpdated]) {
+          const { game } = msg[IncomingMessageType.GameUpdated];
+          if (details) {
+            details.game = game;
+          }
         } else {
           console.warn("Unknown task type: " + Object.keys(msg));
         }
