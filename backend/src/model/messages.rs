@@ -1,4 +1,4 @@
-use super::TaskDefinition;
+use super::{Game, Player, TaskDefinition};
 use serde::{Deserialize, Serialize};
 
 /// All incoming message types which might be send by peers and should be handled on the server side.
@@ -14,4 +14,6 @@ pub enum IncomingMessage {
 pub enum OutgoingMessage {
     Welcome {},
     NewTask { task: TaskDefinition },
+    PlayerUpdated { player: Player },
+    GameUpdated { game: Game },
 }

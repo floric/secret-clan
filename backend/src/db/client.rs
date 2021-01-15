@@ -1,5 +1,5 @@
 use super::{Command, CommandData, Persist, QueryError};
-use log::debug;
+use log::{debug, error};
 use nanoid::nanoid;
 use std::{
     collections::HashMap,
@@ -9,11 +9,27 @@ use tokio::sync::{mpsc, oneshot};
 
 pub struct Client<T: Persist> {
     sender: mpsc::Sender<Command<T>>,
+    change_sender: Option<mpsc::Sender<T>>,
 }
 
 impl<T: Persist> Client<T> {
     pub fn new(sender: mpsc::Sender<Command<T>>) -> Self {
-        Client { sender }
+        Client {
+            sender,
+            change_sender: None,
+        }
+    }
+
+    pub fn new_with_change_handler(sender: mpsc::Sender<Command<T>>) -> (Self, mpsc::Receiver<T>) {
+        let (change_sender, change_receiver): (mpsc::Sender<T>, mpsc::Receiver<T>) =
+            mpsc::channel(256);
+
+        let client = Client {
+            sender,
+            change_sender: Some(change_sender),
+        };
+
+        (client, change_receiver)
     }
 
     #[inline]
@@ -83,12 +99,21 @@ impl<T: Persist> Client<T> {
     }
 
     pub async fn persist(&self, elem: &T) -> Result<(), QueryError> {
-        self.run_query(|data| Command::Persist {
-            value: elem.clone(),
-            data,
-        })
-        .await
-        .and_then(Self::map_result)
+        let res = self
+            .run_query(|data| Command::Persist {
+                value: elem.clone(),
+                data,
+            })
+            .await
+            .and_then(Self::map_result);
+
+        if let Some(sender) = &self.change_sender {
+            if let Err(err) = sender.clone().send(elem.clone()).await {
+                error!("Propagating change has failed: {:?}", err);
+            }
+        }
+
+        res
     }
 
     pub async fn persist_batch(&self, values: &[T]) -> Result<(), QueryError> {
@@ -150,7 +175,7 @@ mod tests {
     #[tokio::test]
     async fn should_get_game() {
         let client = init_client();
-        let game = Game::new("admin", "token");
+        let game = Game::new("admin", "TOKEN");
         let game_id = String::from(game.id());
 
         client.persist(&game).await.expect("Game persist failed");
@@ -164,7 +189,7 @@ mod tests {
     #[tokio::test]
     async fn should_get_games() {
         let client = init_client();
-        let game = Game::new("admin", "token");
+        let game = Game::new("admin", "TOKEN");
         let game_id = String::from(game.id());
 
         client.persist(&game).await.expect("Game persist failed");
@@ -182,7 +207,7 @@ mod tests {
         let client = init_client();
 
         client
-            .persist(&Game::new("admin", "token"))
+            .persist(&Game::new("admin", "TOKEN"))
             .await
             .expect("Game persist failed");
         assert_eq!(client.total_count().await.unwrap(), 1);
@@ -196,7 +221,7 @@ mod tests {
         for i in 0..100 {
             games.push(Game::new(
                 "admin",
-                &std::fmt::format(format_args!("token{}", i)),
+                &std::fmt::format(format_args!("TOKEN{}", i)),
             ));
         }
         client
@@ -211,11 +236,11 @@ mod tests {
         let client = init_client();
 
         client
-            .persist(&Game::new("admin", "token"))
+            .persist(&Game::new("admin", "TOKEN"))
             .await
             .expect("Game persist failed");
         client
-            .persist(&Game::new("admin", "token2"))
+            .persist(&Game::new("admin", "TOKEN2"))
             .await
             .expect("Game persist failed");
 
@@ -229,7 +254,7 @@ mod tests {
     #[tokio::test]
     async fn should_remove_game() {
         let client = init_client();
-        let game = Game::new("admin", "token");
+        let game = Game::new("admin", "TOKEN");
         client.persist(&game).await.expect("Game persist failed");
 
         let persisted_game = client
@@ -297,7 +322,9 @@ mod tests {
 
         for _ in 0..1000 {
             threads.push(async {
-                let _ = client.persist(&Game::new("admin", &nanoid!())).await;
+                let _ = client
+                    .persist(&Game::new("admin", &nanoid!().to_uppercase()))
+                    .await;
             });
         }
 
