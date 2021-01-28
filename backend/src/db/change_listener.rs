@@ -1,5 +1,11 @@
 use crate::{
-    model::{Game, Player},
+    model::{
+        proto::{
+            message::{Server_GameUpdated, Server_PlayerUpdated, Server_oneof_message},
+            player::Player as ProtoPlayer,
+        },
+        Game, Player,
+    },
     server::app_context::AppContext,
 };
 use log::error;
@@ -29,13 +35,15 @@ impl ChangeListener {
                     if let Some(game) = game {
                         // inform all players of game about updated player
                         for player_id in game.all_player_ids() {
+                            let mut proto_msg = Server_PlayerUpdated::new();
+                            proto_msg.set_player(ProtoPlayer {
+                                ..Default::default()
+                            });
                             if let Err(err) = ctx
                                 .ws()
                                 .send_message(
                                     player_id,
-                                    crate::model::OutgoingMessage::PlayerUpdated {
-                                        player: player.clone(),
-                                    },
+                                    Server_oneof_message::playerUpdated(proto_msg),
                                 )
                                 .await
                             {
@@ -57,7 +65,10 @@ impl ChangeListener {
                     .ws()
                     .send_message(
                         player_id,
-                        crate::model::OutgoingMessage::GameUpdated { game: game.clone() },
+                        Server_oneof_message::gameUpdated(Server_GameUpdated {
+                            // TODO
+                            ..Default::default()
+                        }),
                     )
                     .await
                 {

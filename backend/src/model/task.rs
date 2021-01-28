@@ -26,9 +26,9 @@ impl TaskDefinition {
     pub fn get_type(&self) -> TaskType {
         match self {
             TaskDefinition::Settings {} => TaskType::Settings,
-            TaskDefinition::DiscloseRole { role: _ } => TaskType::DiscloseRole,
-            TaskDefinition::Discuss { time_limit: _ } => TaskType::Discuss,
-            TaskDefinition::Vote { voting: _ } => TaskType::Vote,
+            TaskDefinition::DiscloseRole { .. } => TaskType::DiscloseRole,
+            TaskDefinition::Discuss { .. } => TaskType::Discuss,
+            TaskDefinition::Vote { .. } => TaskType::Vote,
         }
     }
 }

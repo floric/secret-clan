@@ -1,11 +1,14 @@
 use crate::{
-    model::{IncomingMessage, OutgoingMessage},
+    model::proto::message::{
+        Client, Client_Auth, Client_oneof_message, Server_NewTask, Server_oneof_message,
+    },
     server::{app_context::AppContext, auth::extract_verified_player},
 };
 use futures::{stream::SplitSink, StreamExt};
-use log::{debug, error};
+use log::{debug, error, warn};
 use nanoid::nanoid;
-use warp::ws::{Message, WebSocket};
+use protobuf::Message;
+use warp::ws::{Message as WsMessage, WebSocket};
 
 pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp::Reply {
     ws.on_upgrade(move |socket| async move {
@@ -18,24 +21,29 @@ pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp
                         Ok(msg) => {
                             if msg.is_close() {
                                 debug!("Connection to {} closed", &peer_id);
-                            } else if msg.is_text() {
-                                match msg.to_str() {
-                                    Ok(content) => match serde_json::from_str(content) {
-                                        Ok(parsed) => {
-                                            if let Err(err) =
-                                                handle_incoming_message(parsed, ctx, &peer_id).await
-                                            {
-                                                error!("Handling message has failed: {}", err);
+                            } else if msg.is_binary() {
+                                match Client::parse_from_bytes(&msg.into_bytes()) {
+                                    Ok(res) => {
+                                        match res.message {
+                                            Some(x) => {
+                                                if let Err(err) =
+                                                    handle_incoming_message(x, ctx, &peer_id).await
+                                                {
+                                                    error!(
+                                                        "Sending message has failed: {:?}",
+                                                        &err
+                                                    );
+                                                }
                                             }
-                                        }
-                                        Err(err) => {
-                                            error!("Parsing message has failed: {:?}", err);
-                                        }
-                                    },
-                                    Err(_) => {
-                                        error!("Reading message has failed");
+                                            None => {
+                                                warn!("Message was empty");
+                                            }
+                                        };
                                     }
-                                }
+                                    Err(err) => {
+                                        error!("Reading incoming message failed: {:?}", &err);
+                                    }
+                                };
                             }
                         }
                         Err(err) => {
@@ -53,7 +61,7 @@ pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp
 
 async fn prepare_new_connection(
     ctx: &AppContext,
-    sender: SplitSink<WebSocket, Message>,
+    sender: SplitSink<WebSocket, WsMessage>,
 ) -> Result<String, String> {
     let peer_id = nanoid!();
 
@@ -63,34 +71,37 @@ async fn prepare_new_connection(
 }
 
 async fn handle_incoming_message(
-    message: IncomingMessage,
+    message: Client_oneof_message,
     ctx: &AppContext,
     peer_id: &str,
 ) -> Result<(), String> {
     debug!("Received message: {:?}", message);
 
     match message {
-        IncomingMessage::Auth { token } => match extract_verified_player(&token, ctx).await {
-            Some(player) => {
-                ctx.ws()
-                    .register_active_player(player.id(), peer_id)
-                    .await
-                    .expect("Registering player has failed");
-                if let Some(next_task) = player.open_tasks().front() {
-                    return ctx
-                        .ws()
-                        .send_message(
-                            String::from(player.id()),
-                            OutgoingMessage::NewTask {
-                                task: next_task.clone(),
-                            },
-                        )
-                        .await;
+        Client_oneof_message::auth(Client_Auth { token, .. }) => {
+            match extract_verified_player(&token, ctx).await {
+                Some(player) => {
+                    ctx.ws()
+                        .register_active_player(player.id(), peer_id)
+                        .await
+                        .expect("Registering player has failed");
+                    if let Some(next_task) = player.open_tasks().front() {
+                        return ctx
+                            .ws()
+                            .send_message(
+                                String::from(player.id()),
+                                Server_oneof_message::newTask(Server_NewTask {
+                                    // TODO
+                                    ..Default::default()
+                                }),
+                            )
+                            .await;
+                    }
+                    Ok(())
                 }
-                Ok(())
+                None => Err(String::from("Unauthorized user")),
             }
-            None => Err(String::from("Unauthorized user")),
-        },
+        }
     }
 }
 
@@ -98,7 +109,10 @@ async fn handle_incoming_message(
 mod tests {
     use super::handle_incoming_message;
     use crate::{
-        model::{IncomingMessage, Player},
+        model::{
+            proto::message::{Client_Auth, Client_oneof_message},
+            Player, TaskDefinition,
+        },
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
 
@@ -106,7 +120,7 @@ mod tests {
     async fn should_handle_auth_message_with_open_task() {
         let ctx = AppContext::init();
         let mut player = Player::new("GAME");
-        player.assign_task(crate::model::TaskDefinition::Settings {});
+        player.assign_task(TaskDefinition::Settings {});
         ctx.db()
             .players()
             .persist(&player)
@@ -118,7 +132,15 @@ mod tests {
             .await
             .expect("Registering players connection failed");
 
-        let reply = handle_incoming_message(IncomingMessage::Auth { token }, &ctx, "peer-id").await;
+        let reply = handle_incoming_message(
+            Client_oneof_message::auth(Client_Auth {
+                token,
+                ..Default::default()
+            }),
+            &ctx,
+            "peer-id",
+        )
+        .await;
 
         assert!(reply.is_ok());
     }
@@ -138,7 +160,15 @@ mod tests {
             .await
             .expect("Registering players connection failed");
 
-        let reply = handle_incoming_message(IncomingMessage::Auth { token }, &ctx, "peer-id").await;
+        let reply = handle_incoming_message(
+            Client_oneof_message::auth(Client_Auth {
+                token,
+                ..Default::default()
+            }),
+            &ctx,
+            "peer-id",
+        )
+        .await;
 
         assert!(reply.is_ok());
     }
@@ -154,9 +184,10 @@ mod tests {
             .expect("Persisting player has failed");
 
         let reply = handle_incoming_message(
-            IncomingMessage::Auth {
+            Client_oneof_message::auth(Client_Auth {
                 token: String::from("invalid"),
-            },
+                ..Default::default()
+            }),
             &ctx,
             "peer-id",
         )

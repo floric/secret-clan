@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "role.proto";
+
+message Task {
+  message Settings {}
+  message DiscloseRole { Role role = 1; }
+  message Discuss { uint32 time_limit = 1; }
+  message Vote {}
+
+  oneof definition {
+    Settings settings = 1;
+    DiscloseRole discloseRole = 2;
+    Discuss discuss = 3;
+    Vote vote = 4;
+  }
+}

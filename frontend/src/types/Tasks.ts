@@ -6,12 +6,8 @@ export enum TaskType {
   Discuss = "discuss",
 }
 
-export type Tasks = {
-  [TaskType.Settings]: SettingsTask;
-  [TaskType.DiscloseRole]: DiscloseRoleTask;
-  [TaskType.Discuss]: DiscussTask;
-};
+export type Task = SettingsTask | DiscloseRoleTask | DiscussTask;
 
-export type SettingsTask = {};
-export type DiscloseRoleTask = { role: Role };
-export type DiscussTask = { timeLimit: string };
+export type SettingsTask = { type: TaskType.Settings };
+export type DiscloseRoleTask = { type: TaskType.DiscloseRole; role: Role };
+export type DiscussTask = { type: TaskType.Discuss; timeLimit: string };

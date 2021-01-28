@@ -3,8 +3,9 @@
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import type { GameDetails } from "../types/Game";
+  import { Server } from "../types/proto/message";
   import { IncomingMessages, IncomingMessageType } from "../types/Messages";
-  import { Tasks, TaskType } from "../types/Tasks";
+  import { Task, TaskType } from "../types/Tasks";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
@@ -15,7 +16,7 @@
 
   export let params: { token?: string } = {};
   let details: GameDetails | null = null;
-  let currentTask: Tasks | null = null;
+  let currentTask: Task | null = null;
   let ws: WebSocket | null = null;
 
   const refreshGame = async () => {
@@ -64,21 +65,32 @@
     ws.onerror = (ev) => {
       console.error("Error", ev);
     };
-    ws.onmessage = (ev: MessageEvent<string>) => {
+    ws.onmessage = (ev: MessageEvent<Uint8Array>) => {
       try {
-        const msg: IncomingMessages = JSON.parse(ev.data);
-        if (msg[IncomingMessageType.NewTask]) {
-          const { task } = msg[IncomingMessageType.NewTask];
-          currentTask = task;
-        } else if (msg[IncomingMessageType.PlayerUpdated]) {
-          const { player } = msg[IncomingMessageType.PlayerUpdated];
-          if (details) {
-            details.players[player.id] = player;
+        const msg = Server.decode(ev.data);
+        if (msg.newTask) {
+          const { task } = msg.newTask;
+          if (task?.discloseRole) {
+            currentTask = {
+              type: TaskType.DiscloseRole,
+              role: {
+                description: "",
+                name: "",
+                party: "bad",
+              },
+            };
           }
-        } else if (msg[IncomingMessageType.GameUpdated]) {
-          const { game } = msg[IncomingMessageType.GameUpdated];
+        } else if (msg.playerUpdated) {
           if (details) {
-            details.game = game;
+            const { player } = msg.playerUpdated;
+            console.log(player);
+            // TODOdetails.players[player.id] = player;
+          }
+        } else if (msg.gameUpdated) {
+          if (details) {
+            const { game } = msg.gameUpdated;
+            console.log(game);
+            // TODO details.game = game;
           }
         } else {
           console.warn("Unknown task type: " + Object.keys(msg));
@@ -98,13 +110,11 @@
     {#if details !== null}
       {#if !currentTask}
         <WaitForTask {leaveGame} />
-      {:else if currentTask[TaskType.Settings]}
+      {:else if currentTask.type === TaskType.Settings}
         <Settings {leaveGame} {refreshGame} {details} />
-      {:else if currentTask[TaskType.DiscloseRole]}
-        <DiscloseRole
-          {leaveGame}
-          role={currentTask[TaskType.DiscloseRole].role} />
-      {:else if currentTask[TaskType.Discuss]}
+      {:else if currentTask.type === TaskType.DiscloseRole}
+        <DiscloseRole {leaveGame} role={currentTask.role} />
+      {:else if currentTask.type === TaskType.Discuss}
         <Discuss {leaveGame} />
       {:else}
         <p>Unsupported Game State.</p>

@@ -1,7 +1,7 @@
 use crate::{
     model::{
-        Game, GameResponse, GameState, OutgoingMessage, Player, PlayerResponse, TaskDefinition,
-        TaskType,
+        proto::message::{Server_NewTask, Server_oneof_message},
+        Game, GameResponse, GameState, Player, PlayerResponse, TaskDefinition, TaskType,
     },
     server::{
         app_context::AppContext,
@@ -266,15 +266,10 @@ pub async fn start_game_filter(
                             for p in players {
                                 let future = ctx.ws().send_message(
                                     String::from(p.id()),
-                                    OutgoingMessage::NewTask {
-                                        task: TaskDefinition::DiscloseRole {
-                                            role: game
-                                                .assigned_roles()
-                                                .get(p.id())
-                                                .expect("Player is missing role")
-                                                .clone(),
-                                        },
-                                    },
+                                    Server_oneof_message::newTask(Server_NewTask {
+                                        // TODO
+                                        ..Default::default()
+                                    }),
                                 );
                                 send_futures.push(future);
                             }

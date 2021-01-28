@@ -1,5 +1,8 @@
 use crate::{
-    model::{Player, Task, TaskDefinition, TaskType},
+    model::{
+        proto::message::{Server_NewTask, Server_oneof_message},
+        Player, Task, TaskDefinition, TaskType,
+    },
     server::app_context::AppContext,
 };
 use async_trait::async_trait;
@@ -66,9 +69,10 @@ impl Task for DiscloseRoleTask {
                             for p in updated_players {
                                 futures.push(ctx.ws().send_message(
                                     String::from(p.id()),
-                                    crate::model::OutgoingMessage::NewTask {
-                                        task: new_task.clone(),
-                                    },
+                                    Server_oneof_message::newTask(Server_NewTask {
+                                        // TODO
+                                        ..Default::default()
+                                    }),
                                 ));
                             }
                             return futures::future::try_join_all(futures).await.map(|_| ());

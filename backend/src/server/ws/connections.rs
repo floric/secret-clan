@@ -1,13 +1,16 @@
+use crate::model::proto::message::Server;
+
 use super::WsCommand;
 use futures::stream::SplitSink;
 use futures::SinkExt;
 use log::{error, info, warn};
+use protobuf::Message;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use warp::ws::{Message, WebSocket};
+use warp::ws::{Message as WsMessage, WebSocket};
 
 pub struct Connections {
-    connections: HashMap<String, SplitSink<WebSocket, Message>>,
+    connections: HashMap<String, SplitSink<WebSocket, WsMessage>>,
     player_connections: HashMap<String, String>,
     msg_receiver: mpsc::Receiver<WsCommand>,
 }
@@ -39,7 +42,14 @@ impl Connections {
                             .connections
                             .get_mut(peer_id)
                             .unwrap()
-                            .send(Message::text(serde_json::to_string(&msg).unwrap()))
+                            .send(WsMessage::binary(
+                                Server {
+                                    message: Some(msg),
+                                    ..Default::default()
+                                }
+                                .write_to_bytes()
+                                .unwrap(),
+                            ))
                             .await
                             .is_err()
                         {

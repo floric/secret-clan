@@ -1,5 +1,5 @@
 use super::{Connections, WsCommand};
-use crate::model::OutgoingMessage;
+use crate::model::proto::message::{Server, Server_oneof_message};
 use futures::stream::SplitSink;
 use tokio::sync::mpsc;
 use warp::ws::{Message, WebSocket};
@@ -49,7 +49,7 @@ impl WsClient {
     pub async fn send_message(
         &self,
         player_id: String,
-        message: OutgoingMessage,
+        message: Server_oneof_message,
     ) -> Result<(), String> {
         self.sender
             .clone()
