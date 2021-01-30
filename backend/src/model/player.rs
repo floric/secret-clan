@@ -1,5 +1,8 @@
 use super::{TaskDefinition, TaskType};
-use crate::db::Persist;
+use crate::{
+    db::Persist,
+    model::proto::{self},
+};
 use chrono::{DateTime, Utc};
 use log::warn;
 use names::Generator;
@@ -138,5 +141,14 @@ impl From<IVec> for Player {
     fn from(bytes: IVec) -> Player {
         let vec: Vec<u8> = bytes.to_vec();
         bincode::deserialize(&vec).unwrap()
+    }
+}
+
+impl Into<proto::player::Player> for Player {
+    fn into(self) -> proto::player::Player {
+        let mut player = proto::player::Player::new();
+        // TODO
+
+        player
     }
 }

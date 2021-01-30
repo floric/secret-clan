@@ -1,7 +1,7 @@
 mod client;
 mod connections;
 
-use crate::model::proto::message::Server_oneof_message;
+use crate::model::proto::{self};
 pub use client::WsClient;
 pub use connections::Connections;
 use futures::stream::SplitSink;
@@ -12,7 +12,7 @@ use warp::ws::{Message, WebSocket};
 pub enum WsCommand {
     SendMessage {
         player_id: String,
-        msg: Server_oneof_message,
+        msg: proto::message::Server,
     },
     RegisterActivePlayer {
         player_id: String,

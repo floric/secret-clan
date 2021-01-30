@@ -1,6 +1,6 @@
 use crate::{
     model::{
-        proto::message::{Server_NewTask, Server_oneof_message},
+        proto::{self},
         Player, Task, TaskDefinition, TaskType,
     },
     server::app_context::AppContext,
@@ -67,13 +67,14 @@ impl Task for DiscloseRoleTask {
 
                             let mut futures = vec![];
                             for p in updated_players {
-                                futures.push(ctx.ws().send_message(
-                                    String::from(p.id()),
-                                    Server_oneof_message::newTask(Server_NewTask {
-                                        // TODO
-                                        ..Default::default()
-                                    }),
-                                ));
+                                let mut new_task_msg = proto::message::Server_NewTask::new();
+                                new_task_msg
+                                    .set_task(p.open_tasks().iter().next().unwrap().clone().into());
+
+                                let mut msg = proto::message::Server::new();
+                                msg.set_newTask(new_task_msg);
+
+                                futures.push(ctx.ws().send_message(String::from(p.id()), msg));
                             }
                             return futures::future::try_join_all(futures).await.map(|_| ());
                         }

@@ -4,17 +4,14 @@ import { Writer, Reader } from 'protobufjs/minimal';
 
 
 export interface Task {
-  settings: Task_Settings | undefined;
-  discloseRole: Task_DiscloseRole | undefined;
-  discuss: Task_Discuss | undefined;
-  vote: Task_Vote | undefined;
+  definition?: { $case: 'settings', settings: Task_Settings } | { $case: 'discloseRole', discloseRole: Task_DiscloseRole } | { $case: 'discuss', discuss: Task_Discuss } | { $case: 'vote', vote: Task_Vote };
 }
 
 export interface Task_Settings {
 }
 
 export interface Task_DiscloseRole {
-  role: Role | undefined;
+  role?: Role;
 }
 
 export interface Task_Discuss {
@@ -44,17 +41,17 @@ export const protobufPackage = ''
 
 export const Task = {
   encode(message: Task, writer: Writer = Writer.create()): Writer {
-    if (message.settings !== undefined) {
-      Task_Settings.encode(message.settings, writer.uint32(10).fork()).ldelim();
+    if (message.definition?.$case === 'settings') {
+      Task_Settings.encode(message.definition.settings, writer.uint32(10).fork()).ldelim();
     }
-    if (message.discloseRole !== undefined) {
-      Task_DiscloseRole.encode(message.discloseRole, writer.uint32(18).fork()).ldelim();
+    if (message.definition?.$case === 'discloseRole') {
+      Task_DiscloseRole.encode(message.definition.discloseRole, writer.uint32(18).fork()).ldelim();
     }
-    if (message.discuss !== undefined) {
-      Task_Discuss.encode(message.discuss, writer.uint32(26).fork()).ldelim();
+    if (message.definition?.$case === 'discuss') {
+      Task_Discuss.encode(message.definition.discuss, writer.uint32(26).fork()).ldelim();
     }
-    if (message.vote !== undefined) {
-      Task_Vote.encode(message.vote, writer.uint32(34).fork()).ldelim();
+    if (message.definition?.$case === 'vote') {
+      Task_Vote.encode(message.definition.vote, writer.uint32(34).fork()).ldelim();
     }
     return writer;
   },
@@ -66,16 +63,16 @@ export const Task = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.settings = Task_Settings.decode(reader, reader.uint32());
+          message.definition = {$case: 'settings', settings: Task_Settings.decode(reader, reader.uint32())};
           break;
         case 2:
-          message.discloseRole = Task_DiscloseRole.decode(reader, reader.uint32());
+          message.definition = {$case: 'discloseRole', discloseRole: Task_DiscloseRole.decode(reader, reader.uint32())};
           break;
         case 3:
-          message.discuss = Task_Discuss.decode(reader, reader.uint32());
+          message.definition = {$case: 'discuss', discuss: Task_Discuss.decode(reader, reader.uint32())};
           break;
         case 4:
-          message.vote = Task_Vote.decode(reader, reader.uint32());
+          message.definition = {$case: 'vote', vote: Task_Vote.decode(reader, reader.uint32())};
           break;
         default:
           reader.skipType(tag & 7);
@@ -87,57 +84,41 @@ export const Task = {
   fromJSON(object: any): Task {
     const message = { ...baseTask } as Task;
     if (object.settings !== undefined && object.settings !== null) {
-      message.settings = Task_Settings.fromJSON(object.settings);
-    } else {
-      message.settings = undefined;
+      message.definition = {$case: 'settings', settings: Task_Settings.fromJSON(object.settings)};
     }
     if (object.discloseRole !== undefined && object.discloseRole !== null) {
-      message.discloseRole = Task_DiscloseRole.fromJSON(object.discloseRole);
-    } else {
-      message.discloseRole = undefined;
+      message.definition = {$case: 'discloseRole', discloseRole: Task_DiscloseRole.fromJSON(object.discloseRole)};
     }
     if (object.discuss !== undefined && object.discuss !== null) {
-      message.discuss = Task_Discuss.fromJSON(object.discuss);
-    } else {
-      message.discuss = undefined;
+      message.definition = {$case: 'discuss', discuss: Task_Discuss.fromJSON(object.discuss)};
     }
     if (object.vote !== undefined && object.vote !== null) {
-      message.vote = Task_Vote.fromJSON(object.vote);
-    } else {
-      message.vote = undefined;
+      message.definition = {$case: 'vote', vote: Task_Vote.fromJSON(object.vote)};
     }
     return message;
   },
   fromPartial(object: DeepPartial<Task>): Task {
     const message = { ...baseTask } as Task;
-    if (object.settings !== undefined && object.settings !== null) {
-      message.settings = Task_Settings.fromPartial(object.settings);
-    } else {
-      message.settings = undefined;
+    if (object.definition?.$case === 'settings' && object.definition?.settings !== undefined && object.definition?.settings !== null) {
+      message.definition = {$case: 'settings', settings: Task_Settings.fromPartial(object.definition.settings)};
     }
-    if (object.discloseRole !== undefined && object.discloseRole !== null) {
-      message.discloseRole = Task_DiscloseRole.fromPartial(object.discloseRole);
-    } else {
-      message.discloseRole = undefined;
+    if (object.definition?.$case === 'discloseRole' && object.definition?.discloseRole !== undefined && object.definition?.discloseRole !== null) {
+      message.definition = {$case: 'discloseRole', discloseRole: Task_DiscloseRole.fromPartial(object.definition.discloseRole)};
     }
-    if (object.discuss !== undefined && object.discuss !== null) {
-      message.discuss = Task_Discuss.fromPartial(object.discuss);
-    } else {
-      message.discuss = undefined;
+    if (object.definition?.$case === 'discuss' && object.definition?.discuss !== undefined && object.definition?.discuss !== null) {
+      message.definition = {$case: 'discuss', discuss: Task_Discuss.fromPartial(object.definition.discuss)};
     }
-    if (object.vote !== undefined && object.vote !== null) {
-      message.vote = Task_Vote.fromPartial(object.vote);
-    } else {
-      message.vote = undefined;
+    if (object.definition?.$case === 'vote' && object.definition?.vote !== undefined && object.definition?.vote !== null) {
+      message.definition = {$case: 'vote', vote: Task_Vote.fromPartial(object.definition.vote)};
     }
     return message;
   },
   toJSON(message: Task): unknown {
     const obj: any = {};
-    message.settings !== undefined && (obj.settings = message.settings ? Task_Settings.toJSON(message.settings) : undefined);
-    message.discloseRole !== undefined && (obj.discloseRole = message.discloseRole ? Task_DiscloseRole.toJSON(message.discloseRole) : undefined);
-    message.discuss !== undefined && (obj.discuss = message.discuss ? Task_Discuss.toJSON(message.discuss) : undefined);
-    message.vote !== undefined && (obj.vote = message.vote ? Task_Vote.toJSON(message.vote) : undefined);
+    message.definition?.$case === 'settings' && (obj.settings = message.definition?.settings ? Task_Settings.toJSON(message.definition?.settings) : undefined);
+    message.definition?.$case === 'discloseRole' && (obj.discloseRole = message.definition?.discloseRole ? Task_DiscloseRole.toJSON(message.definition?.discloseRole) : undefined);
+    message.definition?.$case === 'discuss' && (obj.discuss = message.definition?.discuss ? Task_Discuss.toJSON(message.definition?.discuss) : undefined);
+    message.definition?.$case === 'vote' && (obj.vote = message.definition?.vote ? Task_Vote.toJSON(message.definition?.vote) : undefined);
     return obj;
   },
 };
@@ -202,8 +183,6 @@ export const Task_DiscloseRole = {
     const message = { ...baseTask_DiscloseRole } as Task_DiscloseRole;
     if (object.role !== undefined && object.role !== null) {
       message.role = Role.fromJSON(object.role);
-    } else {
-      message.role = undefined;
     }
     return message;
   },
@@ -211,8 +190,6 @@ export const Task_DiscloseRole = {
     const message = { ...baseTask_DiscloseRole } as Task_DiscloseRole;
     if (object.role !== undefined && object.role !== null) {
       message.role = Role.fromPartial(object.role);
-    } else {
-      message.role = undefined;
     }
     return message;
   },
@@ -249,8 +226,6 @@ export const Task_Discuss = {
     const message = { ...baseTask_Discuss } as Task_Discuss;
     if (object.timeLimit !== undefined && object.timeLimit !== null) {
       message.timeLimit = Number(object.timeLimit);
-    } else {
-      message.timeLimit = 0;
     }
     return message;
   },
@@ -258,8 +233,6 @@ export const Task_Discuss = {
     const message = { ...baseTask_Discuss } as Task_Discuss;
     if (object.timeLimit !== undefined && object.timeLimit !== null) {
       message.timeLimit = object.timeLimit;
-    } else {
-      message.timeLimit = 0;
     }
     return message;
   },
@@ -309,6 +282,8 @@ export type DeepPartial<T> = T extends Builtin
   ? Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & { $case: T['$case'] }
   : T extends {}
   ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;

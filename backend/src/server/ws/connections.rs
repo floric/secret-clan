@@ -1,5 +1,3 @@
-use crate::model::proto::message::Server;
-
 use super::WsCommand;
 use futures::stream::SplitSink;
 use futures::SinkExt;
@@ -33,27 +31,37 @@ impl Connections {
         info!("Started listening for connections");
 
         while let Some(request) = self.msg_receiver.recv().await {
-            info!("Received message request");
+            info!("Received message request: {:?}", request);
 
             match request {
                 WsCommand::SendMessage { msg, player_id } => {
+                    if let Err(err) = msg.check_initialized() {
+                        error!("Message not initialized correctly: {:?}", err);
+                        continue;
+                    }
+
                     if let Some(peer_id) = self.player_connections.get(&player_id) {
-                        if self
-                            .connections
-                            .get_mut(peer_id)
-                            .unwrap()
-                            .send(WsMessage::binary(
-                                Server {
-                                    message: Some(msg),
-                                    ..Default::default()
+                        match msg.write_to_bytes() {
+                            Ok(bytes) => {
+                                if let Err(err) = self
+                                    .connections
+                                    .get_mut(peer_id)
+                                    .unwrap()
+                                    .send(WsMessage::binary(bytes))
+                                    .await
+                                {
+                                    error!(
+                                        "Sending message to {} has failed: {:?}",
+                                        &peer_id, &err
+                                    );
                                 }
-                                .write_to_bytes()
-                                .unwrap(),
-                            ))
-                            .await
-                            .is_err()
-                        {
-                            error!("Sending message to {} has failed", &peer_id);
+                            }
+                            Err(err) => {
+                                error!(
+                                    "Writing message to binary format {} has failed: {:?}",
+                                    &peer_id, &err
+                                );
+                            }
                         }
                     } else {
                         // TODO Maybe add retry here?

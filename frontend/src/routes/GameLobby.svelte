@@ -3,8 +3,8 @@
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import type { GameDetails } from "../types/Game";
-  import { Server } from "../types/proto/message";
-  import { IncomingMessages, IncomingMessageType } from "../types/Messages";
+  import { Client, Server } from "../types/proto/message";
+  import { Reader } from "protobufjs";
   import { Task, TaskType } from "../types/Tasks";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
@@ -57,7 +57,11 @@
 
     ws = new WebSocket("ws://localhost:3333/api/active_game");
     ws.onopen = () => {
-      ws?.send(JSON.stringify({ auth: { token: getToken() } }));
+      ws?.send(
+        Client.encode({
+          message: { $case: "auth", auth: { token: getToken() || "" } },
+        }).finish()
+      );
     };
     ws.onclose = () => {
       ws = null;
@@ -65,12 +69,14 @@
     ws.onerror = (ev) => {
       console.error("Error", ev);
     };
-    ws.onmessage = (ev: MessageEvent<Uint8Array>) => {
+    ws.onmessage = async (ev: MessageEvent<Blob>) => {
       try {
-        const msg = Server.decode(ev.data);
-        if (msg.newTask) {
-          const { task } = msg.newTask;
-          if (task?.discloseRole) {
+        const raw = await ev.data.arrayBuffer();
+        const { message } = Server.decode(new Uint8Array(raw));
+        console.info("Received new message", message);
+        if (message?.$case === "newTask") {
+          const { task } = message.newTask;
+          if (task?.definition?.$case === "discloseRole") {
             currentTask = {
               type: TaskType.DiscloseRole,
               role: {
@@ -79,24 +85,33 @@
                 party: "bad",
               },
             };
+          } else if (task?.definition?.$case === "discuss") {
+            currentTask = {
+              type: TaskType.Discuss,
+              timeLimit: "",
+            };
+          } else if (task?.definition?.$case === "settings") {
+            currentTask = {
+              type: TaskType.Settings,
+            };
           }
-        } else if (msg.playerUpdated) {
+        } else if (message?.$case === "playerUpdated") {
           if (details) {
-            const { player } = msg.playerUpdated;
+            const { player } = message.playerUpdated;
             console.log(player);
             // TODOdetails.players[player.id] = player;
           }
-        } else if (msg.gameUpdated) {
+        } else if (message?.$case === "gameUpdated") {
           if (details) {
-            const { game } = msg.gameUpdated;
+            const { game } = message.gameUpdated;
             console.log(game);
             // TODO details.game = game;
           }
         } else {
-          console.warn("Unknown task type: " + Object.keys(msg));
+          console.warn("Unknown task type");
         }
       } catch (err) {
-        console.error("Parsing task has failed");
+        console.error("Parsing task has failed", err);
       }
     };
   }

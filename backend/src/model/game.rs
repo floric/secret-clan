@@ -1,5 +1,8 @@
 use super::{role::Party, Role};
-use crate::db::Persist;
+use crate::{
+    db::Persist,
+    model::proto::{self},
+};
 use chrono::{DateTime, Utc};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -234,5 +237,14 @@ mod tests {
             roles.values().filter(|r| r.party() == &Party::Bad).count(),
             2
         );
+    }
+}
+
+impl Into<proto::game::Game> for Game {
+    fn into(self) -> proto::game::Game {
+        let mut game = proto::game::Game::new();
+        game.set_id(String::from(self.token()));
+
+        game
     }
 }

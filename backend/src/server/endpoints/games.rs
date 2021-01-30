@@ -1,6 +1,6 @@
 use crate::{
     model::{
-        proto::message::{Server_NewTask, Server_oneof_message},
+        proto::{self},
         Game, GameResponse, GameState, Player, PlayerResponse, TaskDefinition, TaskType,
     },
     server::{
@@ -264,13 +264,15 @@ pub async fn start_game_filter(
                         Ok(_) => {
                             let mut send_futures = vec![];
                             for p in players {
-                                let future = ctx.ws().send_message(
-                                    String::from(p.id()),
-                                    Server_oneof_message::newTask(Server_NewTask {
-                                        // TODO
-                                        ..Default::default()
-                                    }),
-                                );
+                                let current_task_msg = p.open_tasks().iter().next().unwrap();
+
+                                let mut new_task_msg = proto::message::Server_NewTask::new();
+                                new_task_msg.set_task(current_task_msg.clone().into());
+
+                                let mut msg = proto::message::Server::new();
+                                msg.set_newTask(new_task_msg);
+
+                                let future = ctx.ws().send_message(String::from(p.id()), msg);
                                 send_futures.push(future);
                             }
                             match futures::future::try_join_all(send_futures).await {

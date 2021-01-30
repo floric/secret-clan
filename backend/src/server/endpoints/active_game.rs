@@ -1,14 +1,15 @@
 use crate::{
-    model::proto::message::{
-        Client, Client_Auth, Client_oneof_message, Server_NewTask, Server_oneof_message,
-    },
+    model::proto::{self},
     server::{app_context::AppContext, auth::extract_verified_player},
 };
 use futures::{stream::SplitSink, StreamExt};
 use log::{debug, error, warn};
 use nanoid::nanoid;
 use protobuf::Message;
-use warp::ws::{Message as WsMessage, WebSocket};
+use warp::{
+    ws::{Message as WsMessage, WebSocket},
+    Error,
+};
 
 pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp::Reply {
     ws.on_upgrade(move |socket| async move {
@@ -17,39 +18,7 @@ pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp
         match prepare_new_connection(ctx, sender).await {
             Ok(peer_id) => {
                 while let Some(msg) = receiver.next().await {
-                    match msg {
-                        Ok(msg) => {
-                            if msg.is_close() {
-                                debug!("Connection to {} closed", &peer_id);
-                            } else if msg.is_binary() {
-                                match Client::parse_from_bytes(&msg.into_bytes()) {
-                                    Ok(res) => {
-                                        match res.message {
-                                            Some(x) => {
-                                                if let Err(err) =
-                                                    handle_incoming_message(x, ctx, &peer_id).await
-                                                {
-                                                    error!(
-                                                        "Sending message has failed: {:?}",
-                                                        &err
-                                                    );
-                                                }
-                                            }
-                                            None => {
-                                                warn!("Message was empty");
-                                            }
-                                        };
-                                    }
-                                    Err(err) => {
-                                        error!("Reading incoming message failed: {:?}", &err);
-                                    }
-                                };
-                            }
-                        }
-                        Err(err) => {
-                            error!("Receiving message has failed: {:?}", err);
-                        }
-                    }
+                    process_incoming_message(msg, &peer_id, ctx).await;
                 }
             }
             Err(err) => {
@@ -70,38 +39,67 @@ async fn prepare_new_connection(
     Ok(peer_id)
 }
 
+async fn process_incoming_message(msg: Result<WsMessage, Error>, peer_id: &str, ctx: &AppContext) {
+    match msg {
+        Ok(msg) => {
+            if msg.is_close() {
+                debug!("Connection to {} closed", &peer_id);
+            } else if msg.is_binary() {
+                match proto::message::Client::parse_from_bytes(&msg.into_bytes()) {
+                    Ok(res) => {
+                        match res.message {
+                            Some(x) => {
+                                if let Err(err) = handle_incoming_message(x, ctx, &peer_id).await {
+                                    error!("Sending message has failed: {:?}", &err);
+                                }
+                            }
+                            None => {
+                                warn!("Message was empty");
+                            }
+                        };
+                    }
+                    Err(err) => {
+                        error!("Reading incoming message failed: {:?}", &err);
+                    }
+                };
+            } else if msg.is_text() {
+                warn!("Textual protobuf message ignored, only binary format supported");
+            }
+        }
+        Err(err) => {
+            error!("Receiving message has failed: {:?}", err);
+        }
+    }
+}
+
 async fn handle_incoming_message(
-    message: Client_oneof_message,
+    message: proto::message::Client_oneof_message,
     ctx: &AppContext,
     peer_id: &str,
 ) -> Result<(), String> {
     debug!("Received message: {:?}", message);
 
     match message {
-        Client_oneof_message::auth(Client_Auth { token, .. }) => {
-            match extract_verified_player(&token, ctx).await {
-                Some(player) => {
-                    ctx.ws()
-                        .register_active_player(player.id(), peer_id)
-                        .await
-                        .expect("Registering player has failed");
-                    if let Some(next_task) = player.open_tasks().front() {
-                        return ctx
-                            .ws()
-                            .send_message(
-                                String::from(player.id()),
-                                Server_oneof_message::newTask(Server_NewTask {
-                                    // TODO
-                                    ..Default::default()
-                                }),
-                            )
-                            .await;
-                    }
-                    Ok(())
+        proto::message::Client_oneof_message::auth(proto::message::Client_Auth {
+            token, ..
+        }) => match extract_verified_player(&token, ctx).await {
+            Some(player) => {
+                ctx.ws()
+                    .register_active_player(player.id(), peer_id)
+                    .await
+                    .expect("Registering player has failed");
+                if let Some(next_task) = player.open_tasks().front() {
+                    let mut new_task_msg = proto::message::Server_NewTask::new();
+                    new_task_msg.set_task(next_task.clone().into());
+
+                    let mut msg = proto::message::Server::new();
+                    msg.set_newTask(new_task_msg);
+                    return ctx.ws().send_message(String::from(player.id()), msg).await;
                 }
-                None => Err(String::from("Unauthorized user")),
+                Ok(())
             }
-        }
+            None => Err(String::from("Unauthorized user")),
+        },
     }
 }
 

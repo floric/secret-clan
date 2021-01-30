@@ -11,6 +11,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     let rt = Builder::new_multi_thread()
         .thread_name("sc")
+        .enable_io()
         .build()
         .expect("Creating runtime failed");
 

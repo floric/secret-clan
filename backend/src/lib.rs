@@ -18,6 +18,7 @@ extern crate derivative;
 pub fn run_app() {
     let rt = Builder::new_multi_thread()
         .thread_name("sc")
+        .enable_io()
         .build()
         .expect("Creating runtime failed");
 

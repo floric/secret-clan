@@ -1,9 +1,6 @@
 use crate::{
     model::{
-        proto::{
-            message::{Server_GameUpdated, Server_PlayerUpdated, Server_oneof_message},
-            player::Player as ProtoPlayer,
-        },
+        proto::{self},
         Game, Player,
     },
     server::app_context::AppContext,
@@ -35,18 +32,13 @@ impl ChangeListener {
                     if let Some(game) = game {
                         // inform all players of game about updated player
                         for player_id in game.all_player_ids() {
-                            let mut proto_msg = Server_PlayerUpdated::new();
-                            proto_msg.set_player(ProtoPlayer {
-                                ..Default::default()
-                            });
-                            if let Err(err) = ctx
-                                .ws()
-                                .send_message(
-                                    player_id,
-                                    Server_oneof_message::playerUpdated(proto_msg),
-                                )
-                                .await
-                            {
+                            let mut update_msg = proto::message::Server_PlayerUpdated::new();
+                            update_msg.set_player(player.clone().into());
+
+                            let mut msg = proto::message::Server::new();
+                            msg.set_playerUpdated(update_msg);
+
+                            if let Err(err) = ctx.ws().send_message(player_id, msg).await {
                                 error!("Sending PlayerUpdated has failed: {}", &err);
                             }
                         }
@@ -61,17 +53,13 @@ impl ChangeListener {
         while let Some(game) = games.recv().await {
             // inform all players of game about updated game
             for player_id in game.all_player_ids() {
-                if let Err(err) = ctx
-                    .ws()
-                    .send_message(
-                        player_id,
-                        Server_oneof_message::gameUpdated(Server_GameUpdated {
-                            // TODO
-                            ..Default::default()
-                        }),
-                    )
-                    .await
-                {
+                let mut update_msg = proto::message::Server_GameUpdated::new();
+                update_msg.set_game(game.clone().into());
+
+                let mut msg = proto::message::Server::new();
+                msg.set_gameUpdated(update_msg);
+
+                if let Err(err) = ctx.ws().send_message(player_id, msg).await {
                     error!("Sending GameUpdated has failed: {}", &err);
                 }
             }

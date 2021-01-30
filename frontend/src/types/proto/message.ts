@@ -6,7 +6,7 @@ import { Writer, Reader } from 'protobufjs/minimal';
 
 
 export interface Client {
-  auth: Client_Auth | undefined;
+  message?: { $case: 'auth', auth: Client_Auth };
 }
 
 export interface Client_Auth {
@@ -14,25 +14,22 @@ export interface Client_Auth {
 }
 
 export interface Server {
-  welcome: Server_Welcome | undefined;
-  newTask: Server_NewTask | undefined;
-  playerUpdated: Server_PlayerUpdated | undefined;
-  gameUpdated: Server_GameUpdated | undefined;
+  message?: { $case: 'welcome', welcome: Server_Welcome } | { $case: 'newTask', newTask: Server_NewTask } | { $case: 'playerUpdated', playerUpdated: Server_PlayerUpdated } | { $case: 'gameUpdated', gameUpdated: Server_GameUpdated };
 }
 
 export interface Server_Welcome {
 }
 
 export interface Server_NewTask {
-  task: Task | undefined;
+  task?: Task;
 }
 
 export interface Server_PlayerUpdated {
-  player: Player | undefined;
+  player?: Player;
 }
 
 export interface Server_GameUpdated {
-  game: Game | undefined;
+  game?: Game;
 }
 
 const baseClient: object = {
@@ -61,8 +58,8 @@ export const protobufPackage = ''
 
 export const Client = {
   encode(message: Client, writer: Writer = Writer.create()): Writer {
-    if (message.auth !== undefined) {
-      Client_Auth.encode(message.auth, writer.uint32(10).fork()).ldelim();
+    if (message.message?.$case === 'auth') {
+      Client_Auth.encode(message.message.auth, writer.uint32(10).fork()).ldelim();
     }
     return writer;
   },
@@ -74,7 +71,7 @@ export const Client = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.auth = Client_Auth.decode(reader, reader.uint32());
+          message.message = {$case: 'auth', auth: Client_Auth.decode(reader, reader.uint32())};
           break;
         default:
           reader.skipType(tag & 7);
@@ -86,24 +83,20 @@ export const Client = {
   fromJSON(object: any): Client {
     const message = { ...baseClient } as Client;
     if (object.auth !== undefined && object.auth !== null) {
-      message.auth = Client_Auth.fromJSON(object.auth);
-    } else {
-      message.auth = undefined;
+      message.message = {$case: 'auth', auth: Client_Auth.fromJSON(object.auth)};
     }
     return message;
   },
   fromPartial(object: DeepPartial<Client>): Client {
     const message = { ...baseClient } as Client;
-    if (object.auth !== undefined && object.auth !== null) {
-      message.auth = Client_Auth.fromPartial(object.auth);
-    } else {
-      message.auth = undefined;
+    if (object.message?.$case === 'auth' && object.message?.auth !== undefined && object.message?.auth !== null) {
+      message.message = {$case: 'auth', auth: Client_Auth.fromPartial(object.message.auth)};
     }
     return message;
   },
   toJSON(message: Client): unknown {
     const obj: any = {};
-    message.auth !== undefined && (obj.auth = message.auth ? Client_Auth.toJSON(message.auth) : undefined);
+    message.message?.$case === 'auth' && (obj.auth = message.message?.auth ? Client_Auth.toJSON(message.message?.auth) : undefined);
     return obj;
   },
 };
@@ -134,8 +127,6 @@ export const Client_Auth = {
     const message = { ...baseClient_Auth } as Client_Auth;
     if (object.token !== undefined && object.token !== null) {
       message.token = String(object.token);
-    } else {
-      message.token = "";
     }
     return message;
   },
@@ -143,8 +134,6 @@ export const Client_Auth = {
     const message = { ...baseClient_Auth } as Client_Auth;
     if (object.token !== undefined && object.token !== null) {
       message.token = object.token;
-    } else {
-      message.token = "";
     }
     return message;
   },
@@ -157,17 +146,17 @@ export const Client_Auth = {
 
 export const Server = {
   encode(message: Server, writer: Writer = Writer.create()): Writer {
-    if (message.welcome !== undefined) {
-      Server_Welcome.encode(message.welcome, writer.uint32(10).fork()).ldelim();
+    if (message.message?.$case === 'welcome') {
+      Server_Welcome.encode(message.message.welcome, writer.uint32(10).fork()).ldelim();
     }
-    if (message.newTask !== undefined) {
-      Server_NewTask.encode(message.newTask, writer.uint32(18).fork()).ldelim();
+    if (message.message?.$case === 'newTask') {
+      Server_NewTask.encode(message.message.newTask, writer.uint32(18).fork()).ldelim();
     }
-    if (message.playerUpdated !== undefined) {
-      Server_PlayerUpdated.encode(message.playerUpdated, writer.uint32(26).fork()).ldelim();
+    if (message.message?.$case === 'playerUpdated') {
+      Server_PlayerUpdated.encode(message.message.playerUpdated, writer.uint32(26).fork()).ldelim();
     }
-    if (message.gameUpdated !== undefined) {
-      Server_GameUpdated.encode(message.gameUpdated, writer.uint32(34).fork()).ldelim();
+    if (message.message?.$case === 'gameUpdated') {
+      Server_GameUpdated.encode(message.message.gameUpdated, writer.uint32(34).fork()).ldelim();
     }
     return writer;
   },
@@ -179,16 +168,16 @@ export const Server = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.welcome = Server_Welcome.decode(reader, reader.uint32());
+          message.message = {$case: 'welcome', welcome: Server_Welcome.decode(reader, reader.uint32())};
           break;
         case 2:
-          message.newTask = Server_NewTask.decode(reader, reader.uint32());
+          message.message = {$case: 'newTask', newTask: Server_NewTask.decode(reader, reader.uint32())};
           break;
         case 3:
-          message.playerUpdated = Server_PlayerUpdated.decode(reader, reader.uint32());
+          message.message = {$case: 'playerUpdated', playerUpdated: Server_PlayerUpdated.decode(reader, reader.uint32())};
           break;
         case 4:
-          message.gameUpdated = Server_GameUpdated.decode(reader, reader.uint32());
+          message.message = {$case: 'gameUpdated', gameUpdated: Server_GameUpdated.decode(reader, reader.uint32())};
           break;
         default:
           reader.skipType(tag & 7);
@@ -200,57 +189,41 @@ export const Server = {
   fromJSON(object: any): Server {
     const message = { ...baseServer } as Server;
     if (object.welcome !== undefined && object.welcome !== null) {
-      message.welcome = Server_Welcome.fromJSON(object.welcome);
-    } else {
-      message.welcome = undefined;
+      message.message = {$case: 'welcome', welcome: Server_Welcome.fromJSON(object.welcome)};
     }
     if (object.newTask !== undefined && object.newTask !== null) {
-      message.newTask = Server_NewTask.fromJSON(object.newTask);
-    } else {
-      message.newTask = undefined;
+      message.message = {$case: 'newTask', newTask: Server_NewTask.fromJSON(object.newTask)};
     }
     if (object.playerUpdated !== undefined && object.playerUpdated !== null) {
-      message.playerUpdated = Server_PlayerUpdated.fromJSON(object.playerUpdated);
-    } else {
-      message.playerUpdated = undefined;
+      message.message = {$case: 'playerUpdated', playerUpdated: Server_PlayerUpdated.fromJSON(object.playerUpdated)};
     }
     if (object.gameUpdated !== undefined && object.gameUpdated !== null) {
-      message.gameUpdated = Server_GameUpdated.fromJSON(object.gameUpdated);
-    } else {
-      message.gameUpdated = undefined;
+      message.message = {$case: 'gameUpdated', gameUpdated: Server_GameUpdated.fromJSON(object.gameUpdated)};
     }
     return message;
   },
   fromPartial(object: DeepPartial<Server>): Server {
     const message = { ...baseServer } as Server;
-    if (object.welcome !== undefined && object.welcome !== null) {
-      message.welcome = Server_Welcome.fromPartial(object.welcome);
-    } else {
-      message.welcome = undefined;
+    if (object.message?.$case === 'welcome' && object.message?.welcome !== undefined && object.message?.welcome !== null) {
+      message.message = {$case: 'welcome', welcome: Server_Welcome.fromPartial(object.message.welcome)};
     }
-    if (object.newTask !== undefined && object.newTask !== null) {
-      message.newTask = Server_NewTask.fromPartial(object.newTask);
-    } else {
-      message.newTask = undefined;
+    if (object.message?.$case === 'newTask' && object.message?.newTask !== undefined && object.message?.newTask !== null) {
+      message.message = {$case: 'newTask', newTask: Server_NewTask.fromPartial(object.message.newTask)};
     }
-    if (object.playerUpdated !== undefined && object.playerUpdated !== null) {
-      message.playerUpdated = Server_PlayerUpdated.fromPartial(object.playerUpdated);
-    } else {
-      message.playerUpdated = undefined;
+    if (object.message?.$case === 'playerUpdated' && object.message?.playerUpdated !== undefined && object.message?.playerUpdated !== null) {
+      message.message = {$case: 'playerUpdated', playerUpdated: Server_PlayerUpdated.fromPartial(object.message.playerUpdated)};
     }
-    if (object.gameUpdated !== undefined && object.gameUpdated !== null) {
-      message.gameUpdated = Server_GameUpdated.fromPartial(object.gameUpdated);
-    } else {
-      message.gameUpdated = undefined;
+    if (object.message?.$case === 'gameUpdated' && object.message?.gameUpdated !== undefined && object.message?.gameUpdated !== null) {
+      message.message = {$case: 'gameUpdated', gameUpdated: Server_GameUpdated.fromPartial(object.message.gameUpdated)};
     }
     return message;
   },
   toJSON(message: Server): unknown {
     const obj: any = {};
-    message.welcome !== undefined && (obj.welcome = message.welcome ? Server_Welcome.toJSON(message.welcome) : undefined);
-    message.newTask !== undefined && (obj.newTask = message.newTask ? Server_NewTask.toJSON(message.newTask) : undefined);
-    message.playerUpdated !== undefined && (obj.playerUpdated = message.playerUpdated ? Server_PlayerUpdated.toJSON(message.playerUpdated) : undefined);
-    message.gameUpdated !== undefined && (obj.gameUpdated = message.gameUpdated ? Server_GameUpdated.toJSON(message.gameUpdated) : undefined);
+    message.message?.$case === 'welcome' && (obj.welcome = message.message?.welcome ? Server_Welcome.toJSON(message.message?.welcome) : undefined);
+    message.message?.$case === 'newTask' && (obj.newTask = message.message?.newTask ? Server_NewTask.toJSON(message.message?.newTask) : undefined);
+    message.message?.$case === 'playerUpdated' && (obj.playerUpdated = message.message?.playerUpdated ? Server_PlayerUpdated.toJSON(message.message?.playerUpdated) : undefined);
+    message.message?.$case === 'gameUpdated' && (obj.gameUpdated = message.message?.gameUpdated ? Server_GameUpdated.toJSON(message.message?.gameUpdated) : undefined);
     return obj;
   },
 };
@@ -315,8 +288,6 @@ export const Server_NewTask = {
     const message = { ...baseServer_NewTask } as Server_NewTask;
     if (object.task !== undefined && object.task !== null) {
       message.task = Task.fromJSON(object.task);
-    } else {
-      message.task = undefined;
     }
     return message;
   },
@@ -324,8 +295,6 @@ export const Server_NewTask = {
     const message = { ...baseServer_NewTask } as Server_NewTask;
     if (object.task !== undefined && object.task !== null) {
       message.task = Task.fromPartial(object.task);
-    } else {
-      message.task = undefined;
     }
     return message;
   },
@@ -364,8 +333,6 @@ export const Server_PlayerUpdated = {
     const message = { ...baseServer_PlayerUpdated } as Server_PlayerUpdated;
     if (object.player !== undefined && object.player !== null) {
       message.player = Player.fromJSON(object.player);
-    } else {
-      message.player = undefined;
     }
     return message;
   },
@@ -373,8 +340,6 @@ export const Server_PlayerUpdated = {
     const message = { ...baseServer_PlayerUpdated } as Server_PlayerUpdated;
     if (object.player !== undefined && object.player !== null) {
       message.player = Player.fromPartial(object.player);
-    } else {
-      message.player = undefined;
     }
     return message;
   },
@@ -413,8 +378,6 @@ export const Server_GameUpdated = {
     const message = { ...baseServer_GameUpdated } as Server_GameUpdated;
     if (object.game !== undefined && object.game !== null) {
       message.game = Game.fromJSON(object.game);
-    } else {
-      message.game = undefined;
     }
     return message;
   },
@@ -422,8 +385,6 @@ export const Server_GameUpdated = {
     const message = { ...baseServer_GameUpdated } as Server_GameUpdated;
     if (object.game !== undefined && object.game !== null) {
       message.game = Game.fromPartial(object.game);
-    } else {
-      message.game = undefined;
     }
     return message;
   },
@@ -441,6 +402,8 @@ export type DeepPartial<T> = T extends Builtin
   ? Array<DeepPartial<U>>
   : T extends ReadonlyArray<infer U>
   ? ReadonlyArray<DeepPartial<U>>
+  : T extends { $case: string }
+  ? { [K in keyof Omit<T, '$case'>]?: DeepPartial<T[K]> } & { $case: T['$case'] }
   : T extends {}
   ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
