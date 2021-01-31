@@ -1,3 +1,14 @@
 syntax = "proto3";
 
-message Player {}
+import "task.proto";
+
+message Player {
+  string id = 1;
+  string name = 2;
+}
+
+message OwnPlayer {
+  string id = 1;
+  string name = 2;
+  repeated Task open_tasks = 3;
+}

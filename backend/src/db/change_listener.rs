@@ -32,12 +32,16 @@ impl ChangeListener {
                     if let Some(game) = game {
                         // inform all players of game about updated player
                         for player_id in game.all_player_ids() {
-                            let mut update_msg = proto::message::Server_PlayerUpdated::new();
-                            update_msg.set_player(player.clone().into());
-
                             let mut msg = proto::message::Server::new();
-                            msg.set_playerUpdated(update_msg);
-
+                            if &player_id == player.id() {
+                                let mut update_msg = proto::message::Server_SelfUpdated::new();
+                                update_msg.set_player(player.clone().into());
+                                msg.set_selfUpdated(update_msg);
+                            } else {
+                                let mut update_msg = proto::message::Server_PlayerUpdated::new();
+                                update_msg.set_player(player.clone().into());
+                                msg.set_playerUpdated(update_msg);
+                            }
                             if let Err(err) = ctx.ws().send_message(player_id, msg).await {
                                 error!("Sending PlayerUpdated has failed: {}", &err);
                             }

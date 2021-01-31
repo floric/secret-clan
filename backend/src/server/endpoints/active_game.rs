@@ -1,6 +1,9 @@
 use crate::{
     model::proto::{self},
-    server::{app_context::AppContext, auth::extract_verified_player},
+    server::{
+        app_context::AppContext, auth::extract_verified_player, endpoints::tasks::apply_task,
+        tasks::settings::SettingsTask,
+    },
 };
 use futures::{stream::SplitSink, StreamExt};
 use log::{debug, error, warn};
@@ -80,14 +83,49 @@ async fn handle_incoming_message(
     debug!("Received message: {:?}", message);
 
     match message {
-        proto::message::Client_oneof_message::auth(proto::message::Client_Auth {
-            token, ..
-        }) => match extract_verified_player(&token, ctx).await {
+        proto::message::Client_oneof_message::authConfirmed(
+            proto::message::Client_AuthConfirmed { token, .. },
+        ) => match extract_verified_player(&token, ctx).await {
             Some(player) => {
                 ctx.ws()
                     .register_active_player(player.id(), peer_id)
                     .await
                     .expect("Registering player has failed");
+
+                if let Some(game) = ctx
+                    .db()
+                    .games()
+                    .get(player.game_token())
+                    .await
+                    .expect("Reading game has failed")
+                {
+                    let mut game_updated_msg = proto::message::Server_GameUpdated::new();
+                    game_updated_msg.set_game(game.clone().into());
+                    let mut msg = proto::message::Server::new();
+                    msg.set_gameUpdated(game_updated_msg);
+                    ctx.ws()
+                        .send_message(String::from(player.id()), msg)
+                        .await?;
+
+                    for player_id in game.all_player_ids() {
+                        if let Some(other_player) = ctx
+                            .db()
+                            .players()
+                            .get(&player_id)
+                            .await
+                            .expect("Reading player has failed")
+                        {
+                            let mut player_msg = proto::message::Server_PlayerUpdated::new();
+                            player_msg.set_player(other_player.into());
+                            let mut msg = proto::message::Server::new();
+                            msg.set_playerUpdated(player_msg);
+                            ctx.ws()
+                                .send_message(String::from(player.id()), msg)
+                                .await?;
+                        }
+                    }
+                }
+
                 if let Some(next_task) = player.open_tasks().front() {
                     let mut new_task_msg = proto::message::Server_NewTask::new();
                     new_task_msg.set_task(next_task.clone().into());
@@ -100,6 +138,9 @@ async fn handle_incoming_message(
             }
             None => Err(String::from("Unauthorized user")),
         },
+        proto::message::Client_oneof_message::nameUpdated(ev) => {
+            apply_task(SettingsTask { name: ev.name }, peer_id, ctx).await
+        }
     }
 }
 
@@ -108,7 +149,7 @@ mod tests {
     use super::handle_incoming_message;
     use crate::{
         model::{
-            proto::message::{Client_Auth, Client_oneof_message},
+            proto::{self},
             Player, TaskDefinition,
         },
         server::{app_context::AppContext, auth::generate_jwt_token},
@@ -131,10 +172,12 @@ mod tests {
             .expect("Registering players connection failed");
 
         let reply = handle_incoming_message(
-            Client_oneof_message::auth(Client_Auth {
-                token,
-                ..Default::default()
-            }),
+            proto::message::Client_oneof_message::authConfirmed(
+                proto::message::Client_AuthConfirmed {
+                    token,
+                    ..Default::default()
+                },
+            ),
             &ctx,
             "peer-id",
         )
@@ -159,10 +202,12 @@ mod tests {
             .expect("Registering players connection failed");
 
         let reply = handle_incoming_message(
-            Client_oneof_message::auth(Client_Auth {
-                token,
-                ..Default::default()
-            }),
+            proto::message::Client_oneof_message::authConfirmed(
+                proto::message::Client_AuthConfirmed {
+                    token,
+                    ..Default::default()
+                },
+            ),
             &ctx,
             "peer-id",
         )
@@ -182,10 +227,12 @@ mod tests {
             .expect("Persisting player has failed");
 
         let reply = handle_incoming_message(
-            Client_oneof_message::auth(Client_Auth {
-                token: String::from("invalid"),
-                ..Default::default()
-            }),
+            proto::message::Client_oneof_message::authConfirmed(
+                proto::message::Client_AuthConfirmed {
+                    token: String::from("invalid"),
+                    ..Default::default()
+                },
+            ),
             &ctx,
             "peer-id",
         )

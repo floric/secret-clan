@@ -9,7 +9,8 @@ use warp::ws::{Message as WsMessage, WebSocket};
 
 pub struct Connections {
     connections: HashMap<String, SplitSink<WebSocket, WsMessage>>,
-    player_connections: HashMap<String, String>,
+    player_to_peer: HashMap<String, String>,
+    peer_to_player: HashMap<String, String>,
     msg_receiver: mpsc::Receiver<WsCommand>,
 }
 
@@ -20,7 +21,8 @@ impl Connections {
 
         let connections = Connections {
             connections: HashMap::default(),
-            player_connections: HashMap::default(),
+            player_to_peer: HashMap::default(),
+            peer_to_player: HashMap::default(),
             msg_receiver,
         };
 
@@ -40,7 +42,7 @@ impl Connections {
                         continue;
                     }
 
-                    if let Some(peer_id) = self.player_connections.get(&player_id) {
+                    if let Some(peer_id) = self.player_to_peer.get(&player_id) {
                         match msg.write_to_bytes() {
                             Ok(bytes) => {
                                 if let Err(err) = self
@@ -68,6 +70,13 @@ impl Connections {
                         warn!("Player {} has no active connection", &player_id);
                     }
                 }
+                WsCommand::FetchAuthenticatedPlayer { peer_id, sender } => {
+                    if let Err(err) =
+                        sender.send(self.peer_to_player.get(&peer_id).map(String::clone))
+                    {
+                        error!("Sending authenticated player failed: {:?}", err);
+                    }
+                }
                 WsCommand::AddConnection { sender, peer_id } => {
                     self.connections.insert(peer_id, sender);
                 }
@@ -75,7 +84,9 @@ impl Connections {
                     self.connections.remove(&peer_id);
                 }
                 WsCommand::RegisterActivePlayer { player_id, peer_id } => {
-                    self.player_connections.insert(player_id, peer_id);
+                    self.player_to_peer
+                        .insert(player_id.clone(), peer_id.clone());
+                    self.peer_to_player.insert(peer_id, player_id);
                 }
             }
         }

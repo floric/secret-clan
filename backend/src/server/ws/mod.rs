@@ -5,6 +5,7 @@ use crate::model::proto::{self};
 pub use client::WsClient;
 pub use connections::Connections;
 use futures::stream::SplitSink;
+use tokio::sync::oneshot;
 use warp::ws::{Message, WebSocket};
 
 /// Message format to communicate the different command types for Websocket connections.
@@ -17,6 +18,10 @@ pub enum WsCommand {
     RegisterActivePlayer {
         player_id: String,
         peer_id: String,
+    },
+    FetchAuthenticatedPlayer {
+        peer_id: String,
+        sender: oneshot::Sender<Option<String>>,
     },
     AddConnection {
         peer_id: String,

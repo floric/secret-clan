@@ -2,35 +2,21 @@
   import { push } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
-  import type { GameDetails } from "../types/Game";
   import { Client, Server } from "../types/proto/message";
-  import { Reader } from "protobufjs";
-  import { Task, TaskType } from "../types/Tasks";
+  import type { Game } from "../types/proto/game";
+  import type { Player } from "../types/proto/player";
+  import type { Task } from "../types/proto/task";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
-  import DiscloseRole from "./tasks/DiscloseRole.svelte";
-  import Discuss from "./tasks/Discuss.svelte";
   import { sendRequest } from "../utils/requests";
 
   export let params: { token?: string } = {};
-  let details: GameDetails | null = null;
+  let currentGame: Game | null = null;
+  let players: Record<string, Player> = {};
   let currentTask: Task | null = null;
   let ws: WebSocket | null = null;
-
-  const refreshGame = async () => {
-    const res = await sendRequest<GameDetails>(
-      `/api/games/${params.token}/details`,
-      "GET"
-    );
-    if (!res) {
-      details = null;
-      return;
-    }
-
-    details = res;
-  };
 
   const leaveGame = async () => {
     ws?.close();
@@ -40,17 +26,7 @@
     await push("/games");
   };
 
-  const fetchGamePeriodically = async () => {
-    try {
-      await refreshGame();
-    } catch (err) {
-      console.error(err);
-      await push("/errors/unexpected");
-    }
-    createWsConnection();
-  };
-
-  async function createWsConnection() {
+  function createWsConnection() {
     if (ws) {
       return;
     }
@@ -59,7 +35,10 @@
     ws.onopen = () => {
       ws?.send(
         Client.encode({
-          message: { $case: "auth", auth: { token: getToken() || "" } },
+          message: {
+            $case: "authConfirmed",
+            authConfirmed: { token: getToken() || "" },
+          },
         }).finish()
       );
     };
@@ -76,37 +55,17 @@
         console.info("Received new message", message);
         if (message?.$case === "newTask") {
           const { task } = message.newTask;
-          if (task?.definition?.$case === "discloseRole") {
-            currentTask = {
-              type: TaskType.DiscloseRole,
-              role: {
-                description: "",
-                name: "",
-                party: "bad",
-              },
-            };
-          } else if (task?.definition?.$case === "discuss") {
-            currentTask = {
-              type: TaskType.Discuss,
-              timeLimit: "",
-            };
-          } else if (task?.definition?.$case === "settings") {
-            currentTask = {
-              type: TaskType.Settings,
-            };
-          }
+          currentTask = task!;
         } else if (message?.$case === "playerUpdated") {
-          if (details) {
-            const { player } = message.playerUpdated;
-            console.log(player);
-            // TODOdetails.players[player.id] = player;
-          }
+          const { player } = message.playerUpdated;
+          players[player!.id] = player!;
+        } else if (message?.$case === "selfUpdated") {
+          const { player } = message.selfUpdated;
+          players[player!.id] = { id: player!.id, name: player!.name };
+          currentTask = player?.openTasks[0] || null;
         } else if (message?.$case === "gameUpdated") {
-          if (details) {
-            const { game } = message.gameUpdated;
-            console.log(game);
-            // TODO details.game = game;
-          }
+          const { game } = message.gameUpdated;
+          currentGame = game!;
         } else {
           console.warn("Unknown task type");
         }
@@ -115,33 +74,27 @@
       }
     };
   }
+
+  createWsConnection();
 </script>
 
 <Dialog>
-  {#await fetchGamePeriodically()}
+  {#if !ws}
     <DialogHeader>Lobby</DialogHeader>
     <p>Loading game</p>
-  {:then _}
-    {#if details !== null}
-      {#if !currentTask}
-        <WaitForTask {leaveGame} />
-      {:else if currentTask.type === TaskType.Settings}
-        <Settings {leaveGame} {refreshGame} {details} />
-      {:else if currentTask.type === TaskType.DiscloseRole}
-        <DiscloseRole {leaveGame} role={currentTask.role} />
-      {:else if currentTask.type === TaskType.Discuss}
-        <Discuss {leaveGame} />
-      {:else}
-        <p>Unsupported Game State.</p>
-      {/if}
+  {:else if currentGame !== null}
+    {#if currentTask?.definition?.$case === "settings"}
+      <Settings {leaveGame} {currentGame} {players} {ws} />
     {:else}
-      <DialogHeader>Lobby</DialogHeader>
-      <p>Game doesn't exist.</p>
-      <div class="flex items-center">
-        <div class="flex ml-auto">
-          <InternalLink href="/games">Back to Games</InternalLink>
-        </div>
-      </div>
+      <WaitForTask {leaveGame} />
     {/if}
-  {/await}
+  {:else}
+    <DialogHeader>Lobby</DialogHeader>
+    <p>Game doesn't exist.</p>
+    <div class="flex items-center">
+      <div class="flex ml-auto">
+        <InternalLink href="/games">Back to Games</InternalLink>
+      </div>
+    </div>
+  {/if}
 </Dialog>

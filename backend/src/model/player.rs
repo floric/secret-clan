@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use log::warn;
 use names::Generator;
 use nanoid::nanoid;
+use protobuf::RepeatedField;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
 use std::collections::VecDeque;
@@ -27,7 +28,6 @@ pub struct Player {
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
     open_tasks: VecDeque<TaskDefinition>,
-    acknowledged_role: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
@@ -49,7 +49,6 @@ impl Player {
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
             open_tasks: VecDeque::default(),
-            acknowledged_role: false,
         }
     }
 
@@ -73,14 +72,6 @@ impl Player {
 
     pub fn user_token(&self) -> &str {
         &self.user_token
-    }
-
-    pub fn acknowledged_role(&self) -> &bool {
-        &self.acknowledged_role
-    }
-
-    pub fn acknowledge_role(&mut self) {
-        self.acknowledged_role = true;
     }
 
     pub fn update_token(&mut self, new_token: &str) {
@@ -147,8 +138,22 @@ impl From<IVec> for Player {
 impl Into<proto::player::Player> for Player {
     fn into(self) -> proto::player::Player {
         let mut player = proto::player::Player::new();
-        // TODO
+        player.set_id(self.id);
+        player.set_name(self.name);
+        player
+    }
+}
 
+impl Into<proto::player::OwnPlayer> for Player {
+    fn into(self) -> proto::player::OwnPlayer {
+        let mut player = proto::player::OwnPlayer::new();
+        player.set_id(self.id);
+        player.set_name(self.name);
+        let mut open_tasks = RepeatedField::new();
+        for t in self.open_tasks {
+            open_tasks.push(t.into());
+        }
+        player.set_open_tasks(open_tasks);
         player
     }
 }

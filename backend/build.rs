@@ -8,11 +8,8 @@ fn main() {
         .inputs(&[
             "../schema/message.proto",
             "../schema/task.proto",
-            "../schema/message.proto",
             "../schema/player.proto",
             "../schema/game.proto",
-            "../schema/role.proto",
-            "../schema/vote.proto",
         ])
         .include("../schema")
         .customize(Customize {

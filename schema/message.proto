@@ -5,21 +5,25 @@ import "player.proto";
 import "game.proto";
 
 message Client {
-  message Auth { string token = 1; }
+  message AuthConfirmed { string token = 1; }
+  message NameUpdated { string name = 1; }
 
-  oneof message { Auth auth = 1; }
+  oneof message {
+    AuthConfirmed authConfirmed = 1;
+    NameUpdated nameUpdated = 2;
+  }
 }
 
 message Server {
-  message Welcome {}
   message NewTask { Task task = 1; }
   message PlayerUpdated { Player player = 1; }
+  message SelfUpdated { OwnPlayer player = 1; }
   message GameUpdated { Game game = 1; }
 
   oneof message {
-    Welcome welcome = 1;
-    NewTask newTask = 2;
-    PlayerUpdated playerUpdated = 3;
-    GameUpdated gameUpdated = 4;
+    NewTask newTask = 1;
+    PlayerUpdated playerUpdated = 2;
+    GameUpdated gameUpdated = 3;
+    SelfUpdated selfUpdated = 4;
   }
 }

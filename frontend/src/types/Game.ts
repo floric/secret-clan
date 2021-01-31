@@ -1,6 +1,3 @@
-import type { Player } from "./Player";
-import type { Tasks, TaskType } from "./Tasks";
-
 export enum GameState {
   Initialized = "Initialized",
   Started = "Started",
@@ -11,12 +8,6 @@ export type Game = {
   playerIds: Array<string>;
   adminId: string;
   state: GameState;
-};
-
-export type GameDetails = {
-  game: Game;
-  players: Record<string, Player>;
-  openTasks: Array<Tasks>;
 };
 
 export type GameStats = {

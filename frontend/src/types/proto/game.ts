@@ -3,18 +3,21 @@ import { Writer, Reader } from 'protobufjs/minimal';
 
 
 export interface Game {
-  id: string;
+  token: string;
+  adminId: string;
 }
 
 const baseGame: object = {
-  id: "",
+  token: "",
+  adminId: "",
 };
 
 export const protobufPackage = ''
 
 export const Game = {
   encode(message: Game, writer: Writer = Writer.create()): Writer {
-    writer.uint32(10).string(message.id);
+    writer.uint32(10).string(message.token);
+    writer.uint32(18).string(message.adminId);
     return writer;
   },
   decode(input: Uint8Array | Reader, length?: number): Game {
@@ -25,7 +28,10 @@ export const Game = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
-          message.id = reader.string();
+          message.token = reader.string();
+          break;
+        case 2:
+          message.adminId = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -36,21 +42,28 @@ export const Game = {
   },
   fromJSON(object: any): Game {
     const message = { ...baseGame } as Game;
-    if (object.id !== undefined && object.id !== null) {
-      message.id = String(object.id);
+    if (object.token !== undefined && object.token !== null) {
+      message.token = String(object.token);
+    }
+    if (object.adminId !== undefined && object.adminId !== null) {
+      message.adminId = String(object.adminId);
     }
     return message;
   },
   fromPartial(object: DeepPartial<Game>): Game {
     const message = { ...baseGame } as Game;
-    if (object.id !== undefined && object.id !== null) {
-      message.id = object.id;
+    if (object.token !== undefined && object.token !== null) {
+      message.token = object.token;
+    }
+    if (object.adminId !== undefined && object.adminId !== null) {
+      message.adminId = object.adminId;
     }
     return message;
   },
   toJSON(message: Game): unknown {
     const obj: any = {};
-    message.id !== undefined && (obj.id = message.id);
+    message.token !== undefined && (obj.token = message.token);
+    message.adminId !== undefined && (obj.adminId = message.adminId);
     return obj;
   },
 };

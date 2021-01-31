@@ -2,7 +2,7 @@ use super::{logger::init_logger, ws::WsClient};
 use crate::{
     config::AppConfig,
     db::{ChangeListener, Client, Database},
-    model::{Game, Player, Voting},
+    model::{Game, Player},
 };
 use envconfig::Envconfig;
 use tokio::sync::mpsc;
@@ -10,14 +10,12 @@ use tokio::sync::mpsc;
 pub struct DbClients {
     games: Client<Game>,
     players: Client<Player>,
-    votings: Client<Voting>,
 }
 
 impl DbClients {
     pub fn init_with_changes() -> (DbClients, ChangeListener) {
         let (mut games_repo, games_sender) = Database::init("games");
         let (mut players_repo, players_sender) = Database::init("players");
-        let (mut votings_repo, votings_sender) = Database::init("votings");
 
         let (players, player_changes): (Client<Player>, mpsc::Receiver<Player>) =
             Client::new_with_change_handler(players_sender);
@@ -25,19 +23,11 @@ impl DbClients {
             Client::new_with_change_handler(games_sender);
 
         tokio::task::spawn(async move {
-            tokio::join!(
-                players_repo.start_listening(),
-                games_repo.start_listening(),
-                votings_repo.start_listening()
-            );
+            tokio::join!(players_repo.start_listening(), games_repo.start_listening(),);
         });
 
         (
-            DbClients {
-                votings: Client::new(votings_sender),
-                games,
-                players,
-            },
+            DbClients { games, players },
             ChangeListener::new(player_changes, game_changes),
         )
     }
@@ -45,19 +35,13 @@ impl DbClients {
     pub fn init() -> DbClients {
         let (mut games_repo, games_sender) = Database::init("games");
         let (mut players_repo, players_sender) = Database::init("players");
-        let (mut votings_repo, votings_sender) = Database::init("votings");
 
         tokio::task::spawn(async move {
-            tokio::join!(
-                players_repo.start_listening(),
-                games_repo.start_listening(),
-                votings_repo.start_listening()
-            );
+            tokio::join!(players_repo.start_listening(), games_repo.start_listening(),);
         });
 
         DbClients {
             games: Client::new(games_sender),
-            votings: Client::new(votings_sender),
             players: Client::new(players_sender),
         }
     }
@@ -68,10 +52,6 @@ impl DbClients {
 
     pub fn players(&self) -> &Client<Player> {
         &self.players
-    }
-
-    pub fn votings(&self) -> &Client<Voting> {
-        &self.votings
     }
 }
 

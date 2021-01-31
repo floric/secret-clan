@@ -26,7 +26,8 @@
 #[derive(PartialEq,Clone,Default)]
 pub struct Game {
     // message fields
-    pub id: ::std::string::String,
+    pub token: ::std::string::String,
+    pub admin_id: ::std::string::String,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -43,30 +44,56 @@ impl Game {
         ::std::default::Default::default()
     }
 
-    // string id = 1;
+    // string token = 1;
 
 
-    pub fn get_id(&self) -> &str {
-        &self.id
+    pub fn get_token(&self) -> &str {
+        &self.token
     }
-    pub fn clear_id(&mut self) {
-        self.id.clear();
+    pub fn clear_token(&mut self) {
+        self.token.clear();
     }
 
     // Param is passed by value, moved
-    pub fn set_id(&mut self, v: ::std::string::String) {
-        self.id = v;
+    pub fn set_token(&mut self, v: ::std::string::String) {
+        self.token = v;
     }
 
     // Mutable pointer to the field.
     // If field is not initialized, it is initialized with default value first.
-    pub fn mut_id(&mut self) -> &mut ::std::string::String {
-        &mut self.id
+    pub fn mut_token(&mut self) -> &mut ::std::string::String {
+        &mut self.token
     }
 
     // Take field
-    pub fn take_id(&mut self) -> ::std::string::String {
-        ::std::mem::replace(&mut self.id, ::std::string::String::new())
+    pub fn take_token(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.token, ::std::string::String::new())
+    }
+
+    // string admin_id = 2;
+
+
+    pub fn get_admin_id(&self) -> &str {
+        &self.admin_id
+    }
+    pub fn clear_admin_id(&mut self) {
+        self.admin_id.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_admin_id(&mut self, v: ::std::string::String) {
+        self.admin_id = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_admin_id(&mut self) -> &mut ::std::string::String {
+        &mut self.admin_id
+    }
+
+    // Take field
+    pub fn take_admin_id(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.admin_id, ::std::string::String::new())
     }
 }
 
@@ -80,7 +107,10 @@ impl ::protobuf::Message for Game {
             let (field_number, wire_type) = is.read_tag_unpack()?;
             match field_number {
                 1 => {
-                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.id)?;
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.token)?;
+                },
+                2 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.admin_id)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -94,8 +124,11 @@ impl ::protobuf::Message for Game {
     #[allow(unused_variables)]
     fn compute_size(&self) -> u32 {
         let mut my_size = 0;
-        if !self.id.is_empty() {
-            my_size += ::protobuf::rt::string_size(1, &self.id);
+        if !self.token.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.token);
+        }
+        if !self.admin_id.is_empty() {
+            my_size += ::protobuf::rt::string_size(2, &self.admin_id);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
@@ -103,8 +136,11 @@ impl ::protobuf::Message for Game {
     }
 
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::ProtobufResult<()> {
-        if !self.id.is_empty() {
-            os.write_string(1, &self.id)?;
+        if !self.token.is_empty() {
+            os.write_string(1, &self.token)?;
+        }
+        if !self.admin_id.is_empty() {
+            os.write_string(2, &self.admin_id)?;
         }
         os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -145,9 +181,14 @@ impl ::protobuf::Message for Game {
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
             fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
-                "id",
-                |m: &Game| { &m.id },
-                |m: &mut Game| { &mut m.id },
+                "token",
+                |m: &Game| { &m.token },
+                |m: &mut Game| { &mut m.token },
+            ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                "admin_id",
+                |m: &Game| { &m.admin_id },
+                |m: &mut Game| { &mut m.admin_id },
             ));
             ::protobuf::reflect::MessageDescriptor::new_pb_name::<Game>(
                 "Game",
@@ -165,7 +206,8 @@ impl ::protobuf::Message for Game {
 
 impl ::protobuf::Clear for Game {
     fn clear(&mut self) {
-        self.id.clear();
+        self.token.clear();
+        self.admin_id.clear();
         self.unknown_fields.clear();
     }
 }
@@ -183,8 +225,8 @@ impl ::protobuf::reflect::ProtobufValue for Game {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\ngame.proto\"\x16\n\x04Game\x12\x0e\n\x02id\x18\x01\x20\x01(\tR\x02id\
-    b\x06proto3\
+    \n\ngame.proto\"7\n\x04Game\x12\x14\n\x05token\x18\x01\x20\x01(\tR\x05to\
+    ken\x12\x19\n\x08admin_id\x18\x02\x20\x01(\tR\x07adminIdb\x06proto3\
 ";
 
 static file_descriptor_proto_lazy: ::protobuf::rt::LazyV2<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::rt::LazyV2::INIT;
