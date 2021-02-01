@@ -1,7 +1,7 @@
 use super::WsCommand;
 use futures::stream::SplitSink;
 use futures::SinkExt;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use protobuf::Message;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -33,7 +33,7 @@ impl Connections {
         info!("Started listening for connections");
 
         while let Some(request) = self.msg_receiver.recv().await {
-            info!("Received message request: {:?}", request);
+            debug!("Received message request: {:?}", request);
 
             match request {
                 WsCommand::SendMessage { msg, player_id } => {

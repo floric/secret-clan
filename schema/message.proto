@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "task.proto";
 import "player.proto";
 import "game.proto";
 
@@ -15,15 +14,17 @@ message Client {
 }
 
 message Server {
-  message NewTask { Task task = 1; }
   message PlayerUpdated { Player player = 1; }
   message SelfUpdated { OwnPlayer player = 1; }
   message GameUpdated { Game game = 1; }
+  message PlayerEntered { Player player = 1; }
+  message PlayerLeft { string player_id = 1; }
 
   oneof message {
-    NewTask newTask = 1;
-    PlayerUpdated playerUpdated = 2;
-    GameUpdated gameUpdated = 3;
-    SelfUpdated selfUpdated = 4;
+    PlayerUpdated playerUpdated = 1;
+    GameUpdated gameUpdated = 2;
+    SelfUpdated selfUpdated = 3;
+    PlayerEntered playerEntered = 4;
+    PlayerLeft playerLeft = 5;
   }
 }

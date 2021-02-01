@@ -53,6 +53,3 @@ warp = {version = "0.3", features = ["websocket"]}
 
 [dev-dependencies]
 criterion = "0.3"
-
-[build-dependencies]
-protoc-rust = {version = "2.20"}

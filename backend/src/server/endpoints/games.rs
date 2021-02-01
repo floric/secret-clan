@@ -1,8 +1,5 @@
 use crate::{
-    model::{
-        proto::{self},
-        Game, GameResponse, GameState, Player, TaskDefinition, TaskType,
-    },
+    model::{Game, GameResponse, GameState, Player, TaskDefinition, TaskType},
     server::{
         app_context::AppContext,
         auth::{extract_verified_id, generate_jwt_token},
@@ -185,25 +182,7 @@ pub async fn start_game_filter(
                         ctx.db().games().persist(&game)
                     );
                     match persist_players.and(persist_game) {
-                        Ok(_) => {
-                            let mut send_futures = vec![];
-                            for p in players {
-                                let current_task_msg = p.open_tasks().iter().next().unwrap();
-
-                                let mut new_task_msg = proto::message::Server_NewTask::new();
-                                new_task_msg.set_task(current_task_msg.clone().into());
-
-                                let mut msg = proto::message::Server::new();
-                                msg.set_newTask(new_task_msg);
-
-                                let future = ctx.ws().send_message(String::from(p.id()), msg);
-                                send_futures.push(future);
-                            }
-                            match futures::future::try_join_all(send_futures).await {
-                                Ok(_) => Ok(reply_success(StatusCode::OK)),
-                                Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                            }
-                        }
+                        Ok(_) => Ok(reply_success(StatusCode::OK)),
                         Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
                     }
                 }

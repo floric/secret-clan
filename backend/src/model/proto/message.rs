@@ -640,10 +640,11 @@ impl<'a> ::std::default::Default for &'a Server {
 
 #[derive(Clone,PartialEq,Debug)]
 pub enum Server_oneof_message {
-    newTask(Server_NewTask),
     playerUpdated(Server_PlayerUpdated),
     gameUpdated(Server_GameUpdated),
     selfUpdated(Server_SelfUpdated),
+    playerEntered(Server_PlayerEntered),
+    playerLeft(Server_PlayerLeft),
 }
 
 impl Server {
@@ -651,56 +652,7 @@ impl Server {
         ::std::default::Default::default()
     }
 
-    // .Server.NewTask newTask = 1;
-
-
-    pub fn get_newTask(&self) -> &Server_NewTask {
-        match self.message {
-            ::std::option::Option::Some(Server_oneof_message::newTask(ref v)) => v,
-            _ => <Server_NewTask as ::protobuf::Message>::default_instance(),
-        }
-    }
-    pub fn clear_newTask(&mut self) {
-        self.message = ::std::option::Option::None;
-    }
-
-    pub fn has_newTask(&self) -> bool {
-        match self.message {
-            ::std::option::Option::Some(Server_oneof_message::newTask(..)) => true,
-            _ => false,
-        }
-    }
-
-    // Param is passed by value, moved
-    pub fn set_newTask(&mut self, v: Server_NewTask) {
-        self.message = ::std::option::Option::Some(Server_oneof_message::newTask(v))
-    }
-
-    // Mutable pointer to the field.
-    pub fn mut_newTask(&mut self) -> &mut Server_NewTask {
-        if let ::std::option::Option::Some(Server_oneof_message::newTask(_)) = self.message {
-        } else {
-            self.message = ::std::option::Option::Some(Server_oneof_message::newTask(Server_NewTask::new()));
-        }
-        match self.message {
-            ::std::option::Option::Some(Server_oneof_message::newTask(ref mut v)) => v,
-            _ => panic!(),
-        }
-    }
-
-    // Take field
-    pub fn take_newTask(&mut self) -> Server_NewTask {
-        if self.has_newTask() {
-            match self.message.take() {
-                ::std::option::Option::Some(Server_oneof_message::newTask(v)) => v,
-                _ => panic!(),
-            }
-        } else {
-            Server_NewTask::new()
-        }
-    }
-
-    // .Server.PlayerUpdated playerUpdated = 2;
+    // .Server.PlayerUpdated playerUpdated = 1;
 
 
     pub fn get_playerUpdated(&self) -> &Server_PlayerUpdated {
@@ -749,7 +701,7 @@ impl Server {
         }
     }
 
-    // .Server.GameUpdated gameUpdated = 3;
+    // .Server.GameUpdated gameUpdated = 2;
 
 
     pub fn get_gameUpdated(&self) -> &Server_GameUpdated {
@@ -798,7 +750,7 @@ impl Server {
         }
     }
 
-    // .Server.SelfUpdated selfUpdated = 4;
+    // .Server.SelfUpdated selfUpdated = 3;
 
 
     pub fn get_selfUpdated(&self) -> &Server_SelfUpdated {
@@ -846,15 +798,108 @@ impl Server {
             Server_SelfUpdated::new()
         }
     }
+
+    // .Server.PlayerEntered playerEntered = 4;
+
+
+    pub fn get_playerEntered(&self) -> &Server_PlayerEntered {
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerEntered(ref v)) => v,
+            _ => <Server_PlayerEntered as ::protobuf::Message>::default_instance(),
+        }
+    }
+    pub fn clear_playerEntered(&mut self) {
+        self.message = ::std::option::Option::None;
+    }
+
+    pub fn has_playerEntered(&self) -> bool {
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerEntered(..)) => true,
+            _ => false,
+        }
+    }
+
+    // Param is passed by value, moved
+    pub fn set_playerEntered(&mut self, v: Server_PlayerEntered) {
+        self.message = ::std::option::Option::Some(Server_oneof_message::playerEntered(v))
+    }
+
+    // Mutable pointer to the field.
+    pub fn mut_playerEntered(&mut self) -> &mut Server_PlayerEntered {
+        if let ::std::option::Option::Some(Server_oneof_message::playerEntered(_)) = self.message {
+        } else {
+            self.message = ::std::option::Option::Some(Server_oneof_message::playerEntered(Server_PlayerEntered::new()));
+        }
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerEntered(ref mut v)) => v,
+            _ => panic!(),
+        }
+    }
+
+    // Take field
+    pub fn take_playerEntered(&mut self) -> Server_PlayerEntered {
+        if self.has_playerEntered() {
+            match self.message.take() {
+                ::std::option::Option::Some(Server_oneof_message::playerEntered(v)) => v,
+                _ => panic!(),
+            }
+        } else {
+            Server_PlayerEntered::new()
+        }
+    }
+
+    // .Server.PlayerLeft playerLeft = 5;
+
+
+    pub fn get_playerLeft(&self) -> &Server_PlayerLeft {
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerLeft(ref v)) => v,
+            _ => <Server_PlayerLeft as ::protobuf::Message>::default_instance(),
+        }
+    }
+    pub fn clear_playerLeft(&mut self) {
+        self.message = ::std::option::Option::None;
+    }
+
+    pub fn has_playerLeft(&self) -> bool {
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerLeft(..)) => true,
+            _ => false,
+        }
+    }
+
+    // Param is passed by value, moved
+    pub fn set_playerLeft(&mut self, v: Server_PlayerLeft) {
+        self.message = ::std::option::Option::Some(Server_oneof_message::playerLeft(v))
+    }
+
+    // Mutable pointer to the field.
+    pub fn mut_playerLeft(&mut self) -> &mut Server_PlayerLeft {
+        if let ::std::option::Option::Some(Server_oneof_message::playerLeft(_)) = self.message {
+        } else {
+            self.message = ::std::option::Option::Some(Server_oneof_message::playerLeft(Server_PlayerLeft::new()));
+        }
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerLeft(ref mut v)) => v,
+            _ => panic!(),
+        }
+    }
+
+    // Take field
+    pub fn take_playerLeft(&mut self) -> Server_PlayerLeft {
+        if self.has_playerLeft() {
+            match self.message.take() {
+                ::std::option::Option::Some(Server_oneof_message::playerLeft(v)) => v,
+                _ => panic!(),
+            }
+        } else {
+            Server_PlayerLeft::new()
+        }
+    }
 }
 
 impl ::protobuf::Message for Server {
     fn is_initialized(&self) -> bool {
-        if let Some(Server_oneof_message::newTask(ref v)) = self.message {
-            if !v.is_initialized() {
-                return false;
-            }
-        }
         if let Some(Server_oneof_message::playerUpdated(ref v)) = self.message {
             if !v.is_initialized() {
                 return false;
@@ -870,6 +915,16 @@ impl ::protobuf::Message for Server {
                 return false;
             }
         }
+        if let Some(Server_oneof_message::playerEntered(ref v)) = self.message {
+            if !v.is_initialized() {
+                return false;
+            }
+        }
+        if let Some(Server_oneof_message::playerLeft(ref v)) = self.message {
+            if !v.is_initialized() {
+                return false;
+            }
+        }
         true
     }
 
@@ -881,25 +936,31 @@ impl ::protobuf::Message for Server {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
-                    self.message = ::std::option::Option::Some(Server_oneof_message::newTask(is.read_message()?));
+                    self.message = ::std::option::Option::Some(Server_oneof_message::playerUpdated(is.read_message()?));
                 },
                 2 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
-                    self.message = ::std::option::Option::Some(Server_oneof_message::playerUpdated(is.read_message()?));
+                    self.message = ::std::option::Option::Some(Server_oneof_message::gameUpdated(is.read_message()?));
                 },
                 3 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
-                    self.message = ::std::option::Option::Some(Server_oneof_message::gameUpdated(is.read_message()?));
+                    self.message = ::std::option::Option::Some(Server_oneof_message::selfUpdated(is.read_message()?));
                 },
                 4 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
-                    self.message = ::std::option::Option::Some(Server_oneof_message::selfUpdated(is.read_message()?));
+                    self.message = ::std::option::Option::Some(Server_oneof_message::playerEntered(is.read_message()?));
+                },
+                5 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    self.message = ::std::option::Option::Some(Server_oneof_message::playerLeft(is.read_message()?));
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -915,10 +976,6 @@ impl ::protobuf::Message for Server {
         let mut my_size = 0;
         if let ::std::option::Option::Some(ref v) = self.message {
             match v {
-                &Server_oneof_message::newTask(ref v) => {
-                    let len = v.compute_size();
-                    my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
-                },
                 &Server_oneof_message::playerUpdated(ref v) => {
                     let len = v.compute_size();
                     my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
@@ -928,6 +985,14 @@ impl ::protobuf::Message for Server {
                     my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
                 },
                 &Server_oneof_message::selfUpdated(ref v) => {
+                    let len = v.compute_size();
+                    my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+                },
+                &Server_oneof_message::playerEntered(ref v) => {
+                    let len = v.compute_size();
+                    my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+                },
+                &Server_oneof_message::playerLeft(ref v) => {
                     let len = v.compute_size();
                     my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
                 },
@@ -941,23 +1006,28 @@ impl ::protobuf::Message for Server {
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::ProtobufResult<()> {
         if let ::std::option::Option::Some(ref v) = self.message {
             match v {
-                &Server_oneof_message::newTask(ref v) => {
+                &Server_oneof_message::playerUpdated(ref v) => {
                     os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
-                &Server_oneof_message::playerUpdated(ref v) => {
+                &Server_oneof_message::gameUpdated(ref v) => {
                     os.write_tag(2, ::protobuf::wire_format::WireTypeLengthDelimited)?;
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
-                &Server_oneof_message::gameUpdated(ref v) => {
+                &Server_oneof_message::selfUpdated(ref v) => {
                     os.write_tag(3, ::protobuf::wire_format::WireTypeLengthDelimited)?;
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
-                &Server_oneof_message::selfUpdated(ref v) => {
+                &Server_oneof_message::playerEntered(ref v) => {
                     os.write_tag(4, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+                    os.write_raw_varint32(v.get_cached_size())?;
+                    v.write_to_with_cached_sizes(os)?;
+                },
+                &Server_oneof_message::playerLeft(ref v) => {
+                    os.write_tag(5, ::protobuf::wire_format::WireTypeLengthDelimited)?;
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
@@ -1001,11 +1071,6 @@ impl ::protobuf::Message for Server {
         static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
         descriptor.get(|| {
             let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_singular_message_accessor::<_, Server_NewTask>(
-                "newTask",
-                Server::has_newTask,
-                Server::get_newTask,
-            ));
             fields.push(::protobuf::reflect::accessor::make_singular_message_accessor::<_, Server_PlayerUpdated>(
                 "playerUpdated",
                 Server::has_playerUpdated,
@@ -1020,6 +1085,16 @@ impl ::protobuf::Message for Server {
                 "selfUpdated",
                 Server::has_selfUpdated,
                 Server::get_selfUpdated,
+            ));
+            fields.push(::protobuf::reflect::accessor::make_singular_message_accessor::<_, Server_PlayerEntered>(
+                "playerEntered",
+                Server::has_playerEntered,
+                Server::get_playerEntered,
+            ));
+            fields.push(::protobuf::reflect::accessor::make_singular_message_accessor::<_, Server_PlayerLeft>(
+                "playerLeft",
+                Server::has_playerLeft,
+                Server::get_playerLeft,
             ));
             ::protobuf::reflect::MessageDescriptor::new_pb_name::<Server>(
                 "Server",
@@ -1041,6 +1116,7 @@ impl ::protobuf::Clear for Server {
         self.message = ::std::option::Option::None;
         self.message = ::std::option::Option::None;
         self.message = ::std::option::Option::None;
+        self.message = ::std::option::Option::None;
         self.unknown_fields.clear();
     }
 }
@@ -1052,180 +1128,6 @@ impl ::std::fmt::Debug for Server {
 }
 
 impl ::protobuf::reflect::ProtobufValue for Server {
-    fn as_ref(&self) -> ::protobuf::reflect::ReflectValueRef {
-        ::protobuf::reflect::ReflectValueRef::Message(self)
-    }
-}
-
-#[derive(PartialEq,Clone,Default)]
-pub struct Server_NewTask {
-    // message fields
-    pub task: ::protobuf::SingularPtrField<super::task::Task>,
-    // special fields
-    pub unknown_fields: ::protobuf::UnknownFields,
-    pub cached_size: ::protobuf::CachedSize,
-}
-
-impl<'a> ::std::default::Default for &'a Server_NewTask {
-    fn default() -> &'a Server_NewTask {
-        <Server_NewTask as ::protobuf::Message>::default_instance()
-    }
-}
-
-impl Server_NewTask {
-    pub fn new() -> Server_NewTask {
-        ::std::default::Default::default()
-    }
-
-    // .Task task = 1;
-
-
-    pub fn get_task(&self) -> &super::task::Task {
-        self.task.as_ref().unwrap_or_else(|| <super::task::Task as ::protobuf::Message>::default_instance())
-    }
-    pub fn clear_task(&mut self) {
-        self.task.clear();
-    }
-
-    pub fn has_task(&self) -> bool {
-        self.task.is_some()
-    }
-
-    // Param is passed by value, moved
-    pub fn set_task(&mut self, v: super::task::Task) {
-        self.task = ::protobuf::SingularPtrField::some(v);
-    }
-
-    // Mutable pointer to the field.
-    // If field is not initialized, it is initialized with default value first.
-    pub fn mut_task(&mut self) -> &mut super::task::Task {
-        if self.task.is_none() {
-            self.task.set_default();
-        }
-        self.task.as_mut().unwrap()
-    }
-
-    // Take field
-    pub fn take_task(&mut self) -> super::task::Task {
-        self.task.take().unwrap_or_else(|| super::task::Task::new())
-    }
-}
-
-impl ::protobuf::Message for Server_NewTask {
-    fn is_initialized(&self) -> bool {
-        for v in &self.task {
-            if !v.is_initialized() {
-                return false;
-            }
-        };
-        true
-    }
-
-    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::ProtobufResult<()> {
-        while !is.eof()? {
-            let (field_number, wire_type) = is.read_tag_unpack()?;
-            match field_number {
-                1 => {
-                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.task)?;
-                },
-                _ => {
-                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
-                },
-            };
-        }
-        ::std::result::Result::Ok(())
-    }
-
-    // Compute sizes of nested messages
-    #[allow(unused_variables)]
-    fn compute_size(&self) -> u32 {
-        let mut my_size = 0;
-        if let Some(ref v) = self.task.as_ref() {
-            let len = v.compute_size();
-            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
-        }
-        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
-        self.cached_size.set(my_size);
-        my_size
-    }
-
-    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::ProtobufResult<()> {
-        if let Some(ref v) = self.task.as_ref() {
-            os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
-            os.write_raw_varint32(v.get_cached_size())?;
-            v.write_to_with_cached_sizes(os)?;
-        }
-        os.write_unknown_fields(self.get_unknown_fields())?;
-        ::std::result::Result::Ok(())
-    }
-
-    fn get_cached_size(&self) -> u32 {
-        self.cached_size.get()
-    }
-
-    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
-        &self.unknown_fields
-    }
-
-    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
-        &mut self.unknown_fields
-    }
-
-    fn as_any(&self) -> &dyn (::std::any::Any) {
-        self as &dyn (::std::any::Any)
-    }
-    fn as_any_mut(&mut self) -> &mut dyn (::std::any::Any) {
-        self as &mut dyn (::std::any::Any)
-    }
-    fn into_any(self: ::std::boxed::Box<Self>) -> ::std::boxed::Box<dyn (::std::any::Any)> {
-        self
-    }
-
-    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
-        Self::descriptor_static()
-    }
-
-    fn new() -> Server_NewTask {
-        Server_NewTask::new()
-    }
-
-    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
-        static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
-        descriptor.get(|| {
-            let mut fields = ::std::vec::Vec::new();
-            fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<super::task::Task>>(
-                "task",
-                |m: &Server_NewTask| { &m.task },
-                |m: &mut Server_NewTask| { &mut m.task },
-            ));
-            ::protobuf::reflect::MessageDescriptor::new_pb_name::<Server_NewTask>(
-                "Server.NewTask",
-                fields,
-                file_descriptor_proto()
-            )
-        })
-    }
-
-    fn default_instance() -> &'static Server_NewTask {
-        static instance: ::protobuf::rt::LazyV2<Server_NewTask> = ::protobuf::rt::LazyV2::INIT;
-        instance.get(Server_NewTask::new)
-    }
-}
-
-impl ::protobuf::Clear for Server_NewTask {
-    fn clear(&mut self) {
-        self.task.clear();
-        self.unknown_fields.clear();
-    }
-}
-
-impl ::std::fmt::Debug for Server_NewTask {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        ::protobuf::text_format::fmt(self, f)
-    }
-}
-
-impl ::protobuf::reflect::ProtobufValue for Server_NewTask {
     fn as_ref(&self) -> ::protobuf::reflect::ReflectValueRef {
         ::protobuf::reflect::ReflectValueRef::Message(self)
     }
@@ -1753,23 +1655,414 @@ impl ::protobuf::reflect::ProtobufValue for Server_GameUpdated {
     }
 }
 
+#[derive(PartialEq,Clone,Default)]
+pub struct Server_PlayerEntered {
+    // message fields
+    pub player: ::protobuf::SingularPtrField<super::player::Player>,
+    // special fields
+    pub unknown_fields: ::protobuf::UnknownFields,
+    pub cached_size: ::protobuf::CachedSize,
+}
+
+impl<'a> ::std::default::Default for &'a Server_PlayerEntered {
+    fn default() -> &'a Server_PlayerEntered {
+        <Server_PlayerEntered as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl Server_PlayerEntered {
+    pub fn new() -> Server_PlayerEntered {
+        ::std::default::Default::default()
+    }
+
+    // .Player player = 1;
+
+
+    pub fn get_player(&self) -> &super::player::Player {
+        self.player.as_ref().unwrap_or_else(|| <super::player::Player as ::protobuf::Message>::default_instance())
+    }
+    pub fn clear_player(&mut self) {
+        self.player.clear();
+    }
+
+    pub fn has_player(&self) -> bool {
+        self.player.is_some()
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player(&mut self, v: super::player::Player) {
+        self.player = ::protobuf::SingularPtrField::some(v);
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_player(&mut self) -> &mut super::player::Player {
+        if self.player.is_none() {
+            self.player.set_default();
+        }
+        self.player.as_mut().unwrap()
+    }
+
+    // Take field
+    pub fn take_player(&mut self) -> super::player::Player {
+        self.player.take().unwrap_or_else(|| super::player::Player::new())
+    }
+}
+
+impl ::protobuf::Message for Server_PlayerEntered {
+    fn is_initialized(&self) -> bool {
+        for v in &self.player {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
+            match field_number {
+                1 => {
+                    ::protobuf::rt::read_singular_message_into(wire_type, is, &mut self.player)?;
+                },
+                _ => {
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u32 {
+        let mut my_size = 0;
+        if let Some(ref v) = self.player.as_ref() {
+            let len = v.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
+        self.cached_size.set(my_size);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::ProtobufResult<()> {
+        if let Some(ref v) = self.player.as_ref() {
+            os.write_tag(1, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        }
+        os.write_unknown_fields(self.get_unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn get_cached_size(&self) -> u32 {
+        self.cached_size.get()
+    }
+
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
+        &self.unknown_fields
+    }
+
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
+        &mut self.unknown_fields
+    }
+
+    fn as_any(&self) -> &dyn (::std::any::Any) {
+        self as &dyn (::std::any::Any)
+    }
+    fn as_any_mut(&mut self) -> &mut dyn (::std::any::Any) {
+        self as &mut dyn (::std::any::Any)
+    }
+    fn into_any(self: ::std::boxed::Box<Self>) -> ::std::boxed::Box<dyn (::std::any::Any)> {
+        self
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        Self::descriptor_static()
+    }
+
+    fn new() -> Server_PlayerEntered {
+        Server_PlayerEntered::new()
+    }
+
+    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
+        descriptor.get(|| {
+            let mut fields = ::std::vec::Vec::new();
+            fields.push(::protobuf::reflect::accessor::make_singular_ptr_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<super::player::Player>>(
+                "player",
+                |m: &Server_PlayerEntered| { &m.player },
+                |m: &mut Server_PlayerEntered| { &mut m.player },
+            ));
+            ::protobuf::reflect::MessageDescriptor::new_pb_name::<Server_PlayerEntered>(
+                "Server.PlayerEntered",
+                fields,
+                file_descriptor_proto()
+            )
+        })
+    }
+
+    fn default_instance() -> &'static Server_PlayerEntered {
+        static instance: ::protobuf::rt::LazyV2<Server_PlayerEntered> = ::protobuf::rt::LazyV2::INIT;
+        instance.get(Server_PlayerEntered::new)
+    }
+}
+
+impl ::protobuf::Clear for Server_PlayerEntered {
+    fn clear(&mut self) {
+        self.player.clear();
+        self.unknown_fields.clear();
+    }
+}
+
+impl ::std::fmt::Debug for Server_PlayerEntered {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Server_PlayerEntered {
+    fn as_ref(&self) -> ::protobuf::reflect::ReflectValueRef {
+        ::protobuf::reflect::ReflectValueRef::Message(self)
+    }
+}
+
+#[derive(PartialEq,Clone,Default)]
+pub struct Server_PlayerLeft {
+    // message fields
+    pub player_id: ::std::string::String,
+    // special fields
+    pub unknown_fields: ::protobuf::UnknownFields,
+    pub cached_size: ::protobuf::CachedSize,
+}
+
+impl<'a> ::std::default::Default for &'a Server_PlayerLeft {
+    fn default() -> &'a Server_PlayerLeft {
+        <Server_PlayerLeft as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl Server_PlayerLeft {
+    pub fn new() -> Server_PlayerLeft {
+        ::std::default::Default::default()
+    }
+
+    // string player_id = 1;
+
+
+    pub fn get_player_id(&self) -> &str {
+        &self.player_id
+    }
+    pub fn clear_player_id(&mut self) {
+        self.player_id.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player_id(&mut self, v: ::std::string::String) {
+        self.player_id = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_player_id(&mut self) -> &mut ::std::string::String {
+        &mut self.player_id
+    }
+
+    // Take field
+    pub fn take_player_id(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.player_id, ::std::string::String::new())
+    }
+}
+
+impl ::protobuf::Message for Server_PlayerLeft {
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
+            match field_number {
+                1 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.player_id)?;
+                },
+                _ => {
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u32 {
+        let mut my_size = 0;
+        if !self.player_id.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.player_id);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
+        self.cached_size.set(my_size);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::ProtobufResult<()> {
+        if !self.player_id.is_empty() {
+            os.write_string(1, &self.player_id)?;
+        }
+        os.write_unknown_fields(self.get_unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn get_cached_size(&self) -> u32 {
+        self.cached_size.get()
+    }
+
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
+        &self.unknown_fields
+    }
+
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
+        &mut self.unknown_fields
+    }
+
+    fn as_any(&self) -> &dyn (::std::any::Any) {
+        self as &dyn (::std::any::Any)
+    }
+    fn as_any_mut(&mut self) -> &mut dyn (::std::any::Any) {
+        self as &mut dyn (::std::any::Any)
+    }
+    fn into_any(self: ::std::boxed::Box<Self>) -> ::std::boxed::Box<dyn (::std::any::Any)> {
+        self
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        Self::descriptor_static()
+    }
+
+    fn new() -> Server_PlayerLeft {
+        Server_PlayerLeft::new()
+    }
+
+    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
+        descriptor.get(|| {
+            let mut fields = ::std::vec::Vec::new();
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                "player_id",
+                |m: &Server_PlayerLeft| { &m.player_id },
+                |m: &mut Server_PlayerLeft| { &mut m.player_id },
+            ));
+            ::protobuf::reflect::MessageDescriptor::new_pb_name::<Server_PlayerLeft>(
+                "Server.PlayerLeft",
+                fields,
+                file_descriptor_proto()
+            )
+        })
+    }
+
+    fn default_instance() -> &'static Server_PlayerLeft {
+        static instance: ::protobuf::rt::LazyV2<Server_PlayerLeft> = ::protobuf::rt::LazyV2::INIT;
+        instance.get(Server_PlayerLeft::new)
+    }
+}
+
+impl ::protobuf::Clear for Server_PlayerLeft {
+    fn clear(&mut self) {
+        self.player_id.clear();
+        self.unknown_fields.clear();
+    }
+}
+
+impl ::std::fmt::Debug for Server_PlayerLeft {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Server_PlayerLeft {
+    fn as_ref(&self) -> ::protobuf::reflect::ReflectValueRef {
+        ::protobuf::reflect::ReflectValueRef::Message(self)
+    }
+}
+
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\rmessage.proto\x1a\ntask.proto\x1a\x0cplayer.proto\x1a\ngame.proto\"\
-    \xd5\x01\n\x06Client\x12=\n\rauthConfirmed\x18\x01\x20\x01(\x0b2\x15.Cli\
-    ent.AuthConfirmedH\0R\rauthConfirmed\x127\n\x0bnameUpdated\x18\x02\x20\
-    \x01(\x0b2\x13.Client.NameUpdatedH\0R\x0bnameUpdated\x1a%\n\rAuthConfirm\
-    ed\x12\x14\n\x05token\x18\x01\x20\x01(\tR\x05token\x1a!\n\x0bNameUpdated\
-    \x12\x12\n\x04name\x18\x01\x20\x01(\tR\x04nameB\t\n\x07message\"\xa6\x03\
-    \n\x06Server\x12+\n\x07newTask\x18\x01\x20\x01(\x0b2\x0f.Server.NewTaskH\
-    \0R\x07newTask\x12=\n\rplayerUpdated\x18\x02\x20\x01(\x0b2\x15.Server.Pl\
-    ayerUpdatedH\0R\rplayerUpdated\x127\n\x0bgameUpdated\x18\x03\x20\x01(\
-    \x0b2\x13.Server.GameUpdatedH\0R\x0bgameUpdated\x127\n\x0bselfUpdated\
-    \x18\x04\x20\x01(\x0b2\x13.Server.SelfUpdatedH\0R\x0bselfUpdated\x1a$\n\
-    \x07NewTask\x12\x19\n\x04task\x18\x01\x20\x01(\x0b2\x05.TaskR\x04task\
-    \x1a0\n\rPlayerUpdated\x12\x1f\n\x06player\x18\x01\x20\x01(\x0b2\x07.Pla\
-    yerR\x06player\x1a1\n\x0bSelfUpdated\x12\"\n\x06player\x18\x01\x20\x01(\
-    \x0b2\n.OwnPlayerR\x06player\x1a(\n\x0bGameUpdated\x12\x19\n\x04game\x18\
-    \x01\x20\x01(\x0b2\x05.GameR\x04gameB\t\n\x07messageb\x06proto3\
+    \n\rmessage.proto\x1a\x0cplayer.proto\x1a\ngame.proto\"\xd5\x01\n\x06Cli\
+    ent\x12=\n\rauthConfirmed\x18\x01\x20\x01(\x0b2\x15.Client.AuthConfirmed\
+    H\0R\rauthConfirmed\x127\n\x0bnameUpdated\x18\x02\x20\x01(\x0b2\x13.Clie\
+    nt.NameUpdatedH\0R\x0bnameUpdated\x1a%\n\rAuthConfirmed\x12\x14\n\x05tok\
+    en\x18\x01\x20\x01(\tR\x05token\x1a!\n\x0bNameUpdated\x12\x12\n\x04name\
+    \x18\x01\x20\x01(\tR\x04nameB\t\n\x07message\"\xa5\x04\n\x06Server\x12=\
+    \n\rplayerUpdated\x18\x01\x20\x01(\x0b2\x15.Server.PlayerUpdatedH\0R\rpl\
+    ayerUpdated\x127\n\x0bgameUpdated\x18\x02\x20\x01(\x0b2\x13.Server.GameU\
+    pdatedH\0R\x0bgameUpdated\x127\n\x0bselfUpdated\x18\x03\x20\x01(\x0b2\
+    \x13.Server.SelfUpdatedH\0R\x0bselfUpdated\x12=\n\rplayerEntered\x18\x04\
+    \x20\x01(\x0b2\x15.Server.PlayerEnteredH\0R\rplayerEntered\x124\n\nplaye\
+    rLeft\x18\x05\x20\x01(\x0b2\x12.Server.PlayerLeftH\0R\nplayerLeft\x1a0\n\
+    \rPlayerUpdated\x12\x1f\n\x06player\x18\x01\x20\x01(\x0b2\x07.PlayerR\
+    \x06player\x1a1\n\x0bSelfUpdated\x12\"\n\x06player\x18\x01\x20\x01(\x0b2\
+    \n.OwnPlayerR\x06player\x1a(\n\x0bGameUpdated\x12\x19\n\x04game\x18\x01\
+    \x20\x01(\x0b2\x05.GameR\x04game\x1a0\n\rPlayerEntered\x12\x1f\n\x06play\
+    er\x18\x01\x20\x01(\x0b2\x07.PlayerR\x06player\x1a)\n\nPlayerLeft\x12\
+    \x1b\n\tplayer_id\x18\x01\x20\x01(\tR\x08playerIdB\t\n\x07messageJ\x87\t\
+    \n\x06\x12\x04\0\0\x1d\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\t\n\x02\x03\
+    \0\x12\x03\x02\0\x16\n\t\n\x02\x03\x01\x12\x03\x03\0\x14\n\n\n\x02\x04\0\
+    \x12\x04\x05\0\r\x01\n\n\n\x03\x04\0\x01\x12\x03\x05\x08\x0e\n\x0b\n\x04\
+    \x04\0\x03\0\x12\x03\x06\x02-\n\x0c\n\x05\x04\0\x03\0\x01\x12\x03\x06\n\
+    \x17\n\r\n\x06\x04\0\x03\0\x02\0\x12\x03\x06\x1a+\n\x0e\n\x07\x04\0\x03\
+    \0\x02\0\x05\x12\x03\x06\x1a\x20\n\x0e\n\x07\x04\0\x03\0\x02\0\x01\x12\
+    \x03\x06!&\n\x0e\n\x07\x04\0\x03\0\x02\0\x03\x12\x03\x06)*\n\x0b\n\x04\
+    \x04\0\x03\x01\x12\x03\x07\x02*\n\x0c\n\x05\x04\0\x03\x01\x01\x12\x03\
+    \x07\n\x15\n\r\n\x06\x04\0\x03\x01\x02\0\x12\x03\x07\x18(\n\x0e\n\x07\
+    \x04\0\x03\x01\x02\0\x05\x12\x03\x07\x18\x1e\n\x0e\n\x07\x04\0\x03\x01\
+    \x02\0\x01\x12\x03\x07\x1f#\n\x0e\n\x07\x04\0\x03\x01\x02\0\x03\x12\x03\
+    \x07&'\n\x0c\n\x04\x04\0\x08\0\x12\x04\t\x02\x0c\x03\n\x0c\n\x05\x04\0\
+    \x08\0\x01\x12\x03\t\x08\x0f\n\x0b\n\x04\x04\0\x02\0\x12\x03\n\x04$\n\
+    \x0c\n\x05\x04\0\x02\0\x06\x12\x03\n\x04\x11\n\x0c\n\x05\x04\0\x02\0\x01\
+    \x12\x03\n\x12\x1f\n\x0c\n\x05\x04\0\x02\0\x03\x12\x03\n\"#\n\x0b\n\x04\
+    \x04\0\x02\x01\x12\x03\x0b\x04\x20\n\x0c\n\x05\x04\0\x02\x01\x06\x12\x03\
+    \x0b\x04\x0f\n\x0c\n\x05\x04\0\x02\x01\x01\x12\x03\x0b\x10\x1b\n\x0c\n\
+    \x05\x04\0\x02\x01\x03\x12\x03\x0b\x1e\x1f\n\n\n\x02\x04\x01\x12\x04\x0f\
+    \0\x1d\x01\n\n\n\x03\x04\x01\x01\x12\x03\x0f\x08\x0e\n\x0b\n\x04\x04\x01\
+    \x03\0\x12\x03\x10\x02.\n\x0c\n\x05\x04\x01\x03\0\x01\x12\x03\x10\n\x17\
+    \n\r\n\x06\x04\x01\x03\0\x02\0\x12\x03\x10\x1a,\n\x0e\n\x07\x04\x01\x03\
+    \0\x02\0\x06\x12\x03\x10\x1a\x20\n\x0e\n\x07\x04\x01\x03\0\x02\0\x01\x12\
+    \x03\x10!'\n\x0e\n\x07\x04\x01\x03\0\x02\0\x03\x12\x03\x10*+\n\x0b\n\x04\
+    \x04\x01\x03\x01\x12\x03\x11\x02/\n\x0c\n\x05\x04\x01\x03\x01\x01\x12\
+    \x03\x11\n\x15\n\r\n\x06\x04\x01\x03\x01\x02\0\x12\x03\x11\x18-\n\x0e\n\
+    \x07\x04\x01\x03\x01\x02\0\x06\x12\x03\x11\x18!\n\x0e\n\x07\x04\x01\x03\
+    \x01\x02\0\x01\x12\x03\x11\"(\n\x0e\n\x07\x04\x01\x03\x01\x02\0\x03\x12\
+    \x03\x11+,\n\x0b\n\x04\x04\x01\x03\x02\x12\x03\x12\x02(\n\x0c\n\x05\x04\
+    \x01\x03\x02\x01\x12\x03\x12\n\x15\n\r\n\x06\x04\x01\x03\x02\x02\0\x12\
+    \x03\x12\x18&\n\x0e\n\x07\x04\x01\x03\x02\x02\0\x06\x12\x03\x12\x18\x1c\
+    \n\x0e\n\x07\x04\x01\x03\x02\x02\0\x01\x12\x03\x12\x1d!\n\x0e\n\x07\x04\
+    \x01\x03\x02\x02\0\x03\x12\x03\x12$%\n\x0b\n\x04\x04\x01\x03\x03\x12\x03\
+    \x13\x02.\n\x0c\n\x05\x04\x01\x03\x03\x01\x12\x03\x13\n\x17\n\r\n\x06\
+    \x04\x01\x03\x03\x02\0\x12\x03\x13\x1a,\n\x0e\n\x07\x04\x01\x03\x03\x02\
+    \0\x06\x12\x03\x13\x1a\x20\n\x0e\n\x07\x04\x01\x03\x03\x02\0\x01\x12\x03\
+    \x13!'\n\x0e\n\x07\x04\x01\x03\x03\x02\0\x03\x12\x03\x13*+\n\x0b\n\x04\
+    \x04\x01\x03\x04\x12\x03\x14\x02.\n\x0c\n\x05\x04\x01\x03\x04\x01\x12\
+    \x03\x14\n\x14\n\r\n\x06\x04\x01\x03\x04\x02\0\x12\x03\x14\x17,\n\x0e\n\
+    \x07\x04\x01\x03\x04\x02\0\x05\x12\x03\x14\x17\x1d\n\x0e\n\x07\x04\x01\
+    \x03\x04\x02\0\x01\x12\x03\x14\x1e'\n\x0e\n\x07\x04\x01\x03\x04\x02\0\
+    \x03\x12\x03\x14*+\n\x0c\n\x04\x04\x01\x08\0\x12\x04\x16\x02\x1c\x03\n\
+    \x0c\n\x05\x04\x01\x08\0\x01\x12\x03\x16\x08\x0f\n\x0b\n\x04\x04\x01\x02\
+    \0\x12\x03\x17\x04$\n\x0c\n\x05\x04\x01\x02\0\x06\x12\x03\x17\x04\x11\n\
+    \x0c\n\x05\x04\x01\x02\0\x01\x12\x03\x17\x12\x1f\n\x0c\n\x05\x04\x01\x02\
+    \0\x03\x12\x03\x17\"#\n\x0b\n\x04\x04\x01\x02\x01\x12\x03\x18\x04\x20\n\
+    \x0c\n\x05\x04\x01\x02\x01\x06\x12\x03\x18\x04\x0f\n\x0c\n\x05\x04\x01\
+    \x02\x01\x01\x12\x03\x18\x10\x1b\n\x0c\n\x05\x04\x01\x02\x01\x03\x12\x03\
+    \x18\x1e\x1f\n\x0b\n\x04\x04\x01\x02\x02\x12\x03\x19\x04\x20\n\x0c\n\x05\
+    \x04\x01\x02\x02\x06\x12\x03\x19\x04\x0f\n\x0c\n\x05\x04\x01\x02\x02\x01\
+    \x12\x03\x19\x10\x1b\n\x0c\n\x05\x04\x01\x02\x02\x03\x12\x03\x19\x1e\x1f\
+    \n\x0b\n\x04\x04\x01\x02\x03\x12\x03\x1a\x04$\n\x0c\n\x05\x04\x01\x02\
+    \x03\x06\x12\x03\x1a\x04\x11\n\x0c\n\x05\x04\x01\x02\x03\x01\x12\x03\x1a\
+    \x12\x1f\n\x0c\n\x05\x04\x01\x02\x03\x03\x12\x03\x1a\"#\n\x0b\n\x04\x04\
+    \x01\x02\x04\x12\x03\x1b\x04\x1e\n\x0c\n\x05\x04\x01\x02\x04\x06\x12\x03\
+    \x1b\x04\x0e\n\x0c\n\x05\x04\x01\x02\x04\x01\x12\x03\x1b\x0f\x19\n\x0c\n\
+    \x05\x04\x01\x02\x04\x03\x12\x03\x1b\x1c\x1db\x06proto3\
 ";
 
 static file_descriptor_proto_lazy: ::protobuf::rt::LazyV2<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::rt::LazyV2::INIT;

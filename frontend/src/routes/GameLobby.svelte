@@ -17,6 +17,7 @@
   let players: Record<string, Player> = {};
   let currentTask: Task | null = null;
   let ws: WebSocket | null = null;
+  let connectSuccessful = false;
 
   const leaveGame = async () => {
     ws?.close();
@@ -41,6 +42,7 @@
           },
         }).finish()
       );
+      connectSuccessful = true;
     };
     ws.onclose = () => {
       ws = null;
@@ -53,12 +55,11 @@
         const raw = await ev.data.arrayBuffer();
         const { message } = Server.decode(new Uint8Array(raw));
         console.info("Received new message", message);
-        if (message?.$case === "newTask") {
-          const { task } = message.newTask;
-          currentTask = task!;
-        } else if (message?.$case === "playerUpdated") {
+        if (message?.$case === "playerUpdated") {
           const { player } = message.playerUpdated;
-          players[player!.id] = player!;
+          if (player?.id && players[player!.id]) {
+            players[player!.id] = player!;
+          }
         } else if (message?.$case === "selfUpdated") {
           const { player } = message.selfUpdated;
           players[player!.id] = { id: player!.id, name: player!.name };
@@ -66,6 +67,13 @@
         } else if (message?.$case === "gameUpdated") {
           const { game } = message.gameUpdated;
           currentGame = game!;
+        } else if (message?.$case === "playerEntered") {
+          const { player } = message.playerEntered;
+          players[player!.id] = player!;
+        } else if (message?.$case === "playerLeft") {
+          const { playerId } = message.playerLeft;
+          delete players[playerId!];
+          players = players;
         } else {
           console.warn("Unknown task type");
         }
@@ -81,7 +89,11 @@
 <Dialog>
   {#if !ws}
     <DialogHeader>Lobby</DialogHeader>
-    <p>Loading game</p>
+    {#if !connectSuccessful}
+      <p>Loading game</p>
+    {:else}
+      <p>Connection lost</p>
+    {/if}
   {:else if currentGame !== null}
     {#if currentTask?.definition?.$case === "settings"}
       <Settings {leaveGame} {currentGame} {players} {ws} />

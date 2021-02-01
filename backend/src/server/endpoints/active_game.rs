@@ -23,6 +23,36 @@ pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp
                 while let Some(msg) = receiver.next().await {
                     process_incoming_message(msg, &peer_id, ctx).await;
                 }
+
+                if let Some(player_id) = ctx.ws().get_authenticated_player_for_peer(&peer_id).await
+                {
+                    if let Ok(player) = ctx.db().players().get(&player_id).await {
+                        if let Some(player) = player {
+                            if let Ok(game) = ctx.db().games().get(player.game_token()).await {
+                                if let Some(game) = game {
+                                    for player_id in game.all_player_ids() {
+                                        // skip left player
+                                        if &player.id() == &player_id {
+                                            continue;
+                                        }
+
+                                        // inform other players about new player
+                                        let mut player_msg =
+                                            proto::message::Server_PlayerLeft::new();
+                                        player_msg.set_player_id(String::from(player.id()));
+                                        let mut msg = proto::message::Server::new();
+                                        msg.set_playerLeft(player_msg);
+                                        if let Err(err) =
+                                            ctx.ws().send_message(player_id, msg).await
+                                        {
+                                            warn!("Informing about left player failed: {:?}", err);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             Err(err) => {
                 error!("Preparing new connection has failed: {}", &err);
@@ -115,24 +145,31 @@ async fn handle_incoming_message(
                             .await
                             .expect("Reading player has failed")
                         {
-                            let mut player_msg = proto::message::Server_PlayerUpdated::new();
-                            player_msg.set_player(other_player.into());
+                            // inform player about existing players
                             let mut msg = proto::message::Server::new();
-                            msg.set_playerUpdated(player_msg);
+                            if player_id == player.id() {
+                                let mut update_msg = proto::message::Server_SelfUpdated::new();
+                                update_msg.set_player(player.clone().into());
+                                msg.set_selfUpdated(update_msg);
+                            } else {
+                                let mut update_msg = proto::message::Server_PlayerUpdated::new();
+                                update_msg.set_player(player.clone().into());
+                                msg.set_playerUpdated(update_msg);
+                            }
                             ctx.ws()
                                 .send_message(String::from(player.id()), msg)
                                 .await?;
+
+                            // inform other players about new player
+                            let mut player_msg = proto::message::Server_PlayerEntered::new();
+                            player_msg.set_player(player.clone().into());
+                            let mut msg = proto::message::Server::new();
+                            msg.set_playerEntered(player_msg);
+                            ctx.ws()
+                                .send_message(String::from(other_player.id()), msg)
+                                .await?;
                         }
                     }
-                }
-
-                if let Some(next_task) = player.open_tasks().front() {
-                    let mut new_task_msg = proto::message::Server_NewTask::new();
-                    new_task_msg.set_task(next_task.clone().into());
-
-                    let mut msg = proto::message::Server::new();
-                    msg.set_newTask(new_task_msg);
-                    return ctx.ws().send_message(String::from(player.id()), msg).await;
                 }
                 Ok(())
             }

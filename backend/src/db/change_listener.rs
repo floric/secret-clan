@@ -25,15 +25,15 @@ impl ChangeListener {
         );
     }
 
-    async fn listen_to_players(players: &mut mpsc::Receiver<Player>, ctx: &AppContext) {
-        while let Some(player) = players.recv().await {
+    async fn listen_to_players(updated_players: &mut mpsc::Receiver<Player>, ctx: &AppContext) {
+        while let Some(player) = updated_players.recv().await {
             match ctx.db().games().get(player.game_token()).await {
                 Ok(game) => {
                     if let Some(game) = game {
                         // inform all players of game about updated player
                         for player_id in game.all_player_ids() {
                             let mut msg = proto::message::Server::new();
-                            if &player_id == player.id() {
+                            if player_id.eq(player.id()) {
                                 let mut update_msg = proto::message::Server_SelfUpdated::new();
                                 update_msg.set_player(player.clone().into());
                                 msg.set_selfUpdated(update_msg);
@@ -53,8 +53,8 @@ impl ChangeListener {
         }
     }
 
-    async fn listen_to_games(games: &mut mpsc::Receiver<Game>, ctx: &AppContext) {
-        while let Some(game) = games.recv().await {
+    async fn listen_to_games(updated_games: &mut mpsc::Receiver<Game>, ctx: &AppContext) {
+        while let Some(game) = updated_games.recv().await {
             // inform all players of game about updated game
             for player_id in game.all_player_ids() {
                 let mut update_msg = proto::message::Server_GameUpdated::new();
