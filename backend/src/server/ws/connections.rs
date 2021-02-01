@@ -66,8 +66,7 @@ impl Connections {
                             }
                         }
                     } else {
-                        // TODO Maybe add retry here?
-                        warn!("Player {} has no active connection", &player_id);
+                        debug!("Player {} has no active connection", &player_id);
                     }
                 }
                 WsCommand::FetchAuthenticatedPlayer { peer_id, sender } => {
@@ -82,6 +81,10 @@ impl Connections {
                 }
                 WsCommand::RemoveConnection { peer_id } => {
                     self.connections.remove(&peer_id);
+                    if let Some(player_id) = self.peer_to_player.get(&peer_id) {
+                        self.player_to_peer.remove(player_id);
+                    }
+                    self.peer_to_player.remove(&peer_id);
                 }
                 WsCommand::RegisterActivePlayer { player_id, peer_id } => {
                     self.player_to_peer

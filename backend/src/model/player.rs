@@ -26,7 +26,7 @@ pub struct Player {
     #[derivative(Debug = "ignore")]
     user_token: String,
     creation_time: DateTime<Utc>,
-    last_action_time: DateTime<Utc>,
+    last_active_time: Option<DateTime<Utc>>,
     open_tasks: VecDeque<TaskDefinition>,
 }
 
@@ -47,7 +47,7 @@ impl Player {
             game_token: String::from(game_token),
             user_token: String::from(""),
             creation_time: Utc::now(),
-            last_action_time: Utc::now(),
+            last_active_time: None,
             open_tasks: VecDeque::default(),
         }
     }
@@ -78,12 +78,16 @@ impl Player {
         self.user_token = String::from(new_token);
     }
 
-    pub fn heartbeat(&mut self) {
-        self.last_action_time = Utc::now();
+    pub fn set_inactive(&mut self) {
+        self.last_active_time = Some(Utc::now());
     }
 
-    pub fn last_action_time(&self) -> DateTime<Utc> {
-        self.last_action_time
+    pub fn set_active(&mut self) {
+        self.last_active_time = None;
+    }
+
+    pub fn last_active_time(&self) -> Option<DateTime<Utc>> {
+        self.last_active_time
     }
 
     pub fn assign_task(&mut self, task: TaskDefinition) {

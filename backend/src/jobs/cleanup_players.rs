@@ -14,7 +14,9 @@ pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
 fn is_inactive_player(duration: Duration) -> impl Fn(&Player) -> bool {
     let threshold = Utc::now().checked_sub_signed(duration).unwrap();
 
-    move |player: &Player| player.last_action_time().lt(&threshold)
+    move |player: &Player| {
+        player.last_active_time().is_some() && player.last_active_time().unwrap().lt(&threshold)
+    }
 }
 
 async fn execute_cleanup_players(ctx: &AppContext, duration: Duration) -> bool {
