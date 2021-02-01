@@ -75,7 +75,8 @@ mod tests {
     #[tokio::test]
     async fn should_cleanup_player() {
         let ctx = AppContext::init();
-        let player = Player::new("GAME");
+        let mut player = Player::new("GAME");
+        player.set_inactive();
         ctx.db()
             .players()
             .persist(&player)

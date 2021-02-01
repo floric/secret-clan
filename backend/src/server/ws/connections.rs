@@ -1,7 +1,7 @@
 use super::WsCommand;
 use futures::stream::SplitSink;
 use futures::SinkExt;
-use log::{debug, error, info, warn};
+use log::{debug, error, info};
 use protobuf::Message;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
