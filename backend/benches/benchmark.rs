@@ -9,10 +9,9 @@ use tokio::{runtime::Builder, task};
 fn criterion_benchmark(c: &mut Criterion) {
     std::env::set_var("LOG_LEVEL", "warn");
 
-    let mut rt = Builder::default()
-        .threaded_scheduler()
-        .enable_all()
+    let rt = Builder::new_multi_thread()
         .thread_name("sc")
+        .enable_io()
         .build()
         .expect("Creating runtime failed");
 

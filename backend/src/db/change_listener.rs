@@ -1,5 +1,8 @@
 use crate::{
-    model::{Game, Player},
+    model::{
+        proto::{self},
+        Game, Player,
+    },
     server::app_context::AppContext,
 };
 use log::error;
@@ -22,23 +25,24 @@ impl ChangeListener {
         );
     }
 
-    async fn listen_to_players(players: &mut mpsc::Receiver<Player>, ctx: &AppContext) {
-        while let Some(player) = players.recv().await {
+    async fn listen_to_players(updated_players: &mut mpsc::Receiver<Player>, ctx: &AppContext) {
+        while let Some(player) = updated_players.recv().await {
             match ctx.db().games().get(player.game_token()).await {
                 Ok(game) => {
                     if let Some(game) = game {
                         // inform all players of game about updated player
                         for player_id in game.all_player_ids() {
-                            if let Err(err) = ctx
-                                .ws()
-                                .send_message(
-                                    player_id,
-                                    crate::model::OutgoingMessage::PlayerUpdated {
-                                        player: player.clone(),
-                                    },
-                                )
-                                .await
-                            {
+                            let mut msg = proto::message::Server::new();
+                            if player_id.eq(player.id()) {
+                                let mut update_msg = proto::message::Server_SelfUpdated::new();
+                                update_msg.set_player(player.clone().into());
+                                msg.set_selfUpdated(update_msg);
+                            } else {
+                                let mut update_msg = proto::message::Server_PlayerUpdated::new();
+                                update_msg.set_player(player.clone().into());
+                                msg.set_playerUpdated(update_msg);
+                            }
+                            if let Err(err) = ctx.ws().send_message(player_id, msg).await {
                                 error!("Sending PlayerUpdated has failed: {}", &err);
                             }
                         }
@@ -49,18 +53,17 @@ impl ChangeListener {
         }
     }
 
-    async fn listen_to_games(games: &mut mpsc::Receiver<Game>, ctx: &AppContext) {
-        while let Some(game) = games.recv().await {
+    async fn listen_to_games(updated_games: &mut mpsc::Receiver<Game>, ctx: &AppContext) {
+        while let Some(game) = updated_games.recv().await {
             // inform all players of game about updated game
             for player_id in game.all_player_ids() {
-                if let Err(err) = ctx
-                    .ws()
-                    .send_message(
-                        player_id,
-                        crate::model::OutgoingMessage::GameUpdated { game: game.clone() },
-                    )
-                    .await
-                {
+                let mut update_msg = proto::message::Server_GameUpdated::new();
+                update_msg.set_game(game.clone().into());
+
+                let mut msg = proto::message::Server::new();
+                msg.set_gameUpdated(update_msg);
+
+                if let Err(err) = ctx.ws().send_message(player_id, msg).await {
                     error!("Sending GameUpdated has failed: {}", &err);
                 }
             }

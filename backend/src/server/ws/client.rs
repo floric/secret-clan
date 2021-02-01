@@ -1,7 +1,8 @@
 use super::{Connections, WsCommand};
-use crate::model::OutgoingMessage;
+use crate::model::proto::{self};
 use futures::stream::SplitSink;
-use tokio::sync::mpsc;
+use log::error;
+use tokio::sync::{mpsc, oneshot};
 use warp::ws::{Message, WebSocket};
 
 pub struct WsClient {
@@ -49,14 +50,11 @@ impl WsClient {
     pub async fn send_message(
         &self,
         player_id: String,
-        message: OutgoingMessage,
+        msg: proto::message::Server,
     ) -> Result<(), String> {
         self.sender
             .clone()
-            .send(WsCommand::SendMessage {
-                msg: message,
-                player_id,
-            })
+            .send(WsCommand::SendMessage { msg, player_id })
             .await
             .map_err(|err| err.to_string())
     }
@@ -74,5 +72,29 @@ impl WsClient {
             })
             .await
             .map_err(|err| err.to_string())
+    }
+
+    pub async fn get_authenticated_player_for_peer(&self, peer_id: &str) -> Option<String> {
+        let (sender, receiver) = oneshot::channel();
+        if let Err(err) = self
+            .sender
+            .clone()
+            .send(WsCommand::FetchAuthenticatedPlayer {
+                peer_id: String::from(peer_id),
+                sender,
+            })
+            .await
+            .map_err(|err| err.to_string())
+        {
+            error!("Sending player authentication request failed: {:?}", err);
+        }
+
+        match receiver.await {
+            Ok(res) => res,
+            Err(err) => {
+                error!("Receiving player ID failed: {:?}", err);
+                None
+            }
+        }
     }
 }

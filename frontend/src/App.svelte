@@ -2,6 +2,7 @@
   import Router from "svelte-spa-router";
   import { wrap } from "svelte-spa-router/wrap";
   import NotFound from "./routes/errors/NotFound.svelte";
+  import Unexpected from "./routes/errors/Unexpected.svelte";
   import css from "./main.css";
 
   const routes = {
@@ -14,9 +15,7 @@
     "/games/:token": wrap({
       asyncComponent: () => import("./routes/GameLobby.svelte"),
     }),
-    "/errors/unexpected": wrap({
-      asyncComponent: () => import("./routes/errors/Unexpected.svelte"),
-    }),
+    "/errors/unexpected": Unexpected,
     "*": NotFound,
   };
 </script>

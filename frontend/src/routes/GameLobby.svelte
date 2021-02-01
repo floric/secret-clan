@@ -2,34 +2,22 @@
   import { push } from "svelte-spa-router";
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
-  import type { GameDetails } from "../types/Game";
-  import { IncomingMessages, IncomingMessageType } from "../types/Messages";
-  import { Tasks, TaskType } from "../types/Tasks";
+  import { Client, Server } from "../types/proto/message";
+  import type { Game } from "../types/proto/game";
+  import type { Player } from "../types/proto/player";
+  import type { Task } from "../types/proto/task";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
   import Settings from "./tasks/Settings.svelte";
   import WaitForTask from "./tasks/WaitForTask.svelte";
-  import DiscloseRole from "./tasks/DiscloseRole.svelte";
-  import Discuss from "./tasks/Discuss.svelte";
   import { sendRequest } from "../utils/requests";
 
   export let params: { token?: string } = {};
-  let details: GameDetails | null = null;
-  let currentTask: Tasks | null = null;
+  let currentGame: Game | null = null;
+  let players: Record<string, Player> = {};
+  let currentTask: Task | null = null;
   let ws: WebSocket | null = null;
-
-  const refreshGame = async () => {
-    const res = await sendRequest<GameDetails>(
-      `/api/games/${params.token}/details`,
-      "GET"
-    );
-    if (!res) {
-      details = null;
-      return;
-    }
-
-    details = res;
-  };
+  let connectSuccessful = false;
 
   const leaveGame = async () => {
     ws?.close();
@@ -39,24 +27,22 @@
     await push("/games");
   };
 
-  const fetchGamePeriodically = async () => {
-    try {
-      await refreshGame();
-    } catch (err) {
-      console.error(err);
-      await push("/errors/unexpected");
-    }
-    createWsConnection();
-  };
-
-  async function createWsConnection() {
+  function createWsConnection() {
     if (ws) {
       return;
     }
 
     ws = new WebSocket("ws://localhost:3333/api/active_game");
     ws.onopen = () => {
-      ws?.send(JSON.stringify({ auth: { token: getToken() } }));
+      ws?.send(
+        Client.encode({
+          message: {
+            $case: "authConfirmed",
+            authConfirmed: { token: getToken() || "" },
+          },
+        }).finish()
+      );
+      connectSuccessful = true;
     };
     ws.onclose = () => {
       ws = null;
@@ -64,59 +50,63 @@
     ws.onerror = (ev) => {
       console.error("Error", ev);
     };
-    ws.onmessage = (ev: MessageEvent<string>) => {
+    ws.onmessage = async (ev: MessageEvent<Blob>) => {
       try {
-        const msg: IncomingMessages = JSON.parse(ev.data);
-        if (msg[IncomingMessageType.NewTask]) {
-          const { task } = msg[IncomingMessageType.NewTask];
-          currentTask = task;
-        } else if (msg[IncomingMessageType.PlayerUpdated]) {
-          const { player } = msg[IncomingMessageType.PlayerUpdated];
-          if (details) {
-            details.players[player.id] = player;
+        const raw = await ev.data.arrayBuffer();
+        const { message } = Server.decode(new Uint8Array(raw));
+        console.info("Received new message", message);
+        if (message?.$case === "playerUpdated") {
+          const { player } = message.playerUpdated;
+          if (player?.id && players[player!.id]) {
+            players[player!.id] = player!;
           }
-        } else if (msg[IncomingMessageType.GameUpdated]) {
-          const { game } = msg[IncomingMessageType.GameUpdated];
-          if (details) {
-            details.game = game;
-          }
+        } else if (message?.$case === "selfUpdated") {
+          const { player } = message.selfUpdated;
+          players[player!.id] = { id: player!.id, name: player!.name };
+          currentTask = player?.openTasks[0] || null;
+        } else if (message?.$case === "gameUpdated") {
+          const { game } = message.gameUpdated;
+          currentGame = game!;
+        } else if (message?.$case === "playerEntered") {
+          const { player } = message.playerEntered;
+          players[player!.id] = player!;
+        } else if (message?.$case === "playerLeft") {
+          const { playerId } = message.playerLeft;
+          delete players[playerId!];
+          players = players;
         } else {
-          console.warn("Unknown task type: " + Object.keys(msg));
+          console.warn("Unknown task type");
         }
       } catch (err) {
-        console.error("Parsing task has failed");
+        console.error("Parsing task has failed", err);
       }
     };
   }
+
+  createWsConnection();
 </script>
 
 <Dialog>
-  {#await fetchGamePeriodically()}
+  {#if !ws}
     <DialogHeader>Lobby</DialogHeader>
-    <p>Loading game</p>
-  {:then _}
-    {#if details !== null}
-      {#if !currentTask}
-        <WaitForTask {leaveGame} />
-      {:else if currentTask[TaskType.Settings]}
-        <Settings {leaveGame} {refreshGame} {details} />
-      {:else if currentTask[TaskType.DiscloseRole]}
-        <DiscloseRole
-          {leaveGame}
-          role={currentTask[TaskType.DiscloseRole].role} />
-      {:else if currentTask[TaskType.Discuss]}
-        <Discuss {leaveGame} />
-      {:else}
-        <p>Unsupported Game State.</p>
-      {/if}
+    {#if !connectSuccessful}
+      <p>Loading game</p>
     {:else}
-      <DialogHeader>Lobby</DialogHeader>
-      <p>Game doesn't exist.</p>
-      <div class="flex items-center">
-        <div class="flex ml-auto">
-          <InternalLink href="/games">Back to Games</InternalLink>
-        </div>
-      </div>
+      <p>Connection lost</p>
     {/if}
-  {/await}
+  {:else if currentGame !== null}
+    {#if currentTask?.definition?.$case === "settings"}
+      <Settings {leaveGame} {currentGame} {players} {ws} />
+    {:else}
+      <WaitForTask {leaveGame} />
+    {/if}
+  {:else}
+    <DialogHeader>Lobby</DialogHeader>
+    <p>Game doesn't exist.</p>
+    <div class="flex items-center">
+      <div class="flex ml-auto">
+        <InternalLink href="/games">Back to Games</InternalLink>
+      </div>
+    </div>
+  {/if}
 </Dialog>

@@ -1,8 +1,5 @@
 use crate::{
-    model::{
-        Game, GameResponse, GameState, OutgoingMessage, Player, PlayerResponse, TaskDefinition,
-        TaskType,
-    },
+    model::{Game, GameResponse, GameState, Player, TaskDefinition, TaskType},
     server::{
         app_context::AppContext,
         auth::{extract_verified_id, generate_jwt_token},
@@ -12,11 +9,7 @@ use crate::{
 use log::debug;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::Serialize;
-use std::{
-    collections::{HashMap, VecDeque},
-    convert::Infallible,
-    iter,
-};
+use std::{convert::Infallible, iter};
 use warp::hyper::StatusCode;
 
 // this value determines the findability of a game and is a tradeoff between security and user friendliness
@@ -48,71 +41,6 @@ pub async fn get_game_filter(
             )),
             None => Ok(reply_error(StatusCode::NOT_FOUND)),
         },
-        None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
-    }
-}
-
-pub async fn get_game_details_filter(
-    game_token: &str,
-    authorization: &str,
-    ctx: &AppContext,
-) -> Result<impl warp::Reply, Infallible> {
-    #[derive(Serialize)]
-    #[serde(rename_all = "camelCase")]
-    struct GetGameDetailsResponse {
-        game: GameResponse,
-        players: HashMap<String, PlayerResponse>,
-        open_tasks: VecDeque<TaskDefinition>,
-    }
-
-    match extract_verified_id(authorization, ctx) {
-        Some(player_id) => {
-            let (game, player) = tokio::join!(
-                ctx.db().games().get(game_token),
-                ctx.db().players().get(&player_id)
-            );
-
-            match game.expect("Reading game has failed") {
-                Some(game) => {
-                    match player.expect("Reading player has failed").filter(|player| {
-                        game.player_ids().contains(player.id())
-                            || game.admin_id().is_some()
-                                && game.admin_id().as_ref().unwrap() == player.id()
-                    }) {
-                        Some(mut player) => {
-                            player.heartbeat();
-                            let all_ids = game.all_player_ids();
-                            let (_, player_ids) = tokio::join!(
-                                ctx.db().players().persist(&player),
-                                ctx.db().players().get_batch(&all_ids)
-                            );
-
-                            match player_ids {
-                                Ok(players) => Ok(warp::reply::with_status(
-                                    warp::reply::json(&GetGameDetailsResponse {
-                                        game: game.to_response(),
-                                        players: players
-                                            .iter()
-                                            .map(|(id, player)| {
-                                                (String::from(id), player.to_response())
-                                            })
-                                            .collect(),
-                                        open_tasks: player.open_tasks().to_owned(),
-                                    }),
-                                    StatusCode::OK,
-                                )),
-                                Err(_) => Ok(reply_error_with_details(
-                                    StatusCode::INTERNAL_SERVER_ERROR,
-                                    "Reading players has failed",
-                                )),
-                            }
-                        }
-                        None => Ok(reply_error(StatusCode::NOT_FOUND)),
-                    }
-                }
-                None => Ok(reply_error(StatusCode::NOT_FOUND)),
-            }
-        }
         None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
     }
 }
@@ -246,13 +174,6 @@ pub async fn start_game_filter(
                         .values_mut()
                         .map(|p| {
                             p.resolve_task(TaskType::Settings);
-                            p.assign_task(TaskDefinition::DiscloseRole {
-                                role: game
-                                    .assigned_roles()
-                                    .get(p.id())
-                                    .expect("Player is missing role")
-                                    .clone(),
-                            });
                             p.clone()
                         })
                         .collect::<Vec<_>>();
@@ -261,28 +182,7 @@ pub async fn start_game_filter(
                         ctx.db().games().persist(&game)
                     );
                     match persist_players.and(persist_game) {
-                        Ok(_) => {
-                            let mut send_futures = vec![];
-                            for p in players {
-                                let future = ctx.ws().send_message(
-                                    String::from(p.id()),
-                                    OutgoingMessage::NewTask {
-                                        task: TaskDefinition::DiscloseRole {
-                                            role: game
-                                                .assigned_roles()
-                                                .get(p.id())
-                                                .expect("Player is missing role")
-                                                .clone(),
-                                        },
-                                    },
-                                );
-                                send_futures.push(future);
-                            }
-                            match futures::future::try_join_all(send_futures).await {
-                                Ok(_) => Ok(reply_success(StatusCode::OK)),
-                                Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                            }
-                        }
+                        Ok(_) => Ok(reply_success(StatusCode::OK)),
                         Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
                     }
                 }
@@ -326,11 +226,11 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
 #[cfg(test)]
 mod tests {
     use super::{
-        attend_game_filter, create_game_filter, get_game_details_filter, get_game_filter,
-        leave_game_filter, start_game_filter,
+        attend_game_filter, create_game_filter, get_game_filter, leave_game_filter,
+        start_game_filter,
     };
     use crate::{
-        model::{Game, GameState, Party, Player, Role},
+        model::{Game, GameState, Player},
         server::{app_context::AppContext, auth::generate_jwt_token},
     };
     use warp::{hyper::StatusCode, Reply};
@@ -405,37 +305,6 @@ mod tests {
 
         let reply = get_game_filter(GAME_TOKEN, &token, &ctx).await;
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn should_get_game_and_send_heartbeat() {
-        let ctx = AppContext::init();
-
-        let admin = Player::new(GAME_TOKEN);
-        let token = generate_jwt_token(&admin, &ctx.config().auth_secret);
-        let first_time = admin.last_action_time();
-        ctx.db()
-            .players()
-            .persist(&admin)
-            .await
-            .expect("Writing admin failed");
-
-        ctx.db()
-            .games()
-            .persist(&Game::new(admin.id(), GAME_TOKEN))
-            .await
-            .expect("Writing game failed");
-
-        let reply = get_game_details_filter(GAME_TOKEN, &token, &ctx).await;
-        assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
-
-        let updated_admin = ctx
-            .db()
-            .players()
-            .get(admin.id())
-            .await
-            .expect("Reading admin failed");
-        assert!(updated_admin.unwrap().last_action_time().gt(&first_time));
     }
 
     #[tokio::test]
@@ -611,11 +480,6 @@ mod tests {
             .expect("Couldn't find game")
             .unwrap();
         assert_eq!(updated_game.state(), &GameState::Started);
-        assert_eq!(
-            updated_game.assigned_roles().get(player.id()).unwrap(),
-            &Role::new("Good", Party::Good, "A good person. Keep the law.")
-        );
-        assert_eq!(updated_game.assigned_roles().len(), 1);
     }
 
     #[tokio::test]

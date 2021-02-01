@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message Game {
+  string token = 1;
+  string admin_id = 2;
+}

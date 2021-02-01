@@ -1,9 +1,13 @@
 use super::{TaskDefinition, TaskType};
-use crate::db::Persist;
+use crate::{
+    db::Persist,
+    model::proto::{self},
+};
 use chrono::{DateTime, Utc};
 use log::warn;
 use names::Generator;
 use nanoid::nanoid;
+use protobuf::RepeatedField;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
 use std::collections::VecDeque;
@@ -22,9 +26,8 @@ pub struct Player {
     #[derivative(Debug = "ignore")]
     user_token: String,
     creation_time: DateTime<Utc>,
-    last_action_time: DateTime<Utc>,
+    last_active_time: Option<DateTime<Utc>>,
     open_tasks: VecDeque<TaskDefinition>,
-    acknowledged_role: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
@@ -44,9 +47,8 @@ impl Player {
             game_token: String::from(game_token),
             user_token: String::from(""),
             creation_time: Utc::now(),
-            last_action_time: Utc::now(),
+            last_active_time: None,
             open_tasks: VecDeque::default(),
-            acknowledged_role: false,
         }
     }
 
@@ -72,24 +74,20 @@ impl Player {
         &self.user_token
     }
 
-    pub fn acknowledged_role(&self) -> &bool {
-        &self.acknowledged_role
-    }
-
-    pub fn acknowledge_role(&mut self) {
-        self.acknowledged_role = true;
-    }
-
     pub fn update_token(&mut self, new_token: &str) {
         self.user_token = String::from(new_token);
     }
 
-    pub fn heartbeat(&mut self) {
-        self.last_action_time = Utc::now();
+    pub fn set_inactive(&mut self) {
+        self.last_active_time = Some(Utc::now());
     }
 
-    pub fn last_action_time(&self) -> DateTime<Utc> {
-        self.last_action_time
+    pub fn set_active(&mut self) {
+        self.last_active_time = None;
+    }
+
+    pub fn last_active_time(&self) -> Option<DateTime<Utc>> {
+        self.last_active_time
     }
 
     pub fn assign_task(&mut self, task: TaskDefinition) {
@@ -138,5 +136,28 @@ impl From<IVec> for Player {
     fn from(bytes: IVec) -> Player {
         let vec: Vec<u8> = bytes.to_vec();
         bincode::deserialize(&vec).unwrap()
+    }
+}
+
+impl Into<proto::player::Player> for Player {
+    fn into(self) -> proto::player::Player {
+        let mut player = proto::player::Player::new();
+        player.set_id(self.id);
+        player.set_name(self.name);
+        player
+    }
+}
+
+impl Into<proto::player::OwnPlayer> for Player {
+    fn into(self) -> proto::player::OwnPlayer {
+        let mut player = proto::player::OwnPlayer::new();
+        player.set_id(self.id);
+        player.set_name(self.name);
+        let mut open_tasks = RepeatedField::new();
+        for t in self.open_tasks {
+            open_tasks.push(t.into());
+        }
+        player.set_open_tasks(open_tasks);
+        player
     }
 }

@@ -42,11 +42,9 @@ mod tests {
     use crate::{
         model::{Player, TaskDefinition},
         server::{
-            app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task,
-            tasks::settings::SettingsTask,
+            app_context::AppContext, endpoints::tasks::apply_task, tasks::settings::SettingsTask,
         },
     };
-    use warp::{hyper::StatusCode, Reply};
 
     #[tokio::test]
     async fn should_change_name() {
@@ -58,17 +56,20 @@ mod tests {
             .persist(&player)
             .await
             .expect("Persisting player has failed");
-        let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
+        ctx.ws()
+            .register_active_player(player.id(), "peer")
+            .await
+            .expect("Setting peer connection failed");
 
         let res = apply_task(
             SettingsTask {
                 name: String::from("Test"),
             },
-            &authorization,
+            "peer",
             &ctx,
         )
         .await;
-        assert_eq!(res.unwrap().into_response().status(), StatusCode::OK);
+        assert!(res.is_ok());
 
         let updated_player = ctx
             .db()

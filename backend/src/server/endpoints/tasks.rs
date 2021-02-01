@@ -1,21 +1,7 @@
-use crate::{
-    model::Task,
-    server::{
-        app_context::AppContext,
-        auth::extract_verified_id,
-        reply::{reply_error, reply_error_with_details, reply_success},
-    },
-};
+use crate::{model::Task, server::app_context::AppContext};
 use log::warn;
-use std::convert::Infallible;
-use warp::hyper::StatusCode;
-
-pub async fn apply_task<T: Task>(
-    task: T,
-    authorization: &str,
-    ctx: &AppContext,
-) -> Result<impl warp::Reply, Infallible> {
-    match extract_verified_id(authorization, ctx) {
+pub async fn apply_task<T: Task>(task: T, peer_id: &str, ctx: &AppContext) -> Result<(), String> {
+    match ctx.ws().get_authenticated_player_for_peer(peer_id).await {
         Some(player_id) => match ctx
             .db()
             .players()
@@ -37,7 +23,7 @@ pub async fn apply_task<T: Task>(
                         player.id(),
                         task.get_type()
                     );
-                    return Ok(reply_success(StatusCode::OK));
+                    return Ok(());
                 }
                 let player_id = player.id().to_owned();
                 match task.apply_result(player, ctx).await {
@@ -52,24 +38,18 @@ pub async fn apply_task<T: Task>(
                                 .unwrap();
                             player.resolve_task(task.get_type());
                             if ctx.db().players().persist(&player).await.is_err() {
-                                return Ok(reply_error_with_details(
-                                    StatusCode::INTERNAL_SERVER_ERROR,
-                                    "Updating player has failed",
-                                ));
+                                return Err(String::from("Updating player has failed"));
                             }
                         }
 
-                        Ok(reply_success(StatusCode::OK))
+                        Ok(())
                     }
-                    Err(err) => Ok(reply_error_with_details(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        &err,
-                    )),
+                    Err(err) => Err(err),
                 }
             }
-            None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
+            None => Err(String::from("Player not found")),
         },
-        None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
+        None => Err(String::from("Player not authenticated")),
     }
 }
 
@@ -78,11 +58,9 @@ mod tests {
     use crate::{
         model::Player,
         server::{
-            app_context::AppContext, auth::generate_jwt_token, endpoints::tasks::apply_task,
-            tasks::settings::SettingsTask,
+            app_context::AppContext, endpoints::tasks::apply_task, tasks::settings::SettingsTask,
         },
     };
-    use warp::{hyper::StatusCode, Reply};
 
     #[tokio::test]
     async fn should_do_nothing_for_unassigned_tasks() {
@@ -93,17 +71,20 @@ mod tests {
             .persist(&player)
             .await
             .expect("Persisting player has failed");
-        let authorization = generate_jwt_token(&player, &ctx.config().auth_secret);
+        ctx.ws()
+            .register_active_player(player.id(), "peer")
+            .await
+            .expect("Setting peer connection failed");
 
         let res = apply_task(
             SettingsTask {
                 name: String::from("Test"),
             },
-            &authorization,
+            "peer",
             &ctx,
         )
         .await;
-        assert_eq!(res.unwrap().into_response().status(), StatusCode::OK);
+        assert!(res.is_ok());
 
         let updated_player = ctx
             .db()

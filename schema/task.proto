@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message Task {
+  message Settings {}
+
+  oneof definition { Settings settings = 1; }
+}

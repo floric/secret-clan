@@ -16,10 +16,9 @@ extern crate log;
 extern crate derivative;
 
 pub fn run_app() {
-    let mut rt = Builder::default()
-        .threaded_scheduler()
-        .enable_all()
+    let rt = Builder::new_multi_thread()
         .thread_name("sc")
+        .enable_io()
         .build()
         .expect("Creating runtime failed");
 

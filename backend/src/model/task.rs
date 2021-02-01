@@ -1,34 +1,27 @@
-use super::{Player, Voting};
-use crate::{model::Role, server::app_context::AppContext};
+use super::{
+    proto::{self},
+    Player,
+};
+use crate::server::app_context::AppContext;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskType {
     Settings,
-    DiscloseRole,
-    Discuss,
-    Vote,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskDefinition {
     Settings {},
-    DiscloseRole { role: Role },
-    Discuss { time_limit: DateTime<Utc> },
-    Vote { voting: Voting },
 }
 
 impl TaskDefinition {
     pub fn get_type(&self) -> TaskType {
         match self {
             TaskDefinition::Settings {} => TaskType::Settings,
-            TaskDefinition::DiscloseRole { role: _ } => TaskType::DiscloseRole,
-            TaskDefinition::Discuss { time_limit: _ } => TaskType::Discuss,
-            TaskDefinition::Vote { voting: _ } => TaskType::Vote,
         }
     }
 }
@@ -43,4 +36,27 @@ pub trait Task {
 
     /// Determines if this task can be applied multiple times.
     fn resolve_after_first_answer(&self) -> bool;
+}
+
+impl From<proto::task::Task> for TaskDefinition {
+    fn from(proto_task: proto::task::Task) -> Self {
+        match proto_task.definition {
+            Some(def) => match def {
+                proto::task::Task_oneof_definition::settings(_) => TaskDefinition::Settings {},
+            },
+            None => TaskDefinition::Settings {},
+        }
+    }
+}
+impl Into<proto::task::Task> for TaskDefinition {
+    fn into(self) -> proto::task::Task {
+        let mut task = proto::task::Task::new();
+        // TODO
+        match self {
+            TaskDefinition::Settings {} => {
+                task.set_settings(proto::task::Task_Settings::new());
+            }
+        }
+        task
+    }
 }

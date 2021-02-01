@@ -11,14 +11,12 @@ use self::{
     endpoints::{
         active_game::handle_ws_filter,
         games::{
-            attend_game_filter, create_game_filter, get_game_details_filter, get_game_filter,
-            get_games_count_filter, leave_game_filter, start_game_filter,
+            attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
+            leave_game_filter, start_game_filter,
         },
         players::get_player_filter,
-        tasks::apply_task,
     },
     reply::handle_rejection,
-    tasks::{disclose_role::DiscloseRoleTask, settings::SettingsTask},
 };
 use log::warn;
 use std::fs;
@@ -88,15 +86,6 @@ pub async fn run_server(ctx: &'static AppContext) {
                         ),
                 )
                 .or(
-                    // GET /api/games/:token/details
-                    warp::get()
-                        .and(warp::path!(String / "details"))
-                        .and(warp::header(AUTHORIZATION))
-                        .and_then(move |token: String, authorization: String| async move {
-                            get_game_details_filter(&token, &authorization, ctx).await
-                        }),
-                )
-                .or(
                     // GET /api/games/:token
                     warp::get()
                         .and(warp::path!(String))
@@ -113,34 +102,9 @@ pub async fn run_server(ctx: &'static AppContext) {
             .and(warp::path!(String))
             .and_then(move |id: String| async move { get_player_filter(&id, ctx).await }),
     );
-    let tasks_route = warp::path("tasks").and(
-        // POST /api/tasks/settings
-        warp::post()
-            .and(warp::path!("settings"))
-            .and(warp::body::json())
-            .and(warp::header(AUTHORIZATION))
-            .and_then(
-                move |input: SettingsTask, authorization: String| async move {
-                    apply_task(input, &authorization, ctx).await
-                },
-            )
-            .or(
-                // POST /api/tasks/disclose-role
-                warp::post()
-                    .and(warp::path!("disclose-role"))
-                    .and(warp::body::json())
-                    .and(warp::header(AUTHORIZATION))
-                    .and_then(
-                        move |input: DiscloseRoleTask, authorization: String| async move {
-                            apply_task(input, &authorization, ctx).await
-                        },
-                    ),
-            ),
-    );
     let api_route = warp::path("api").and(
         game_route
             .or(player_route)
-            .or(tasks_route)
             // WS /api/active_game
             .or(warp::path!("active_game")
                 .and(warp::ws())
