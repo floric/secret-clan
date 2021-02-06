@@ -5,18 +5,16 @@
   import TextInput from "../../components/inputs/TextInput.svelte";
   import Label from "../../components/inputs/Label.svelte";
   import DialogHeader from "../../components/headers/DialogHeader.svelte";
-  import { getClaims, getToken } from "../../utils/auth";
   import { sendRequest } from "../../utils/requests";
   import { Client } from "../../types/proto/message";
   import type { Game } from "../../types/proto/game";
-  import type { Player } from "../../types/proto/player";
+  import type { Player, OwnPlayer } from "../../types/proto/player";
 
   export let currentGame: Game;
   export let players: Record<string, Player>;
   export let ws: WebSocket;
   export let leaveGame: () => Promise<void>;
-  const claims = getClaims();
-  const currentName = players[claims.sub]?.name;
+  export let ownPlayer: OwnPlayer;
 
   const startGame = async () => {
     await sendRequest(`/api/games/${currentGame.token}/start`, "POST");
@@ -55,7 +53,7 @@
       <TextInput
         id="name"
         placeholder="Name"
-        value={currentName || ""}
+        value={ownPlayer.name}
         on:change={onChangeName}
       />
     </div>
@@ -63,9 +61,7 @@
   <div>
     <h4 class="font-bold mb-4">Players</h4>
     <ul>
-      {#each Object.values(players).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      ) as p}
+      {#each Object.values(players) as p}
         <li>
           {p.name}
           {#if p.id === currentGame.adminId}
@@ -77,7 +73,7 @@
   </div>
 </div>
 <ActionRow>
-  {#if currentGame.adminId === claims.sub}
+  {#if currentGame.adminId === ownPlayer.id}
     <PrimaryButton onClick={startGame}>Start</PrimaryButton>
   {:else}
     <p>Wait for the game to start.</p>

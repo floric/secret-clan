@@ -25,3 +25,7 @@ run:
 protoc:
 	protoc --proto_path=./schema message.proto --plugin=./frontend/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=env=browser --ts_proto_opt=useOptionals=true --ts_proto_opt=oneof=unions --ts_proto_out=./frontend/src/types/proto message.proto
 	protoc --proto_path=./schema --rust_out=./backend/src/model/proto message.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto game.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto player.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto card.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto task.proto

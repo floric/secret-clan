@@ -2,7 +2,7 @@ use crate::{
     model::proto::{self},
     server::{app_context::AppContext, auth::extract_verified_player},
 };
-use log::error;
+use log::{debug, error};
 
 pub async fn handle_auth_confirmation(
     token: &str,
@@ -67,6 +67,12 @@ pub async fn handle_auth_confirmation(
             }
             Ok(())
         }
-        None => Err(String::from("Unauthorized user")),
+        None => {
+            let mut msg = proto::message::Server::new();
+            msg.set_gameDeclined(proto::message::Server_GameDeclined::new());
+            ctx.ws().send_message(String::from(peer_id), msg).await?;
+            debug!("Unauthorized user tried to access game {}", token);
+            Ok(())
+        }
     }
 }

@@ -28,6 +28,8 @@ pub struct Player {
     creation_time: DateTime<Utc>,
     last_active_time: Option<DateTime<Utc>>,
     open_tasks: VecDeque<TaskDefinition>,
+    credits: u32,
+    // TODO cards
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
@@ -49,6 +51,7 @@ impl Player {
             creation_time: Utc::now(),
             last_active_time: None,
             open_tasks: VecDeque::default(),
+            credits: 0,
         }
     }
 
@@ -111,6 +114,13 @@ impl Player {
         &self.open_tasks
     }
 
+    pub fn set_credits(&mut self, credits: u32) {
+        self.credits = credits;
+    }
+
+    pub fn credits(&self) -> u32 {
+        self.credits
+    }
     pub fn to_response(&self) -> PlayerResponse {
         PlayerResponse {
             id: self.id.to_owned(),
@@ -144,6 +154,7 @@ impl Into<proto::player::Player> for Player {
         let mut player = proto::player::Player::new();
         player.set_id(self.id);
         player.set_name(self.name);
+        player.set_credits(self.credits);
         player
     }
 }
@@ -158,6 +169,7 @@ impl Into<proto::player::OwnPlayer> for Player {
             open_tasks.push(t.into());
         }
         player.set_open_tasks(open_tasks);
+        player.set_credits(self.credits);
         player
     }
 }

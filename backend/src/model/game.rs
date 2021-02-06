@@ -14,6 +14,16 @@ pub enum GameState {
     Started,
 }
 
+impl Into<proto::game::Game_State> for GameState {
+    fn into(self) -> proto::game::Game_State {
+        match self {
+            GameState::Initialized => proto::game::Game_State::INITIALIZED,
+            GameState::Abandoned => proto::game::Game_State::ABANDONED,
+            GameState::Started => proto::game::Game_State::STARTED,
+        }
+    }
+}
+
 /// This struct defines a game session. Each valid game needs to have an admin who is responsible for defining game settings.
 /// The admin is also a player but currently not added redundantly to player_ids as well as admin_id.
 ///
@@ -44,6 +54,8 @@ pub struct Game {
     admin_id: Option<String>,
     player_ids: HashSet<String>,
     state: GameState,
+    pot: u32,
+    // TODO cards
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
@@ -67,6 +79,7 @@ impl Game {
             admin_id: Some(String::from(admin_id)),
             player_ids: HashSet::with_capacity(10),
             state: GameState::Initialized,
+            pot: 0,
         }
     }
 
@@ -145,6 +158,7 @@ impl Game {
 
     pub fn start(&mut self) {
         self.state = GameState::Started;
+        self.pot = 0;
     }
 }
 
@@ -176,6 +190,7 @@ impl Into<proto::game::Game> for Game {
         if let Some(id) = self.admin_id {
             game.set_admin_id(id);
         }
+        game.set_state(self.state.into());
         game
     }
 }

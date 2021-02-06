@@ -174,6 +174,7 @@ pub async fn start_game_filter(
                         .values_mut()
                         .map(|p| {
                             p.resolve_task(TaskType::Settings);
+                            p.set_credits(5000);
                             p.clone()
                         })
                         .collect::<Vec<_>>();

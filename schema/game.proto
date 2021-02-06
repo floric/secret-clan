@@ -1,6 +1,16 @@
 syntax = "proto3";
 
+import "card.proto";
+
 message Game {
   string token = 1;
   string admin_id = 2;
+  enum State {
+    INITIALIZED = 0;
+    STARTED = 1;
+    ABANDONED = 2;
+  }
+  State state = 3;
+  uint32 pot = 4;
+  repeated Card cards = 5;
 }

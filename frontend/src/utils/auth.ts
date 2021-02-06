@@ -7,6 +7,8 @@ export const getToken = () => window.localStorage.getItem(ACCESS_TOKEN) || null;
 export const saveToken = (token: string) =>
   window.localStorage.setItem(ACCESS_TOKEN, token);
 
+export const clearToken = () => window.localStorage.removeItem(ACCESS_TOKEN);
+
 export type Claims = { sub: string; name: string; game: string };
 
 export const getClaims = (): Claims => {

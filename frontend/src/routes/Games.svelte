@@ -8,7 +8,7 @@
   import Divider from "../components/layout/Divider.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import InternalLink from "../components/buttons/InternalLink.svelte";
-  import { saveToken } from "../utils/auth";
+  import { saveToken, clearToken } from "../utils/auth";
   import TextInput from "../components/inputs/TextInput.svelte";
   import { sendRequest } from "../utils/requests";
 
@@ -29,6 +29,8 @@
   }
 
   async function attendGame() {
+    clearToken();
+
     const game = await sendRequest<AttendGameResponse>(
       `/api/games/${inputToken}/attend`,
       "POST"
