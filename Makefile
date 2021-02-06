@@ -5,7 +5,7 @@ watch-be:
 	cd backend && LOG_LEVEL=info cargo watch -x 'run --target-dir watch-target' -w 'src' -c -i 'src/model/proto'
 
 test-be:
-	cd backend && cargo tarpaulin --out Html
+	cd backend && cargo tarpaulin --out Html --exclude-files src/model/proto/*
 
 bench:
 	cd backend && cargo bench
