@@ -34,7 +34,11 @@
       return;
     }
 
-    ws = new WebSocket("ws://localhost:3333/api/active_game");
+    ws = new WebSocket(
+      `${window.location.protocol === "https:" ? "wss" : "ws"}://${
+        window.location.host
+      }/api/active_game`
+    );
     ws.onopen = () => {
       connectClosed = false;
       connectSuccessful = true;

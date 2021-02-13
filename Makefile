@@ -17,10 +17,13 @@ build-be:
 	cd backend && cargo build
 
 build:
-	DOCKER_BUILDKIT=1 docker build -t secret_clan .
+	DOCKER_BUILDKIT=1 docker build -t floric/neuland .
 
 run:
-	docker run --rm -it -p 3333:3333 secret_clan
+	docker run --rm -it -p 3333:3333 floric/neuland
+
+release:
+	docker push floric/neuland
 
 protoc:
 	protoc --proto_path=./schema message.proto --plugin=./frontend/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=env=browser --ts_proto_opt=useOptionals=true --ts_proto_opt=oneof=unions --ts_proto_out=./frontend/src/types/proto message.proto

@@ -31,6 +31,10 @@
   async function attendGame() {
     clearToken();
 
+    if (!inputToken) {
+      return;
+    }
+
     const game = await sendRequest<AttendGameResponse>(
       `/api/games/${inputToken}/attend`,
       "POST"
@@ -72,7 +76,9 @@
   <form>
     <div class="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
       <TextInput id="token" placeholder="Token" bind:value={inputToken} />
-      <PrimaryButton onClick={attendGame}>Attend</PrimaryButton>
+      <PrimaryButton disabled={!inputToken} onClick={attendGame}
+        >Attend</PrimaryButton
+      >
     </div>
     <ActionRow>
       <div />
