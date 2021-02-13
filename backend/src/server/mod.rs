@@ -3,7 +3,6 @@ mod auth;
 mod endpoints;
 mod logger;
 mod reply;
-mod tasks;
 mod ws;
 
 use self::{
@@ -12,7 +11,6 @@ use self::{
         active_game::handle_ws_filter,
         games::{
             attend_game_filter, create_game_filter, get_games_count_filter, leave_game_filter,
-            start_game_filter,
         },
         players::get_player_filter,
     },
@@ -64,6 +62,7 @@ pub async fn run_server(ctx: &'static AppContext) {
                     ),
                 )
                 .or(
+                    // TODO make this also a message
                     // POST /api/games/:token/leave
                     warp::post()
                         .and(warp::path!(String / "leave"))
@@ -71,17 +70,6 @@ pub async fn run_server(ctx: &'static AppContext) {
                         .and_then(
                             move |game_token: String, authorization: String| async move {
                                 leave_game_filter(&game_token, &authorization, ctx).await
-                            },
-                        ),
-                )
-                .or(
-                    // POST /api/games/:token/start
-                    warp::post()
-                        .and(warp::path!(String / "start"))
-                        .and(warp::header(AUTHORIZATION))
-                        .and_then(
-                            move |game_token: String, authorization: String| async move {
-                                start_game_filter(&game_token, &authorization, ctx).await
                             },
                         ),
                 ),

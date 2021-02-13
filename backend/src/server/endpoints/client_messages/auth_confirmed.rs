@@ -76,3 +76,108 @@ pub async fn handle_auth_confirmation(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::handle_auth_confirmation;
+    use crate::{
+        config::AppConfig,
+        model::{ Game, Player, TaskDefinition},
+        server::{
+            app_context::{AppContext, DbClients},
+            auth::generate_jwt_token,
+            ws::{WsClient, WsCommand},
+        },
+    };
+    use flexi_logger::Level;
+    use log::error;
+    use tokio::sync::mpsc;
+
+    #[tokio::test]
+    async fn should_handle_auth_message_with_open_task() {
+        let ctx = AppContext::init();
+        let mut player = Player::new("GAME");
+        player.assign_task(TaskDefinition::Settings {});
+        let game = Game::new(player.id(), "GAME");
+        ctx.db()
+            .games()
+            .persist(&game)
+            .await
+            .expect("Persisting game has failed");
+        ctx.db()
+            .players()
+            .persist(&player)
+            .await
+            .expect("Persisting player has failed");
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+        ctx.ws()
+            .register_active_player(player.id(), "peer-id")
+            .await
+            .expect("Registering players connection failed");
+
+        let reply = handle_auth_confirmation(&token, "peer-id", &ctx).await;
+        assert!(reply.is_ok());
+    }
+
+    #[tokio::test]
+    async fn should_handle_auth_message_without_open_task() {
+        let ctx = AppContext::init();
+        let player = Player::new("GAME");
+        ctx.db()
+            .players()
+            .persist(&player)
+            .await
+            .expect("Persisting player has failed");
+        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
+        ctx.ws()
+            .register_active_player(player.id(), "peer-id")
+            .await
+            .expect("Registering players connection failed");
+
+        let reply = handle_auth_confirmation(&token, "peer-id", &ctx).await;
+        assert!(reply.is_ok());
+    }
+
+    #[tokio::test]
+    async fn should_handle_auth_message_with_invalid_token() {
+        let (change_sender, mut change_receiver): (
+            mpsc::Sender<WsCommand>,
+            mpsc::Receiver<WsCommand>,
+        ) = mpsc::channel(256);
+        let ctx = AppContext {
+            config: AppConfig {
+                auth_secret: String::from("auth"),
+                log_level: Level::Debug,
+                port: 80,
+            },
+            db: DbClients::init(),
+            ws: WsClient {
+                sender: change_sender,
+            },
+        };
+        let player = Player::new("GAME");
+        ctx.db()
+            .players()
+            .persist(&player)
+            .await
+            .expect("Persisting player has failed");
+
+        let reply = handle_auth_confirmation("invalid", "peer-id", &ctx).await;
+        assert!(reply.is_ok());
+
+        let sent_msg = change_receiver.recv().await;
+
+        if let Some(command) = sent_msg {
+            match command {
+                WsCommand::SendMessage { msg, .. } => {
+                    assert!(msg.has_gameDeclined());
+                }
+                _ => {
+                    error!("Unexpected type: {:?}", command);
+                }
+            }
+        } else {
+            panic!("Received no command");
+        }
+    }
+}

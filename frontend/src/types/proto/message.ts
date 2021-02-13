@@ -8,7 +8,8 @@ export const protobufPackage = "";
 export interface Client {
   message?:
     | { $case: "authConfirmed"; authConfirmed: Client_AuthConfirmed }
-    | { $case: "nameUpdated"; nameUpdated: Client_NameUpdated };
+    | { $case: "nameUpdated"; nameUpdated: Client_NameUpdated }
+    | { $case: "gameStarted"; gameStarted: Client_GameStarted };
 }
 
 export interface Client_AuthConfirmed {
@@ -18,6 +19,8 @@ export interface Client_AuthConfirmed {
 export interface Client_NameUpdated {
   name: string;
 }
+
+export interface Client_GameStarted {}
 
 export interface Server {
   message?:
@@ -67,6 +70,12 @@ export const Client = {
         writer.uint32(18).fork()
       ).ldelim();
     }
+    if (message.message?.$case === "gameStarted") {
+      Client_GameStarted.encode(
+        message.message.gameStarted,
+        writer.uint32(26).fork()
+      ).ldelim();
+    }
     return writer;
   },
 
@@ -89,6 +98,12 @@ export const Client = {
             nameUpdated: Client_NameUpdated.decode(reader, reader.uint32()),
           };
           break;
+        case 3:
+          message.message = {
+            $case: "gameStarted",
+            gameStarted: Client_GameStarted.decode(reader, reader.uint32()),
+          };
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -109,6 +124,12 @@ export const Client = {
       message.message = {
         $case: "nameUpdated",
         nameUpdated: Client_NameUpdated.fromJSON(object.nameUpdated),
+      };
+    }
+    if (object.gameStarted !== undefined && object.gameStarted !== null) {
+      message.message = {
+        $case: "gameStarted",
+        gameStarted: Client_GameStarted.fromJSON(object.gameStarted),
       };
     }
     return message;
@@ -138,6 +159,16 @@ export const Client = {
         nameUpdated: Client_NameUpdated.fromPartial(object.message.nameUpdated),
       };
     }
+    if (
+      object.message?.$case === "gameStarted" &&
+      object.message?.gameStarted !== undefined &&
+      object.message?.gameStarted !== null
+    ) {
+      message.message = {
+        $case: "gameStarted",
+        gameStarted: Client_GameStarted.fromPartial(object.message.gameStarted),
+      };
+    }
     return message;
   },
 
@@ -150,6 +181,10 @@ export const Client = {
     message.message?.$case === "nameUpdated" &&
       (obj.nameUpdated = message.message?.nameUpdated
         ? Client_NameUpdated.toJSON(message.message?.nameUpdated)
+        : undefined);
+    message.message?.$case === "gameStarted" &&
+      (obj.gameStarted = message.message?.gameStarted
+        ? Client_GameStarted.toJSON(message.message?.gameStarted)
         : undefined);
     return obj;
   },
@@ -255,6 +290,44 @@ export const Client_NameUpdated = {
   toJSON(message: Client_NameUpdated): unknown {
     const obj: any = {};
     message.name !== undefined && (obj.name = message.name);
+    return obj;
+  },
+};
+
+const baseClient_GameStarted: object = {};
+
+export const Client_GameStarted = {
+  encode(_: Client_GameStarted, writer: Writer = Writer.create()): Writer {
+    return writer;
+  },
+
+  decode(input: Reader | Uint8Array, length?: number): Client_GameStarted {
+    const reader = input instanceof Uint8Array ? new Reader(input) : input;
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseClient_GameStarted } as Client_GameStarted;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(_: any): Client_GameStarted {
+    const message = { ...baseClient_GameStarted } as Client_GameStarted;
+    return message;
+  },
+
+  fromPartial(_: DeepPartial<Client_GameStarted>): Client_GameStarted {
+    const message = { ...baseClient_GameStarted } as Client_GameStarted;
+    return message;
+  },
+
+  toJSON(_: Client_GameStarted): unknown {
+    const obj: any = {};
     return obj;
   },
 };

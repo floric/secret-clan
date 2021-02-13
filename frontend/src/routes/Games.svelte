@@ -25,7 +25,7 @@
       throw new Error("Game creation failed");
     }
     saveToken(game.token);
-    await push(`/games/${game.token}`);
+    await push(`/games/${game.game}`);
   }
 
   async function attendGame() {

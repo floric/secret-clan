@@ -1,5 +1,5 @@
 use crate::{
-    model::{Game, GameState, Player, TaskDefinition, TaskType},
+    model::{Game, GameState, Player, TaskDefinition},
     server::{
         app_context::AppContext,
         auth::{extract_verified_id, generate_jwt_token},
@@ -128,50 +128,6 @@ pub async fn leave_game_filter(
     }
 }
 
-pub async fn start_game_filter(
-    game_token: &str,
-    authorization: &str,
-    ctx: &AppContext,
-) -> Result<impl warp::Reply, Infallible> {
-    match ctx
-        .db()
-        .games()
-        .get(&game_token)
-        .await
-        .expect("Reading game has failed")
-    {
-        Some(mut game) => match extract_verified_id(authorization, ctx)
-            .filter(|_| game.admin_id().is_some())
-            .filter(|id| id == game.admin_id().as_ref().unwrap())
-        {
-            Some(_) => match ctx.db().players().get_batch(&game.all_player_ids()).await {
-                Ok(mut players) => {
-                    game.start();
-                    let players = players
-                        .values_mut()
-                        .map(|p| {
-                            p.resolve_task(TaskType::Settings);
-                            p.set_credits(5000);
-                            p.clone()
-                        })
-                        .collect::<Vec<_>>();
-                    let (persist_players, persist_game) = tokio::join!(
-                        ctx.db().players().persist_batch(&players),
-                        ctx.db().games().persist(&game)
-                    );
-                    match persist_players.and(persist_game) {
-                        Ok(_) => Ok(reply_success(StatusCode::OK)),
-                        Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
-                    }
-                }
-                Err(_) => Ok(reply_error(StatusCode::INTERNAL_SERVER_ERROR)),
-            },
-            None => Ok(reply_error(StatusCode::UNAUTHORIZED)),
-        },
-        None => Ok(reply_error(StatusCode::NOT_FOUND)),
-    }
-}
-
 async fn create_new_game(admin_id: &str, token: &str, ctx: &AppContext) -> Game {
     let new_game = Game::new(admin_id, token);
     let new_token = new_game.token();
@@ -203,7 +159,7 @@ async fn create_new_player(game_token: &str, ctx: &AppContext) -> Player {
 
 #[cfg(test)]
 mod tests {
-    use super::{attend_game_filter, create_game_filter, leave_game_filter, start_game_filter};
+    use super::{attend_game_filter, create_game_filter, leave_game_filter};
     use crate::{
         model::{Game, GameState, Player},
         server::{app_context::AppContext, auth::generate_jwt_token},
@@ -360,70 +316,5 @@ mod tests {
         assert!(updated_game.player_ids().is_empty());
         assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());
         assert_eq!(updated_game.state(), &GameState::Initialized);
-    }
-
-    #[tokio::test]
-    async fn should_start_game() {
-        let ctx = AppContext::init();
-        let player = Player::new(GAME_TOKEN);
-        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
-
-        ctx.db()
-            .games()
-            .persist(&Game::new(player.id(), GAME_TOKEN))
-            .await
-            .expect("Writing game failed");
-
-        let reply = start_game_filter(GAME_TOKEN, &token, &ctx).await;
-        assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
-
-        let updated_game = ctx
-            .db()
-            .games()
-            .get(GAME_TOKEN)
-            .await
-            .expect("Couldn't find game")
-            .unwrap();
-        assert_eq!(updated_game.state(), &GameState::Started);
-    }
-
-    #[tokio::test]
-    async fn should_not_start_game() {
-        let ctx = AppContext::init();
-        let player = Player::new(GAME_TOKEN);
-        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
-
-        ctx.db()
-            .games()
-            .persist(&Game::new("admin", GAME_TOKEN))
-            .await
-            .expect("Writing game failed");
-
-        let reply = start_game_filter(GAME_TOKEN, &token, &ctx).await;
-        assert_eq!(
-            reply.unwrap().into_response().status(),
-            StatusCode::UNAUTHORIZED
-        );
-
-        let updated_game = ctx
-            .db()
-            .games()
-            .get(GAME_TOKEN)
-            .await
-            .expect("Couldn't find game");
-        assert_eq!(updated_game.unwrap().state(), &GameState::Initialized);
-    }
-
-    #[tokio::test]
-    async fn should_not_start_unknown_game() {
-        let ctx = AppContext::init();
-        let player = Player::new(GAME_TOKEN);
-        let token = generate_jwt_token(&player, &ctx.config().auth_secret);
-
-        let reply = start_game_filter(GAME_TOKEN, &token, &ctx).await;
-        assert_eq!(
-            reply.unwrap().into_response().status(),
-            StatusCode::NOT_FOUND
-        );
     }
 }

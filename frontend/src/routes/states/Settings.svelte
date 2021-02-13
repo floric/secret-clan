@@ -5,7 +5,6 @@
   import TextInput from "../../components/inputs/TextInput.svelte";
   import Label from "../../components/inputs/Label.svelte";
   import DialogHeader from "../../components/headers/DialogHeader.svelte";
-  import { sendRequest } from "../../utils/requests";
   import { Client } from "../../types/proto/message";
   import type { Game } from "../../types/proto/game";
   import type { Player, OwnPlayer } from "../../types/proto/player";
@@ -17,7 +16,14 @@
   export let ownPlayer: OwnPlayer;
 
   const startGame = async () => {
-    await sendRequest(`/api/games/${currentGame.token}/start`, "POST");
+    ws?.send(
+      Client.encode({
+        message: {
+          $case: "gameStarted",
+          gameStarted: {},
+        },
+      }).finish()
+    );
   };
 
   const onChangeName = async (ev: any) => {

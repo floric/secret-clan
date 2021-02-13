@@ -1,8 +1,4 @@
-use super::{
-    proto::{self},
-    Player,
-};
-use crate::server::app_context::AppContext;
+use super::proto::{self};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -27,16 +23,7 @@ impl TaskDefinition {
 }
 
 #[async_trait]
-pub trait Task {
-    /// Returns the type of this task to connect them with open tasks associated to each player.
-    fn get_type(&self) -> TaskType;
-
-    /// Applies the result of the users decision and might mutate the game state.
-    async fn apply_result(&self, mut player: Player, ctx: &AppContext) -> Result<(), String>;
-
-    /// Determines if this task can be applied multiple times.
-    fn resolve_after_first_answer(&self) -> bool;
-}
+pub trait Task {}
 
 impl From<proto::task::Task> for TaskDefinition {
     fn from(proto_task: proto::task::Task) -> Self {

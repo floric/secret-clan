@@ -6,10 +6,12 @@ import "game.proto";
 message Client {
   message AuthConfirmed { string token = 1; }
   message NameUpdated { string name = 1; }
+  message GameStarted {}
 
   oneof message {
     AuthConfirmed authConfirmed = 1;
     NameUpdated nameUpdated = 2;
+    GameStarted gameStarted = 3;
   }
 }
 
