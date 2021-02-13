@@ -43,11 +43,9 @@ impl Connections {
                     }
 
                     if let Some(peer_id) = self.player_to_peer.get(&player_id).or_else(|| {
-                        if self.connections.contains_key(&player_id) {
-                            Some(&player_id)
-                        } else {
-                            None
-                        }
+                        self.connections
+                            .contains_key(&player_id)
+                            .then(|| &player_id)
                     }) {
                         match msg.write_to_bytes() {
                             Ok(bytes) => {

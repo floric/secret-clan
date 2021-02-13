@@ -1,6 +1,5 @@
 watch-fe:
 	cd frontend && npm run watch
-
 watch-be:
 	cd backend && LOG_LEVEL=info cargo watch -x 'run --target-dir watch-target' -w 'src' -c -i 'src/model/proto'
 
@@ -12,12 +11,18 @@ bench:
 
 build-fe:
 	cd frontend && npm run build
-
 build-be:
 	cd backend && cargo build
-
 build:
 	DOCKER_BUILDKIT=1 docker build -t floric/neuland .
+
+lint-fe:
+	cd frontend && npm run lint
+lint-be:
+	cd backend && cargo clippy
+lint:
+	lint-be
+	line-fe
 
 run:
 	docker run --rm -it -p 3333:3333 floric/neuland

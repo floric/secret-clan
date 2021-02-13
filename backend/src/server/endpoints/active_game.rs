@@ -52,7 +52,7 @@ pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp
                         {
                             for player_id in game.all_player_ids() {
                                 // skip left player
-                                if &player.id() == &player_id {
+                                if player.id() == player_id {
                                     continue;
                                 }
 
