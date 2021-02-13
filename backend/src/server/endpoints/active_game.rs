@@ -146,12 +146,20 @@ async fn handle_incoming_message(
 mod tests {
     use super::handle_incoming_message;
     use crate::{
+        config::AppConfig,
         model::{
             proto::{self},
             Player, TaskDefinition,
         },
-        server::{app_context::AppContext, auth::generate_jwt_token},
+        server::{
+            app_context::{AppContext, DbClients},
+            auth::generate_jwt_token,
+            ws::{WsClient, WsCommand},
+        },
     };
+    use flexi_logger::Level;
+    use log::error;
+    use tokio::sync::mpsc;
 
     #[tokio::test]
     async fn should_handle_auth_message_with_open_task() {
@@ -216,7 +224,21 @@ mod tests {
 
     #[tokio::test]
     async fn should_handle_auth_message_with_invalid_token() {
-        let ctx = AppContext::init();
+        let (change_sender, mut change_receiver): (
+            mpsc::Sender<WsCommand>,
+            mpsc::Receiver<WsCommand>,
+        ) = mpsc::channel(256);
+        let ctx = AppContext {
+            config: AppConfig {
+                auth_secret: String::from("auth"),
+                log_level: Level::Debug,
+                port: 80,
+            },
+            db: DbClients::init(),
+            ws: WsClient {
+                sender: change_sender,
+            },
+        };
         let player = Player::new("GAME");
         ctx.db()
             .players()
@@ -236,6 +258,20 @@ mod tests {
         )
         .await;
 
-        assert_eq!(reply.unwrap_err(), "Unauthorized user");
+        assert!(reply.is_ok());
+        let sent_msg = change_receiver.recv().await;
+
+        if let Some(command) = sent_msg {
+            match command {
+                WsCommand::SendMessage { msg, .. } => {
+                    assert!(msg.has_gameDeclined());
+                }
+                _ => {
+                    error!("Unexpected type: {:?}", command);
+                }
+            }
+        } else {
+            panic!("Received no command");
+        }
     }
 }

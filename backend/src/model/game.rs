@@ -55,16 +55,9 @@ pub struct Game {
     player_ids: HashSet<String>,
     state: GameState,
     pot: u32,
+    small_blind_id: Option<String>,
+    big_blind_id: Option<String>,
     // TODO cards
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct GameResponse {
-    token: String,
-    admin_id: Option<String>,
-    player_ids: HashSet<String>,
-    state: GameState,
 }
 
 impl Game {
@@ -80,6 +73,8 @@ impl Game {
             player_ids: HashSet::with_capacity(10),
             state: GameState::Initialized,
             pot: 0,
+            small_blind_id: None,
+            big_blind_id: None,
         }
     }
 
@@ -147,15 +142,6 @@ impl Game {
         }
     }
 
-    pub fn to_response(&self) -> GameResponse {
-        GameResponse {
-            admin_id: self.admin_id.to_owned(),
-            player_ids: self.player_ids.to_owned(),
-            state: self.state.to_owned(),
-            token: self.token.to_owned(),
-        }
-    }
-
     pub fn start(&mut self) {
         self.state = GameState::Started;
         self.pot = 0;
@@ -191,6 +177,12 @@ impl Into<proto::game::Game> for Game {
             game.set_admin_id(id);
         }
         game.set_state(self.state.into());
+        if self.big_blind_id.is_some() {
+            game.set_big_blind_id(self.big_blind_id.unwrap());
+        }
+        if self.small_blind_id.is_some() {
+            game.set_small_blind_id(self.small_blind_id.unwrap());
+        }
         game
     }
 }

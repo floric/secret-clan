@@ -59,9 +59,9 @@ impl DbClients {
 /// Each request filter gets a reference to the context to read from it or query requests by sending messages.
 /// These messages will be sent to separates threads for mutations so we can sure no mutations occure directly in this shared, readonly state object.
 pub struct AppContext {
-    db: DbClients,
-    ws: WsClient,
-    config: AppConfig,
+    pub db: DbClients,
+    pub ws: WsClient,
+    pub config: AppConfig,
 }
 
 impl AppContext {

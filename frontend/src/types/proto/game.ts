@@ -10,6 +10,8 @@ export interface Game {
   state: Game_State;
   pot: number;
   cards: Card[];
+  smallBlindId: string;
+  bigBlindId: string;
 }
 
 export enum Game_State {
@@ -50,7 +52,14 @@ export function game_StateToJSON(object: Game_State): string {
   }
 }
 
-const baseGame: object = { token: "", adminId: "", state: 0, pot: 0 };
+const baseGame: object = {
+  token: "",
+  adminId: "",
+  state: 0,
+  pot: 0,
+  smallBlindId: "",
+  bigBlindId: "",
+};
 
 export const Game = {
   encode(message: Game, writer: Writer = Writer.create()): Writer {
@@ -61,6 +70,8 @@ export const Game = {
     for (const v of message.cards) {
       Card.encode(v!, writer.uint32(42).fork()).ldelim();
     }
+    writer.uint32(50).string(message.smallBlindId);
+    writer.uint32(58).string(message.bigBlindId);
     return writer;
   },
 
@@ -86,6 +97,12 @@ export const Game = {
           break;
         case 5:
           message.cards.push(Card.decode(reader, reader.uint32()));
+          break;
+        case 6:
+          message.smallBlindId = reader.string();
+          break;
+        case 7:
+          message.bigBlindId = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -115,6 +132,12 @@ export const Game = {
         message.cards.push(Card.fromJSON(e));
       }
     }
+    if (object.smallBlindId !== undefined && object.smallBlindId !== null) {
+      message.smallBlindId = String(object.smallBlindId);
+    }
+    if (object.bigBlindId !== undefined && object.bigBlindId !== null) {
+      message.bigBlindId = String(object.bigBlindId);
+    }
     return message;
   },
 
@@ -138,6 +161,12 @@ export const Game = {
         message.cards.push(Card.fromPartial(e));
       }
     }
+    if (object.smallBlindId !== undefined && object.smallBlindId !== null) {
+      message.smallBlindId = object.smallBlindId;
+    }
+    if (object.bigBlindId !== undefined && object.bigBlindId !== null) {
+      message.bigBlindId = object.bigBlindId;
+    }
     return message;
   },
 
@@ -153,6 +182,9 @@ export const Game = {
     } else {
       obj.cards = [];
     }
+    message.smallBlindId !== undefined &&
+      (obj.smallBlindId = message.smallBlindId);
+    message.bigBlindId !== undefined && (obj.bigBlindId = message.bigBlindId);
     return obj;
   },
 };

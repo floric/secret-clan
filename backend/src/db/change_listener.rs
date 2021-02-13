@@ -79,7 +79,7 @@ mod tests {
     };
 
     #[tokio::test]
-    async fn should_get_game() {
+    async fn should_listen_to_game_changes() {
         let (ctx, mut changes) = AppContext::init_with_changes();
         let ctx: &'static AppContext = Box::leak(Box::new(ctx));
         tokio::spawn(async move {

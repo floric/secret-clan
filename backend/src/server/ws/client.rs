@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, oneshot};
 use warp::ws::{Message, WebSocket};
 
 pub struct WsClient {
-    sender: mpsc::Sender<WsCommand>,
+    pub sender: mpsc::Sender<WsCommand>,
 }
 
 impl Default for WsClient {

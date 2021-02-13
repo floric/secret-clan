@@ -15,7 +15,7 @@
   let inputToken = "";
 
   type AttendGameResponse = {
-    game: Game;
+    game: string;
     token: string;
   };
 
@@ -25,7 +25,7 @@
       throw new Error("Game creation failed");
     }
     saveToken(game.token);
-    await push(`/games/${game.game.token}`);
+    await push(`/games/${game.token}`);
   }
 
   async function attendGame() {

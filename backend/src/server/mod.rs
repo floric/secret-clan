@@ -11,8 +11,8 @@ use self::{
     endpoints::{
         active_game::handle_ws_filter,
         games::{
-            attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
-            leave_game_filter, start_game_filter,
+            attend_game_filter, create_game_filter, get_games_count_filter, leave_game_filter,
+            start_game_filter,
         },
         players::get_player_filter,
     },
@@ -84,15 +84,6 @@ pub async fn run_server(ctx: &'static AppContext) {
                                 start_game_filter(&game_token, &authorization, ctx).await
                             },
                         ),
-                )
-                .or(
-                    // GET /api/games/:token
-                    warp::get()
-                        .and(warp::path!(String))
-                        .and(warp::header(AUTHORIZATION))
-                        .and_then(move |token: String, authorization: String| async move {
-                            get_game_filter(&token, &authorization, ctx).await
-                        }),
                 ),
         );
 

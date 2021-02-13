@@ -13,4 +13,6 @@ message Game {
   State state = 3;
   uint32 pot = 4;
   repeated Card cards = 5;
+  string small_blind_id = 6;
+  string big_blind_id = 7;
 }
