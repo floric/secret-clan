@@ -1,3 +1,4 @@
+use super::client_messages::handle_auth_confirmation;
 use crate::{
     model::proto::{self},
     server::{
@@ -12,8 +13,6 @@ use warp::{
     ws::{Message as WsMessage, WebSocket},
     Error,
 };
-
-use super::client_messages::handle_auth_confirmation;
 
 pub fn handle_ws_filter(ws: warp::ws::Ws, ctx: &'static AppContext) -> impl warp::Reply {
     ws.on_upgrade(move |socket| async move {
@@ -149,7 +148,7 @@ mod tests {
         config::AppConfig,
         model::{
             proto::{self},
-            Player, TaskDefinition,
+            Game, Player, TaskDefinition,
         },
         server::{
             app_context::{AppContext, DbClients},
@@ -166,6 +165,12 @@ mod tests {
         let ctx = AppContext::init();
         let mut player = Player::new("GAME");
         player.assign_task(TaskDefinition::Settings {});
+        let game = Game::new(player.id(), "GAME");
+        ctx.db()
+            .games()
+            .persist(&game)
+            .await
+            .expect("Persisting game has failed");
         ctx.db()
             .players()
             .persist(&player)

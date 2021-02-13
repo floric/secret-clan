@@ -51,17 +51,13 @@ impl Connections {
                     }) {
                         match msg.write_to_bytes() {
                             Ok(bytes) => {
-                                if let Err(err) = self
-                                    .connections
-                                    .get_mut(peer_id)
-                                    .unwrap()
-                                    .send(WsMessage::binary(bytes))
-                                    .await
-                                {
-                                    error!(
-                                        "Sending message to {} has failed: {:?}",
-                                        &peer_id, &err
-                                    );
+                                if let Some(conn) = self.connections.get_mut(peer_id) {
+                                    if let Err(err) = conn.send(WsMessage::binary(bytes)).await {
+                                        error!(
+                                            "Sending message to {} has failed: {:?}",
+                                            &peer_id, &err
+                                        );
+                                    }
                                 }
                             }
                             Err(err) => {
