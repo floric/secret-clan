@@ -29,6 +29,7 @@ pub struct Player {
     pub id: ::std::string::String,
     pub name: ::std::string::String,
     pub credits: u32,
+    pub position: u32,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -111,6 +112,21 @@ impl Player {
     pub fn set_credits(&mut self, v: u32) {
         self.credits = v;
     }
+
+    // uint32 position = 4;
+
+
+    pub fn get_position(&self) -> u32 {
+        self.position
+    }
+    pub fn clear_position(&mut self) {
+        self.position = 0;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_position(&mut self, v: u32) {
+        self.position = v;
+    }
 }
 
 impl ::protobuf::Message for Player {
@@ -135,6 +151,13 @@ impl ::protobuf::Message for Player {
                     let tmp = is.read_uint32()?;
                     self.credits = tmp;
                 },
+                4 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    let tmp = is.read_uint32()?;
+                    self.position = tmp;
+                },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
                 },
@@ -156,6 +179,9 @@ impl ::protobuf::Message for Player {
         if self.credits != 0 {
             my_size += ::protobuf::rt::value_size(3, self.credits, ::protobuf::wire_format::WireTypeVarint);
         }
+        if self.position != 0 {
+            my_size += ::protobuf::rt::value_size(4, self.position, ::protobuf::wire_format::WireTypeVarint);
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
@@ -170,6 +196,9 @@ impl ::protobuf::Message for Player {
         }
         if self.credits != 0 {
             os.write_uint32(3, self.credits)?;
+        }
+        if self.position != 0 {
+            os.write_uint32(4, self.position)?;
         }
         os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -224,6 +253,11 @@ impl ::protobuf::Message for Player {
                 |m: &Player| { &m.credits },
                 |m: &mut Player| { &mut m.credits },
             ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeUint32>(
+                "position",
+                |m: &Player| { &m.position },
+                |m: &mut Player| { &mut m.position },
+            ));
             ::protobuf::reflect::MessageDescriptor::new_pb_name::<Player>(
                 "Player",
                 fields,
@@ -243,6 +277,7 @@ impl ::protobuf::Clear for Player {
         self.id.clear();
         self.name.clear();
         self.credits = 0;
+        self.position = 0;
         self.unknown_fields.clear();
     }
 }
@@ -267,6 +302,7 @@ pub struct OwnPlayer {
     pub open_tasks: ::protobuf::RepeatedField<super::task::Task>,
     pub credits: u32,
     pub cards: ::protobuf::RepeatedField<super::card::Card>,
+    pub position: u32,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -399,6 +435,21 @@ impl OwnPlayer {
     pub fn take_cards(&mut self) -> ::protobuf::RepeatedField<super::card::Card> {
         ::std::mem::replace(&mut self.cards, ::protobuf::RepeatedField::new())
     }
+
+    // uint32 position = 6;
+
+
+    pub fn get_position(&self) -> u32 {
+        self.position
+    }
+    pub fn clear_position(&mut self) {
+        self.position = 0;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_position(&mut self, v: u32) {
+        self.position = v;
+    }
 }
 
 impl ::protobuf::Message for OwnPlayer {
@@ -439,6 +490,13 @@ impl ::protobuf::Message for OwnPlayer {
                 5 => {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.cards)?;
                 },
+                6 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    let tmp = is.read_uint32()?;
+                    self.position = tmp;
+                },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
                 },
@@ -468,6 +526,9 @@ impl ::protobuf::Message for OwnPlayer {
             let len = value.compute_size();
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         };
+        if self.position != 0 {
+            my_size += ::protobuf::rt::value_size(6, self.position, ::protobuf::wire_format::WireTypeVarint);
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
@@ -493,6 +554,9 @@ impl ::protobuf::Message for OwnPlayer {
             os.write_raw_varint32(v.get_cached_size())?;
             v.write_to_with_cached_sizes(os)?;
         };
+        if self.position != 0 {
+            os.write_uint32(6, self.position)?;
+        }
         os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
     }
@@ -556,6 +620,11 @@ impl ::protobuf::Message for OwnPlayer {
                 |m: &OwnPlayer| { &m.cards },
                 |m: &mut OwnPlayer| { &mut m.cards },
             ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeUint32>(
+                "position",
+                |m: &OwnPlayer| { &m.position },
+                |m: &mut OwnPlayer| { &mut m.position },
+            ));
             ::protobuf::reflect::MessageDescriptor::new_pb_name::<OwnPlayer>(
                 "OwnPlayer",
                 fields,
@@ -577,6 +646,7 @@ impl ::protobuf::Clear for OwnPlayer {
         self.open_tasks.clear();
         self.credits = 0;
         self.cards.clear();
+        self.position = 0;
         self.unknown_fields.clear();
     }
 }
@@ -594,41 +664,48 @@ impl ::protobuf::reflect::ProtobufValue for OwnPlayer {
 }
 
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\x0cplayer.proto\x1a\ntask.proto\x1a\ncard.proto\"F\n\x06Player\x12\
+    \n\x0cplayer.proto\x1a\ntask.proto\x1a\ncard.proto\"b\n\x06Player\x12\
     \x0e\n\x02id\x18\x01\x20\x01(\tR\x02id\x12\x12\n\x04name\x18\x02\x20\x01\
-    (\tR\x04name\x12\x18\n\x07credits\x18\x03\x20\x01(\rR\x07credits\"\x8c\
-    \x01\n\tOwnPlayer\x12\x0e\n\x02id\x18\x01\x20\x01(\tR\x02id\x12\x12\n\
-    \x04name\x18\x02\x20\x01(\tR\x04name\x12$\n\nopen_tasks\x18\x03\x20\x03(\
-    \x0b2\x05.TaskR\topenTasks\x12\x18\n\x07credits\x18\x04\x20\x01(\rR\x07c\
-    redits\x12\x1b\n\x05cards\x18\x05\x20\x03(\x0b2\x05.CardR\x05cardsJ\xac\
-    \x04\n\x06\x12\x04\0\0\x11\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\t\n\x02\
-    \x03\0\x12\x03\x02\0\x14\n\t\n\x02\x03\x01\x12\x03\x03\0\x14\n\n\n\x02\
-    \x04\0\x12\x04\x05\0\t\x01\n\n\n\x03\x04\0\x01\x12\x03\x05\x08\x0e\n\x0b\
-    \n\x04\x04\0\x02\0\x12\x03\x06\x02\x10\n\x0c\n\x05\x04\0\x02\0\x05\x12\
-    \x03\x06\x02\x08\n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x06\t\x0b\n\x0c\n\
-    \x05\x04\0\x02\0\x03\x12\x03\x06\x0e\x0f\n\x0b\n\x04\x04\0\x02\x01\x12\
-    \x03\x07\x02\x12\n\x0c\n\x05\x04\0\x02\x01\x05\x12\x03\x07\x02\x08\n\x0c\
-    \n\x05\x04\0\x02\x01\x01\x12\x03\x07\t\r\n\x0c\n\x05\x04\0\x02\x01\x03\
-    \x12\x03\x07\x10\x11\n\x0b\n\x04\x04\0\x02\x02\x12\x03\x08\x02\x15\n\x0c\
-    \n\x05\x04\0\x02\x02\x05\x12\x03\x08\x02\x08\n\x0c\n\x05\x04\0\x02\x02\
-    \x01\x12\x03\x08\t\x10\n\x0c\n\x05\x04\0\x02\x02\x03\x12\x03\x08\x13\x14\
-    \n\n\n\x02\x04\x01\x12\x04\x0b\0\x11\x01\n\n\n\x03\x04\x01\x01\x12\x03\
-    \x0b\x08\x11\n\x0b\n\x04\x04\x01\x02\0\x12\x03\x0c\x02\x10\n\x0c\n\x05\
-    \x04\x01\x02\0\x05\x12\x03\x0c\x02\x08\n\x0c\n\x05\x04\x01\x02\0\x01\x12\
-    \x03\x0c\t\x0b\n\x0c\n\x05\x04\x01\x02\0\x03\x12\x03\x0c\x0e\x0f\n\x0b\n\
-    \x04\x04\x01\x02\x01\x12\x03\r\x02\x12\n\x0c\n\x05\x04\x01\x02\x01\x05\
-    \x12\x03\r\x02\x08\n\x0c\n\x05\x04\x01\x02\x01\x01\x12\x03\r\t\r\n\x0c\n\
-    \x05\x04\x01\x02\x01\x03\x12\x03\r\x10\x11\n\x0b\n\x04\x04\x01\x02\x02\
-    \x12\x03\x0e\x02\x1f\n\x0c\n\x05\x04\x01\x02\x02\x04\x12\x03\x0e\x02\n\n\
-    \x0c\n\x05\x04\x01\x02\x02\x06\x12\x03\x0e\x0b\x0f\n\x0c\n\x05\x04\x01\
-    \x02\x02\x01\x12\x03\x0e\x10\x1a\n\x0c\n\x05\x04\x01\x02\x02\x03\x12\x03\
-    \x0e\x1d\x1e\n\x0b\n\x04\x04\x01\x02\x03\x12\x03\x0f\x02\x15\n\x0c\n\x05\
-    \x04\x01\x02\x03\x05\x12\x03\x0f\x02\x08\n\x0c\n\x05\x04\x01\x02\x03\x01\
-    \x12\x03\x0f\t\x10\n\x0c\n\x05\x04\x01\x02\x03\x03\x12\x03\x0f\x13\x14\n\
-    \x0b\n\x04\x04\x01\x02\x04\x12\x03\x10\x02\x1a\n\x0c\n\x05\x04\x01\x02\
-    \x04\x04\x12\x03\x10\x02\n\n\x0c\n\x05\x04\x01\x02\x04\x06\x12\x03\x10\
-    \x0b\x0f\n\x0c\n\x05\x04\x01\x02\x04\x01\x12\x03\x10\x10\x15\n\x0c\n\x05\
-    \x04\x01\x02\x04\x03\x12\x03\x10\x18\x19b\x06proto3\
+    (\tR\x04name\x12\x18\n\x07credits\x18\x03\x20\x01(\rR\x07credits\x12\x1a\
+    \n\x08position\x18\x04\x20\x01(\rR\x08position\"\xa8\x01\n\tOwnPlayer\
+    \x12\x0e\n\x02id\x18\x01\x20\x01(\tR\x02id\x12\x12\n\x04name\x18\x02\x20\
+    \x01(\tR\x04name\x12$\n\nopen_tasks\x18\x03\x20\x03(\x0b2\x05.TaskR\tope\
+    nTasks\x12\x18\n\x07credits\x18\x04\x20\x01(\rR\x07credits\x12\x1b\n\x05\
+    cards\x18\x05\x20\x03(\x0b2\x05.CardR\x05cards\x12\x1a\n\x08position\x18\
+    \x06\x20\x01(\rR\x08positionJ\x9a\x05\n\x06\x12\x04\0\0\x13\x01\n\x08\n\
+    \x01\x0c\x12\x03\0\0\x12\n\t\n\x02\x03\0\x12\x03\x02\0\x14\n\t\n\x02\x03\
+    \x01\x12\x03\x03\0\x14\n\n\n\x02\x04\0\x12\x04\x05\0\n\x01\n\n\n\x03\x04\
+    \0\x01\x12\x03\x05\x08\x0e\n\x0b\n\x04\x04\0\x02\0\x12\x03\x06\x02\x10\n\
+    \x0c\n\x05\x04\0\x02\0\x05\x12\x03\x06\x02\x08\n\x0c\n\x05\x04\0\x02\0\
+    \x01\x12\x03\x06\t\x0b\n\x0c\n\x05\x04\0\x02\0\x03\x12\x03\x06\x0e\x0f\n\
+    \x0b\n\x04\x04\0\x02\x01\x12\x03\x07\x02\x12\n\x0c\n\x05\x04\0\x02\x01\
+    \x05\x12\x03\x07\x02\x08\n\x0c\n\x05\x04\0\x02\x01\x01\x12\x03\x07\t\r\n\
+    \x0c\n\x05\x04\0\x02\x01\x03\x12\x03\x07\x10\x11\n\x0b\n\x04\x04\0\x02\
+    \x02\x12\x03\x08\x02\x15\n\x0c\n\x05\x04\0\x02\x02\x05\x12\x03\x08\x02\
+    \x08\n\x0c\n\x05\x04\0\x02\x02\x01\x12\x03\x08\t\x10\n\x0c\n\x05\x04\0\
+    \x02\x02\x03\x12\x03\x08\x13\x14\n\x0b\n\x04\x04\0\x02\x03\x12\x03\t\x02\
+    \x16\n\x0c\n\x05\x04\0\x02\x03\x05\x12\x03\t\x02\x08\n\x0c\n\x05\x04\0\
+    \x02\x03\x01\x12\x03\t\t\x11\n\x0c\n\x05\x04\0\x02\x03\x03\x12\x03\t\x14\
+    \x15\n\n\n\x02\x04\x01\x12\x04\x0c\0\x13\x01\n\n\n\x03\x04\x01\x01\x12\
+    \x03\x0c\x08\x11\n\x0b\n\x04\x04\x01\x02\0\x12\x03\r\x02\x10\n\x0c\n\x05\
+    \x04\x01\x02\0\x05\x12\x03\r\x02\x08\n\x0c\n\x05\x04\x01\x02\0\x01\x12\
+    \x03\r\t\x0b\n\x0c\n\x05\x04\x01\x02\0\x03\x12\x03\r\x0e\x0f\n\x0b\n\x04\
+    \x04\x01\x02\x01\x12\x03\x0e\x02\x12\n\x0c\n\x05\x04\x01\x02\x01\x05\x12\
+    \x03\x0e\x02\x08\n\x0c\n\x05\x04\x01\x02\x01\x01\x12\x03\x0e\t\r\n\x0c\n\
+    \x05\x04\x01\x02\x01\x03\x12\x03\x0e\x10\x11\n\x0b\n\x04\x04\x01\x02\x02\
+    \x12\x03\x0f\x02\x1f\n\x0c\n\x05\x04\x01\x02\x02\x04\x12\x03\x0f\x02\n\n\
+    \x0c\n\x05\x04\x01\x02\x02\x06\x12\x03\x0f\x0b\x0f\n\x0c\n\x05\x04\x01\
+    \x02\x02\x01\x12\x03\x0f\x10\x1a\n\x0c\n\x05\x04\x01\x02\x02\x03\x12\x03\
+    \x0f\x1d\x1e\n\x0b\n\x04\x04\x01\x02\x03\x12\x03\x10\x02\x15\n\x0c\n\x05\
+    \x04\x01\x02\x03\x05\x12\x03\x10\x02\x08\n\x0c\n\x05\x04\x01\x02\x03\x01\
+    \x12\x03\x10\t\x10\n\x0c\n\x05\x04\x01\x02\x03\x03\x12\x03\x10\x13\x14\n\
+    \x0b\n\x04\x04\x01\x02\x04\x12\x03\x11\x02\x1a\n\x0c\n\x05\x04\x01\x02\
+    \x04\x04\x12\x03\x11\x02\n\n\x0c\n\x05\x04\x01\x02\x04\x06\x12\x03\x11\
+    \x0b\x0f\n\x0c\n\x05\x04\x01\x02\x04\x01\x12\x03\x11\x10\x15\n\x0c\n\x05\
+    \x04\x01\x02\x04\x03\x12\x03\x11\x18\x19\n\x0b\n\x04\x04\x01\x02\x05\x12\
+    \x03\x12\x02\x16\n\x0c\n\x05\x04\x01\x02\x05\x05\x12\x03\x12\x02\x08\n\
+    \x0c\n\x05\x04\x01\x02\x05\x01\x12\x03\x12\t\x11\n\x0c\n\x05\x04\x01\x02\
+    \x05\x03\x12\x03\x12\x14\x15b\x06proto3\
 ";
 
 static file_descriptor_proto_lazy: ::protobuf::rt::LazyV2<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::rt::LazyV2::INIT;

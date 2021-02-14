@@ -16,7 +16,7 @@ fn generate_random_name() -> String {
     Generator::default().next().unwrap()
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Derivative)]
 #[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
@@ -29,6 +29,7 @@ pub struct Player {
     last_active_time: Option<DateTime<Utc>>,
     open_tasks: VecDeque<TaskDefinition>,
     credits: u32,
+    position: u32,
     // TODO cards
 }
 
@@ -52,6 +53,7 @@ impl Player {
             last_active_time: None,
             open_tasks: VecDeque::default(),
             credits: 0,
+            position: rand::random(),
         }
     }
 
@@ -61,6 +63,10 @@ impl Player {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn position(&self) -> u32 {
+        self.position
     }
 
     pub fn set_name(&mut self, name: &str) {
@@ -101,7 +107,10 @@ impl Player {
         if self.open_tasks.front().filter(|t| **t == task).is_some() {
             self.open_tasks.pop_front();
         } else {
-            warn!("Task {:?} not resolved", task);
+            warn!(
+                "Task {:?} not resolved, might have already been resolved before",
+                task
+            );
         }
     }
 
@@ -150,6 +159,7 @@ impl Into<proto::player::Player> for Player {
         player.set_id(self.id);
         player.set_name(self.name);
         player.set_credits(self.credits);
+        player.set_position(self.position);
         player
     }
 }
@@ -165,6 +175,7 @@ impl Into<proto::player::OwnPlayer> for Player {
         }
         player.set_open_tasks(open_tasks);
         player.set_credits(self.credits);
+        player.set_position(self.position);
         player
     }
 }

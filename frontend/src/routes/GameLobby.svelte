@@ -79,6 +79,7 @@
               id: player!.id,
               name: player!.name,
               credits: player!.credits,
+              position: player!.position,
             },
             active: players[player!.id].active,
           };

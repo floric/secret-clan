@@ -15,4 +15,5 @@ message Game {
   repeated Card cards = 5;
   string small_blind_id = 6;
   string big_blind_id = 7;
+  uint32 blind = 8;
 }

@@ -5,7 +5,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::{collections::HashSet, convert::TryFrom};
+use std::{collections::BTreeMap, convert::TryFrom, iter::FromIterator};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum GameState {
@@ -45,16 +45,17 @@ impl Into<proto::game::Game_State> for GameState {
 ///     }
 /// });
 /// ```
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
     token: String,
     creation_time: DateTime<Utc>,
     last_action_time: DateTime<Utc>,
     admin_id: Option<String>,
-    player_ids: HashSet<String>,
+    player_ids: BTreeMap<String, u32>,
     state: GameState,
     pot: u32,
+    blind: u32,
     small_blind_id: Option<String>,
     big_blind_id: Option<String>,
     // TODO cards
@@ -70,9 +71,10 @@ impl Game {
             creation_time: Utc::now(),
             last_action_time: Utc::now(),
             admin_id: Some(String::from(admin_id)),
-            player_ids: HashSet::with_capacity(10),
+            player_ids: BTreeMap::new(),
             state: GameState::Initialized,
             pot: 0,
+            blind: 10,
             small_blind_id: None,
             big_blind_id: None,
         }
@@ -82,20 +84,20 @@ impl Game {
         &self.token
     }
 
-    pub fn player_ids(&self) -> &HashSet<String> {
-        &self.player_ids
-    }
-
     pub fn admin_id(&self) -> &Option<String> {
         &self.admin_id
     }
 
     pub fn all_player_ids(&self) -> Vec<String> {
         let mut ids = vec![];
+        // TODO think about admin position instead of always first
         if let Some(id) = &self.admin_id {
             ids.push(String::from(id));
         }
-        for id in &self.player_ids {
+        let mut sorted_players = Vec::from_iter(self.player_ids.clone());
+        sorted_players.sort_by(|&(_, a), &(_, b)| b.cmp(&a));
+
+        for (id, _) in sorted_players {
             ids.push(String::from(id));
         }
         ids
@@ -109,10 +111,10 @@ impl Game {
         &self.state
     }
 
-    pub fn add_player(&mut self, player_id: &str) {
+    pub fn add_player(&mut self, player_id: &str, position: u32) {
         match self.admin_id {
             Some(_) => {
-                self.player_ids.insert(String::from(player_id));
+                self.player_ids.insert(String::from(player_id), position);
                 if self.state == GameState::Abandoned {
                     self.state = GameState::Initialized;
                 }
@@ -122,7 +124,7 @@ impl Game {
     }
 
     pub fn remove_player(&mut self, player_id: &str) {
-        if self.player_ids.contains(player_id) {
+        if self.player_ids.contains_key(player_id) {
             self.player_ids.remove(player_id);
         } else if self
             .admin_id
@@ -130,7 +132,7 @@ impl Game {
             .filter(|id| id == player_id)
             .is_some()
         {
-            if let Some(next_player_id) = self.player_ids.iter().next().map(String::from) {
+            if let Some(next_player_id) = self.player_ids.keys().next().map(String::from) {
                 self.admin_id = Some(String::from(&next_player_id));
                 self.player_ids.remove(&next_player_id);
             } else {
@@ -145,6 +147,49 @@ impl Game {
     pub fn start(&mut self) {
         self.state = GameState::Started;
         self.pot = 0;
+
+        self.start_new_round();
+    }
+
+    pub fn start_new_round(&mut self) {
+        self.set_blinds_roles();
+        // TODO set blinds
+        // TODO shuffle cards
+        // TODO give players and game cards
+        // TODO wait for blinds or just take blinds
+        // TODO wait for and process player actions
+        // TODO optional: increase blinds
+        // TODO check if all players can be part of new round
+    }
+
+    fn set_blinds_roles(&mut self) {
+        let ids = self.all_player_ids();
+        if ids.len() < 2 {
+            return;
+        }
+
+        // TODO determine positions from player in game easily
+        let current_small_blind_pos = if let Some(id) = self.small_blind_id.clone() {
+            ids.iter().position(|r| r == &id)
+        } else {
+            None
+        };
+        match current_small_blind_pos {
+            Some(current_small_blind_pos) => {
+                if current_small_blind_pos >= ids.len() - 1 {
+                    self.small_blind_id = Some(ids.get(0).unwrap().clone());
+                    self.big_blind_id = Some(ids.get(1).unwrap().clone());
+                } else {
+                    self.small_blind_id =
+                        Some(ids.get(current_small_blind_pos + 1).unwrap().clone());
+                    self.big_blind_id = Some(ids.get(current_small_blind_pos + 2).unwrap().clone());
+                }
+            }
+            None => {
+                self.small_blind_id = Some(ids.get(0).unwrap().clone());
+                self.big_blind_id = Some(ids.get(1).unwrap().clone());
+            }
+        }
     }
 }
 
@@ -183,6 +228,7 @@ impl Into<proto::game::Game> for Game {
         if self.small_blind_id.is_some() {
             game.set_small_blind_id(self.small_blind_id.unwrap());
         }
+        game.set_blind(self.blind);
         game
     }
 }

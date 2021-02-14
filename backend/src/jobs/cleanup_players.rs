@@ -1,6 +1,12 @@
-use crate::{model::Player, server::app_context::AppContext};
+use crate::{
+    model::{
+        proto::{self},
+        Player,
+    },
+    server::app_context::AppContext,
+};
 use chrono::{Duration, Utc};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 
 pub fn cleanup_players(ctx: &'static AppContext) -> impl Fn() {
     move || {
@@ -37,6 +43,19 @@ async fn execute_cleanup_players(ctx: &AppContext, duration: Duration) -> bool {
                 game.remove_player(&id);
                 if ctx.db().games().persist(&game).await.is_err() {
                     warn!("Removing player has failed");
+                }
+                // inform remaining players about left player
+                for remaining_id in game.all_player_ids().iter().filter(|p_id| **p_id != id) {
+                    let mut player_left_msg = proto::message::Server_PlayerLeft::new();
+                    player_left_msg.set_player_id(id.clone());
+                    let mut msg = proto::message::Server::new();
+                    msg.set_playerLeft(player_left_msg);
+                    if let Err(err) = ctx.ws().send_message(String::from(remaining_id), msg).await {
+                        error!(
+                            "Informing {} about left {} failed: {:}",
+                            remaining_id, &id, err
+                        );
+                    }
                 }
             }
         }

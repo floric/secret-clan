@@ -9,6 +9,7 @@ export interface Player {
   id: string;
   name: string;
   credits: number;
+  position: number;
 }
 
 export interface OwnPlayer {
@@ -17,15 +18,17 @@ export interface OwnPlayer {
   openTasks: Task[];
   credits: number;
   cards: Card[];
+  position: number;
 }
 
-const basePlayer: object = { id: "", name: "", credits: 0 };
+const basePlayer: object = { id: "", name: "", credits: 0, position: 0 };
 
 export const Player = {
   encode(message: Player, writer: Writer = Writer.create()): Writer {
     writer.uint32(10).string(message.id);
     writer.uint32(18).string(message.name);
     writer.uint32(24).uint32(message.credits);
+    writer.uint32(32).uint32(message.position);
     return writer;
   },
 
@@ -44,6 +47,9 @@ export const Player = {
           break;
         case 3:
           message.credits = reader.uint32();
+          break;
+        case 4:
+          message.position = reader.uint32();
           break;
         default:
           reader.skipType(tag & 7);
@@ -64,6 +70,9 @@ export const Player = {
     if (object.credits !== undefined && object.credits !== null) {
       message.credits = Number(object.credits);
     }
+    if (object.position !== undefined && object.position !== null) {
+      message.position = Number(object.position);
+    }
     return message;
   },
 
@@ -78,6 +87,9 @@ export const Player = {
     if (object.credits !== undefined && object.credits !== null) {
       message.credits = object.credits;
     }
+    if (object.position !== undefined && object.position !== null) {
+      message.position = object.position;
+    }
     return message;
   },
 
@@ -86,11 +98,12 @@ export const Player = {
     message.id !== undefined && (obj.id = message.id);
     message.name !== undefined && (obj.name = message.name);
     message.credits !== undefined && (obj.credits = message.credits);
+    message.position !== undefined && (obj.position = message.position);
     return obj;
   },
 };
 
-const baseOwnPlayer: object = { id: "", name: "", credits: 0 };
+const baseOwnPlayer: object = { id: "", name: "", credits: 0, position: 0 };
 
 export const OwnPlayer = {
   encode(message: OwnPlayer, writer: Writer = Writer.create()): Writer {
@@ -103,6 +116,7 @@ export const OwnPlayer = {
     for (const v of message.cards) {
       Card.encode(v!, writer.uint32(42).fork()).ldelim();
     }
+    writer.uint32(48).uint32(message.position);
     return writer;
   },
 
@@ -129,6 +143,9 @@ export const OwnPlayer = {
           break;
         case 5:
           message.cards.push(Card.decode(reader, reader.uint32()));
+          break;
+        case 6:
+          message.position = reader.uint32();
           break;
         default:
           reader.skipType(tag & 7);
@@ -161,6 +178,9 @@ export const OwnPlayer = {
         message.cards.push(Card.fromJSON(e));
       }
     }
+    if (object.position !== undefined && object.position !== null) {
+      message.position = Number(object.position);
+    }
     return message;
   },
 
@@ -187,6 +207,9 @@ export const OwnPlayer = {
         message.cards.push(Card.fromPartial(e));
       }
     }
+    if (object.position !== undefined && object.position !== null) {
+      message.position = object.position;
+    }
     return message;
   },
 
@@ -207,6 +230,7 @@ export const OwnPlayer = {
     } else {
       obj.cards = [];
     }
+    message.position !== undefined && (obj.position = message.position);
     return obj;
   },
 };

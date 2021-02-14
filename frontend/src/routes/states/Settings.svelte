@@ -68,7 +68,7 @@
   <div>
     <h4 class="font-bold mb-4">Players</h4>
     <ul>
-      {#each Object.values(players) as p}
+      {#each Object.values(players).sort((a, b) => b.player.position - a.player.position) as p}
         <li>
           {p.player.name}
           {#if p.player.id === currentGame.adminId}

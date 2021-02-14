@@ -82,7 +82,7 @@ pub async fn attend_game_filter(
         Some(mut game) => {
             let player = create_new_player(&game_token, ctx).await;
 
-            game.add_player(player.id());
+            game.add_player(player.id(), player.position());
 
             match ctx.db().games().persist(&game).await {
                 Ok(_) => Ok(warp::reply::with_status(
@@ -235,14 +235,14 @@ mod tests {
         let mut game = Game::new("admin", GAME_TOKEN);
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
-        game.add_player(player.id());
+        game.add_player(player.id(), 1);
 
         ctx.db()
             .games()
             .persist(&game)
             .await
             .expect("Writing game failed");
-        assert!(game.player_ids().contains(player.id()));
+        assert!(game.all_player_ids().contains(&String::from(player.id())));
 
         let reply = leave_game_filter(GAME_TOKEN, &token, &ctx).await;
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
@@ -254,7 +254,9 @@ mod tests {
             .await
             .expect("Couldn't find game")
             .unwrap();
-        assert!(!updated_game.player_ids().contains(player.id()));
+        assert!(!updated_game
+            .all_player_ids()
+            .contains(&String::from(player.id())));
         assert_eq!(updated_game.state(), &GameState::Initialized);
     }
 
@@ -282,7 +284,9 @@ mod tests {
             .await
             .expect("Couldn't find game")
             .unwrap();
-        assert!(!updated_game.player_ids().contains(player.id()));
+        assert!(!updated_game
+            .all_player_ids()
+            .contains(&String::from(player.id())));
         assert_eq!(updated_game.state(), &GameState::Abandoned);
     }
 
@@ -294,7 +298,7 @@ mod tests {
         let mut game = Game::new(admin.id(), GAME_TOKEN);
         let player = Player::new(GAME_TOKEN);
         let token = generate_jwt_token(&admin, &ctx.config().auth_secret);
-        game.add_player(player.id());
+        game.add_player(player.id(), 1);
 
         ctx.db()
             .games()
@@ -302,6 +306,7 @@ mod tests {
             .await
             .expect("Writing game failed");
         assert_eq!(game.admin_id().as_ref().unwrap(), admin.id());
+        assert_eq!(game.all_player_ids().len(), 2);
 
         let reply = leave_game_filter(GAME_TOKEN, &token, &ctx).await;
         assert_eq!(reply.unwrap().into_response().status(), StatusCode::OK);
@@ -313,7 +318,7 @@ mod tests {
             .await
             .expect("Couldn't find game")
             .unwrap();
-        assert!(updated_game.player_ids().is_empty());
+        assert_eq!(updated_game.all_player_ids().len(), 1);
         assert_eq!(updated_game.admin_id().as_ref().unwrap(), player.id());
         assert_eq!(updated_game.state(), &GameState::Initialized);
     }

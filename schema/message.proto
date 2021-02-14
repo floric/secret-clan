@@ -21,6 +21,7 @@ message Server {
   message GameUpdated { Game game = 1; }
   message PlayerEntered { Player player = 1; }
   message PlayerLostConn { string player_id = 1; }
+  message PlayerLeft { string player_id = 1; }
   message GameDeclined {}
 
   oneof message {
@@ -29,6 +30,7 @@ message Server {
     SelfUpdated selfUpdated = 3;
     PlayerEntered playerEntered = 4;
     PlayerLostConn playerLostConn = 5;
-    GameDeclined gameDeclined = 6;
+    PlayerLeft playerLeft = 6;
+    GameDeclined gameDeclined = 7;
   }
 }

@@ -12,6 +12,7 @@ export interface Game {
   cards: Card[];
   smallBlindId: string;
   bigBlindId: string;
+  blind: number;
 }
 
 export enum Game_State {
@@ -59,6 +60,7 @@ const baseGame: object = {
   pot: 0,
   smallBlindId: "",
   bigBlindId: "",
+  blind: 0,
 };
 
 export const Game = {
@@ -72,6 +74,7 @@ export const Game = {
     }
     writer.uint32(50).string(message.smallBlindId);
     writer.uint32(58).string(message.bigBlindId);
+    writer.uint32(64).uint32(message.blind);
     return writer;
   },
 
@@ -103,6 +106,9 @@ export const Game = {
           break;
         case 7:
           message.bigBlindId = reader.string();
+          break;
+        case 8:
+          message.blind = reader.uint32();
           break;
         default:
           reader.skipType(tag & 7);
@@ -138,6 +144,9 @@ export const Game = {
     if (object.bigBlindId !== undefined && object.bigBlindId !== null) {
       message.bigBlindId = String(object.bigBlindId);
     }
+    if (object.blind !== undefined && object.blind !== null) {
+      message.blind = Number(object.blind);
+    }
     return message;
   },
 
@@ -167,6 +176,9 @@ export const Game = {
     if (object.bigBlindId !== undefined && object.bigBlindId !== null) {
       message.bigBlindId = object.bigBlindId;
     }
+    if (object.blind !== undefined && object.blind !== null) {
+      message.blind = object.blind;
+    }
     return message;
   },
 
@@ -185,6 +197,7 @@ export const Game = {
     message.smallBlindId !== undefined &&
       (obj.smallBlindId = message.smallBlindId);
     message.bigBlindId !== undefined && (obj.bigBlindId = message.bigBlindId);
+    message.blind !== undefined && (obj.blind = message.blind);
     return obj;
   },
 };
