@@ -1,7 +1,10 @@
 mod client;
 mod connections;
 
-use crate::model::proto::{self};
+use crate::model::{
+    proto::{self},
+    Player,
+};
 pub use client::WsClient;
 pub use connections::Connections;
 use futures::stream::SplitSink;
@@ -16,12 +19,16 @@ pub enum WsCommand {
         msg: proto::message::Server,
     },
     RegisterActivePlayer {
-        player_id: String,
+        player: Player,
         peer_id: String,
     },
     FetchAuthenticatedPlayer {
         peer_id: String,
         sender: oneshot::Sender<Option<String>>,
+    },
+    IsActivePlayer {
+        player_id: String,
+        sender: oneshot::Sender<bool>,
     },
     AddConnection {
         peer_id: String,

@@ -28,6 +28,7 @@ export interface Server {
     | { $case: "gameUpdated"; gameUpdated: Server_GameUpdated }
     | { $case: "selfUpdated"; selfUpdated: Server_SelfUpdated }
     | { $case: "playerEntered"; playerEntered: Server_PlayerEntered }
+    | { $case: "playerLostConn"; playerLostConn: Server_PlayerLostConn }
     | { $case: "playerLeft"; playerLeft: Server_PlayerLeft }
     | { $case: "gameDeclined"; gameDeclined: Server_GameDeclined };
 }
@@ -46,6 +47,10 @@ export interface Server_GameUpdated {
 
 export interface Server_PlayerEntered {
   player?: Player;
+}
+
+export interface Server_PlayerLostConn {
+  playerId: string;
 }
 
 export interface Server_PlayerLeft {
@@ -360,16 +365,22 @@ export const Server = {
         writer.uint32(34).fork()
       ).ldelim();
     }
+    if (message.message?.$case === "playerLostConn") {
+      Server_PlayerLostConn.encode(
+        message.message.playerLostConn,
+        writer.uint32(42).fork()
+      ).ldelim();
+    }
     if (message.message?.$case === "playerLeft") {
       Server_PlayerLeft.encode(
         message.message.playerLeft,
-        writer.uint32(42).fork()
+        writer.uint32(50).fork()
       ).ldelim();
     }
     if (message.message?.$case === "gameDeclined") {
       Server_GameDeclined.encode(
         message.message.gameDeclined,
-        writer.uint32(50).fork()
+        writer.uint32(58).fork()
       ).ldelim();
     }
     return writer;
@@ -408,11 +419,20 @@ export const Server = {
           break;
         case 5:
           message.message = {
+            $case: "playerLostConn",
+            playerLostConn: Server_PlayerLostConn.decode(
+              reader,
+              reader.uint32()
+            ),
+          };
+          break;
+        case 6:
+          message.message = {
             $case: "playerLeft",
             playerLeft: Server_PlayerLeft.decode(reader, reader.uint32()),
           };
           break;
-        case 6:
+        case 7:
           message.message = {
             $case: "gameDeclined",
             gameDeclined: Server_GameDeclined.decode(reader, reader.uint32()),
@@ -450,6 +470,12 @@ export const Server = {
       message.message = {
         $case: "playerEntered",
         playerEntered: Server_PlayerEntered.fromJSON(object.playerEntered),
+      };
+    }
+    if (object.playerLostConn !== undefined && object.playerLostConn !== null) {
+      message.message = {
+        $case: "playerLostConn",
+        playerLostConn: Server_PlayerLostConn.fromJSON(object.playerLostConn),
       };
     }
     if (object.playerLeft !== undefined && object.playerLeft !== null) {
@@ -514,6 +540,18 @@ export const Server = {
       };
     }
     if (
+      object.message?.$case === "playerLostConn" &&
+      object.message?.playerLostConn !== undefined &&
+      object.message?.playerLostConn !== null
+    ) {
+      message.message = {
+        $case: "playerLostConn",
+        playerLostConn: Server_PlayerLostConn.fromPartial(
+          object.message.playerLostConn
+        ),
+      };
+    }
+    if (
       object.message?.$case === "playerLeft" &&
       object.message?.playerLeft !== undefined &&
       object.message?.playerLeft !== null
@@ -555,6 +593,10 @@ export const Server = {
     message.message?.$case === "playerEntered" &&
       (obj.playerEntered = message.message?.playerEntered
         ? Server_PlayerEntered.toJSON(message.message?.playerEntered)
+        : undefined);
+    message.message?.$case === "playerLostConn" &&
+      (obj.playerLostConn = message.message?.playerLostConn
+        ? Server_PlayerLostConn.toJSON(message.message?.playerLostConn)
         : undefined);
     message.message?.$case === "playerLeft" &&
       (obj.playerLeft = message.message?.playerLeft
@@ -786,6 +828,60 @@ export const Server_PlayerEntered = {
     const obj: any = {};
     message.player !== undefined &&
       (obj.player = message.player ? Player.toJSON(message.player) : undefined);
+    return obj;
+  },
+};
+
+const baseServer_PlayerLostConn: object = { playerId: "" };
+
+export const Server_PlayerLostConn = {
+  encode(
+    message: Server_PlayerLostConn,
+    writer: Writer = Writer.create()
+  ): Writer {
+    writer.uint32(10).string(message.playerId);
+    return writer;
+  },
+
+  decode(input: Reader | Uint8Array, length?: number): Server_PlayerLostConn {
+    const reader = input instanceof Uint8Array ? new Reader(input) : input;
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = { ...baseServer_PlayerLostConn } as Server_PlayerLostConn;
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          message.playerId = reader.string();
+          break;
+        default:
+          reader.skipType(tag & 7);
+          break;
+      }
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Server_PlayerLostConn {
+    const message = { ...baseServer_PlayerLostConn } as Server_PlayerLostConn;
+    if (object.playerId !== undefined && object.playerId !== null) {
+      message.playerId = String(object.playerId);
+    }
+    return message;
+  },
+
+  fromPartial(
+    object: DeepPartial<Server_PlayerLostConn>
+  ): Server_PlayerLostConn {
+    const message = { ...baseServer_PlayerLostConn } as Server_PlayerLostConn;
+    if (object.playerId !== undefined && object.playerId !== null) {
+      message.playerId = object.playerId;
+    }
+    return message;
+  },
+
+  toJSON(message: Server_PlayerLostConn): unknown {
+    const obj: any = {};
+    message.playerId !== undefined && (obj.playerId = message.playerId);
     return obj;
   },
 };

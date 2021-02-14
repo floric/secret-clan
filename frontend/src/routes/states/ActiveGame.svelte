@@ -7,7 +7,7 @@
   import Divider from "../../components/layout/Divider.svelte";
 
   export let currentGame: Game;
-  export let players: Record<string, Player>;
+  export let players: Record<string, { player: Player; active: boolean }>;
   export let ws: WebSocket;
   export let ownPlayer: OwnPlayer;
   export let leaveGame: () => Promise<void>;
@@ -18,8 +18,8 @@
   <div class="grid grid-flow-col gap-4">
     {#each Object.values(players) as p}
       <div class="border border-gray-200 p-4 rounded-md">
-        <div class="font-bold">{p.name}</div>
-        <div>{p.credits} Credits</div>
+        <div class="font-bold">{p.player.name}</div>
+        <div>{p.player.credits} Credits</div>
       </div>
     {/each}
   </div>

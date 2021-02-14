@@ -62,10 +62,10 @@ async fn on_upgrade(socket: WebSocket, ctx: &AppContext) {
                             }
 
                             // inform other players about new player
-                            let mut player_msg = proto::message::Server_PlayerLeft::new();
+                            let mut player_msg = proto::message::Server_PlayerLostConn::new();
                             player_msg.set_player_id(String::from(player.id()));
                             let mut msg = proto::message::Server::new();
-                            msg.set_playerLeft(player_msg);
+                            msg.set_playerLostConn(player_msg);
                             if let Err(err) = ctx.ws().send_message(player_id, msg).await {
                                 warn!("Informing about left player failed: {:?}", err);
                             }

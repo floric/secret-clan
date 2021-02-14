@@ -73,7 +73,7 @@ mod tests {
             .await
             .expect("Persisting game failed");
         ctx.ws()
-            .register_active_player(player.id(), "peer")
+            .register_active_player(&player, "peer")
             .await
             .expect("Registering player failed");
 
@@ -91,7 +91,7 @@ mod tests {
             .await
             .expect("Persisting player has failed");
         ctx.ws()
-            .register_active_player(player.id(), "peer")
+            .register_active_player(&player, "peer")
             .await
             .expect("Registering player failed");
 
@@ -121,7 +121,7 @@ mod tests {
             .await
             .expect("Persisting game failed");
         ctx.ws()
-            .register_active_player(player.id(), "participant_peer")
+            .register_active_player(&player, "participant_peer")
             .await
             .expect("Registering player failed");
 

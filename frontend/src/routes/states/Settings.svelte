@@ -10,7 +10,7 @@
   import type { Player, OwnPlayer } from "../../types/proto/player";
 
   export let currentGame: Game;
-  export let players: Record<string, Player>;
+  export let players: Record<string, { player: Player; active: boolean }>;
   export let ws: WebSocket;
   export let leaveGame: () => Promise<void>;
   export let ownPlayer: OwnPlayer;
@@ -69,9 +69,12 @@
     <ul>
       {#each Object.values(players) as p}
         <li>
-          {p.name}
-          {#if p.id === currentGame.adminId}
+          {p.player.name}
+          {#if p.player.id === currentGame.adminId}
             <span class="font-bold">(Admin)</span>
+          {/if}
+          {#if !p.active}
+            <span class="font-bold text-red-800">(Inactive)</span>
           {/if}
         </li>
       {/each}

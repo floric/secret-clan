@@ -836,6 +836,7 @@ pub enum Server_oneof_message {
     gameUpdated(Server_GameUpdated),
     selfUpdated(Server_SelfUpdated),
     playerEntered(Server_PlayerEntered),
+    playerLostConn(Server_PlayerLostConn),
     playerLeft(Server_PlayerLeft),
     gameDeclined(Server_GameDeclined),
 }
@@ -1041,7 +1042,56 @@ impl Server {
         }
     }
 
-    // .Server.PlayerLeft playerLeft = 5;
+    // .Server.PlayerLostConn playerLostConn = 5;
+
+
+    pub fn get_playerLostConn(&self) -> &Server_PlayerLostConn {
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerLostConn(ref v)) => v,
+            _ => <Server_PlayerLostConn as ::protobuf::Message>::default_instance(),
+        }
+    }
+    pub fn clear_playerLostConn(&mut self) {
+        self.message = ::std::option::Option::None;
+    }
+
+    pub fn has_playerLostConn(&self) -> bool {
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerLostConn(..)) => true,
+            _ => false,
+        }
+    }
+
+    // Param is passed by value, moved
+    pub fn set_playerLostConn(&mut self, v: Server_PlayerLostConn) {
+        self.message = ::std::option::Option::Some(Server_oneof_message::playerLostConn(v))
+    }
+
+    // Mutable pointer to the field.
+    pub fn mut_playerLostConn(&mut self) -> &mut Server_PlayerLostConn {
+        if let ::std::option::Option::Some(Server_oneof_message::playerLostConn(_)) = self.message {
+        } else {
+            self.message = ::std::option::Option::Some(Server_oneof_message::playerLostConn(Server_PlayerLostConn::new()));
+        }
+        match self.message {
+            ::std::option::Option::Some(Server_oneof_message::playerLostConn(ref mut v)) => v,
+            _ => panic!(),
+        }
+    }
+
+    // Take field
+    pub fn take_playerLostConn(&mut self) -> Server_PlayerLostConn {
+        if self.has_playerLostConn() {
+            match self.message.take() {
+                ::std::option::Option::Some(Server_oneof_message::playerLostConn(v)) => v,
+                _ => panic!(),
+            }
+        } else {
+            Server_PlayerLostConn::new()
+        }
+    }
+
+    // .Server.PlayerLeft playerLeft = 6;
 
 
     pub fn get_playerLeft(&self) -> &Server_PlayerLeft {
@@ -1090,7 +1140,7 @@ impl Server {
         }
     }
 
-    // .Server.GameDeclined gameDeclined = 6;
+    // .Server.GameDeclined gameDeclined = 7;
 
 
     pub fn get_gameDeclined(&self) -> &Server_GameDeclined {
@@ -1162,6 +1212,11 @@ impl ::protobuf::Message for Server {
                 return false;
             }
         }
+        if let Some(Server_oneof_message::playerLostConn(ref v)) = self.message {
+            if !v.is_initialized() {
+                return false;
+            }
+        }
         if let Some(Server_oneof_message::playerLeft(ref v)) = self.message {
             if !v.is_initialized() {
                 return false;
@@ -1207,9 +1262,15 @@ impl ::protobuf::Message for Server {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
-                    self.message = ::std::option::Option::Some(Server_oneof_message::playerLeft(is.read_message()?));
+                    self.message = ::std::option::Option::Some(Server_oneof_message::playerLostConn(is.read_message()?));
                 },
                 6 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    self.message = ::std::option::Option::Some(Server_oneof_message::playerLeft(is.read_message()?));
+                },
+                7 => {
                     if wire_type != ::protobuf::wire_format::WireTypeLengthDelimited {
                         return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
                     }
@@ -1242,6 +1303,10 @@ impl ::protobuf::Message for Server {
                     my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
                 },
                 &Server_oneof_message::playerEntered(ref v) => {
+                    let len = v.compute_size();
+                    my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+                },
+                &Server_oneof_message::playerLostConn(ref v) => {
                     let len = v.compute_size();
                     my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
                 },
@@ -1283,13 +1348,18 @@ impl ::protobuf::Message for Server {
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
-                &Server_oneof_message::playerLeft(ref v) => {
+                &Server_oneof_message::playerLostConn(ref v) => {
                     os.write_tag(5, ::protobuf::wire_format::WireTypeLengthDelimited)?;
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
-                &Server_oneof_message::gameDeclined(ref v) => {
+                &Server_oneof_message::playerLeft(ref v) => {
                     os.write_tag(6, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+                    os.write_raw_varint32(v.get_cached_size())?;
+                    v.write_to_with_cached_sizes(os)?;
+                },
+                &Server_oneof_message::gameDeclined(ref v) => {
+                    os.write_tag(7, ::protobuf::wire_format::WireTypeLengthDelimited)?;
                     os.write_raw_varint32(v.get_cached_size())?;
                     v.write_to_with_cached_sizes(os)?;
                 },
@@ -1353,6 +1423,11 @@ impl ::protobuf::Message for Server {
                 Server::has_playerEntered,
                 Server::get_playerEntered,
             ));
+            fields.push(::protobuf::reflect::accessor::make_singular_message_accessor::<_, Server_PlayerLostConn>(
+                "playerLostConn",
+                Server::has_playerLostConn,
+                Server::get_playerLostConn,
+            ));
             fields.push(::protobuf::reflect::accessor::make_singular_message_accessor::<_, Server_PlayerLeft>(
                 "playerLeft",
                 Server::has_playerLeft,
@@ -1379,6 +1454,7 @@ impl ::protobuf::Message for Server {
 
 impl ::protobuf::Clear for Server {
     fn clear(&mut self) {
+        self.message = ::std::option::Option::None;
         self.message = ::std::option::Option::None;
         self.message = ::std::option::Option::None;
         self.message = ::std::option::Option::None;
@@ -2098,6 +2174,165 @@ impl ::protobuf::reflect::ProtobufValue for Server_PlayerEntered {
 }
 
 #[derive(PartialEq,Clone,Default)]
+pub struct Server_PlayerLostConn {
+    // message fields
+    pub player_id: ::std::string::String,
+    // special fields
+    pub unknown_fields: ::protobuf::UnknownFields,
+    pub cached_size: ::protobuf::CachedSize,
+}
+
+impl<'a> ::std::default::Default for &'a Server_PlayerLostConn {
+    fn default() -> &'a Server_PlayerLostConn {
+        <Server_PlayerLostConn as ::protobuf::Message>::default_instance()
+    }
+}
+
+impl Server_PlayerLostConn {
+    pub fn new() -> Server_PlayerLostConn {
+        ::std::default::Default::default()
+    }
+
+    // string player_id = 1;
+
+
+    pub fn get_player_id(&self) -> &str {
+        &self.player_id
+    }
+    pub fn clear_player_id(&mut self) {
+        self.player_id.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_player_id(&mut self, v: ::std::string::String) {
+        self.player_id = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_player_id(&mut self) -> &mut ::std::string::String {
+        &mut self.player_id
+    }
+
+    // Take field
+    pub fn take_player_id(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.player_id, ::std::string::String::new())
+    }
+}
+
+impl ::protobuf::Message for Server_PlayerLostConn {
+    fn is_initialized(&self) -> bool {
+        true
+    }
+
+    fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::ProtobufResult<()> {
+        while !is.eof()? {
+            let (field_number, wire_type) = is.read_tag_unpack()?;
+            match field_number {
+                1 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.player_id)?;
+                },
+                _ => {
+                    ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
+                },
+            };
+        }
+        ::std::result::Result::Ok(())
+    }
+
+    // Compute sizes of nested messages
+    #[allow(unused_variables)]
+    fn compute_size(&self) -> u32 {
+        let mut my_size = 0;
+        if !self.player_id.is_empty() {
+            my_size += ::protobuf::rt::string_size(1, &self.player_id);
+        }
+        my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
+        self.cached_size.set(my_size);
+        my_size
+    }
+
+    fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::ProtobufResult<()> {
+        if !self.player_id.is_empty() {
+            os.write_string(1, &self.player_id)?;
+        }
+        os.write_unknown_fields(self.get_unknown_fields())?;
+        ::std::result::Result::Ok(())
+    }
+
+    fn get_cached_size(&self) -> u32 {
+        self.cached_size.get()
+    }
+
+    fn get_unknown_fields(&self) -> &::protobuf::UnknownFields {
+        &self.unknown_fields
+    }
+
+    fn mut_unknown_fields(&mut self) -> &mut ::protobuf::UnknownFields {
+        &mut self.unknown_fields
+    }
+
+    fn as_any(&self) -> &dyn (::std::any::Any) {
+        self as &dyn (::std::any::Any)
+    }
+    fn as_any_mut(&mut self) -> &mut dyn (::std::any::Any) {
+        self as &mut dyn (::std::any::Any)
+    }
+    fn into_any(self: ::std::boxed::Box<Self>) -> ::std::boxed::Box<dyn (::std::any::Any)> {
+        self
+    }
+
+    fn descriptor(&self) -> &'static ::protobuf::reflect::MessageDescriptor {
+        Self::descriptor_static()
+    }
+
+    fn new() -> Server_PlayerLostConn {
+        Server_PlayerLostConn::new()
+    }
+
+    fn descriptor_static() -> &'static ::protobuf::reflect::MessageDescriptor {
+        static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::LazyV2::INIT;
+        descriptor.get(|| {
+            let mut fields = ::std::vec::Vec::new();
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                "player_id",
+                |m: &Server_PlayerLostConn| { &m.player_id },
+                |m: &mut Server_PlayerLostConn| { &mut m.player_id },
+            ));
+            ::protobuf::reflect::MessageDescriptor::new_pb_name::<Server_PlayerLostConn>(
+                "Server.PlayerLostConn",
+                fields,
+                file_descriptor_proto()
+            )
+        })
+    }
+
+    fn default_instance() -> &'static Server_PlayerLostConn {
+        static instance: ::protobuf::rt::LazyV2<Server_PlayerLostConn> = ::protobuf::rt::LazyV2::INIT;
+        instance.get(Server_PlayerLostConn::new)
+    }
+}
+
+impl ::protobuf::Clear for Server_PlayerLostConn {
+    fn clear(&mut self) {
+        self.player_id.clear();
+        self.unknown_fields.clear();
+    }
+}
+
+impl ::std::fmt::Debug for Server_PlayerLostConn {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        ::protobuf::text_format::fmt(self, f)
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Server_PlayerLostConn {
+    fn as_ref(&self) -> ::protobuf::reflect::ReflectValueRef {
+        ::protobuf::reflect::ReflectValueRef::Message(self)
+    }
+}
+
+#[derive(PartialEq,Clone,Default)]
 pub struct Server_PlayerLeft {
     // message fields
     pub player_id: ::std::string::String,
@@ -2380,85 +2615,94 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x0b2\x13.Client.GameStartedH\0R\x0bgameStarted\x1a%\n\rAuthConfirmed\
     \x12\x14\n\x05token\x18\x01\x20\x01(\tR\x05token\x1a!\n\x0bNameUpdated\
     \x12\x12\n\x04name\x18\x01\x20\x01(\tR\x04name\x1a\r\n\x0bGameStartedB\t\
-    \n\x07message\"\xf1\x04\n\x06Server\x12=\n\rplayerUpdated\x18\x01\x20\
+    \n\x07message\"\xe2\x05\n\x06Server\x12=\n\rplayerUpdated\x18\x01\x20\
     \x01(\x0b2\x15.Server.PlayerUpdatedH\0R\rplayerUpdated\x127\n\x0bgameUpd\
     ated\x18\x02\x20\x01(\x0b2\x13.Server.GameUpdatedH\0R\x0bgameUpdated\x12\
     7\n\x0bselfUpdated\x18\x03\x20\x01(\x0b2\x13.Server.SelfUpdatedH\0R\x0bs\
     elfUpdated\x12=\n\rplayerEntered\x18\x04\x20\x01(\x0b2\x15.Server.Player\
-    EnteredH\0R\rplayerEntered\x124\n\nplayerLeft\x18\x05\x20\x01(\x0b2\x12.\
-    Server.PlayerLeftH\0R\nplayerLeft\x12:\n\x0cgameDeclined\x18\x06\x20\x01\
-    (\x0b2\x14.Server.GameDeclinedH\0R\x0cgameDeclined\x1a0\n\rPlayerUpdated\
-    \x12\x1f\n\x06player\x18\x01\x20\x01(\x0b2\x07.PlayerR\x06player\x1a1\n\
-    \x0bSelfUpdated\x12\"\n\x06player\x18\x01\x20\x01(\x0b2\n.OwnPlayerR\x06\
-    player\x1a(\n\x0bGameUpdated\x12\x19\n\x04game\x18\x01\x20\x01(\x0b2\x05\
-    .GameR\x04game\x1a0\n\rPlayerEntered\x12\x1f\n\x06player\x18\x01\x20\x01\
-    (\x0b2\x07.PlayerR\x06player\x1a)\n\nPlayerLeft\x12\x1b\n\tplayer_id\x18\
-    \x01\x20\x01(\tR\x08playerId\x1a\x0e\n\x0cGameDeclinedB\t\n\x07messageJ\
-    \xab\n\n\x06\x12\x04\0\0!\x01\n\x08\n\x01\x0c\x12\x03\0\0\x12\n\t\n\x02\
-    \x03\0\x12\x03\x02\0\x16\n\t\n\x02\x03\x01\x12\x03\x03\0\x14\n\n\n\x02\
-    \x04\0\x12\x04\x05\0\x0f\x01\n\n\n\x03\x04\0\x01\x12\x03\x05\x08\x0e\n\
-    \x0b\n\x04\x04\0\x03\0\x12\x03\x06\x02-\n\x0c\n\x05\x04\0\x03\0\x01\x12\
-    \x03\x06\n\x17\n\r\n\x06\x04\0\x03\0\x02\0\x12\x03\x06\x1a+\n\x0e\n\x07\
-    \x04\0\x03\0\x02\0\x05\x12\x03\x06\x1a\x20\n\x0e\n\x07\x04\0\x03\0\x02\0\
-    \x01\x12\x03\x06!&\n\x0e\n\x07\x04\0\x03\0\x02\0\x03\x12\x03\x06)*\n\x0b\
-    \n\x04\x04\0\x03\x01\x12\x03\x07\x02*\n\x0c\n\x05\x04\0\x03\x01\x01\x12\
-    \x03\x07\n\x15\n\r\n\x06\x04\0\x03\x01\x02\0\x12\x03\x07\x18(\n\x0e\n\
-    \x07\x04\0\x03\x01\x02\0\x05\x12\x03\x07\x18\x1e\n\x0e\n\x07\x04\0\x03\
-    \x01\x02\0\x01\x12\x03\x07\x1f#\n\x0e\n\x07\x04\0\x03\x01\x02\0\x03\x12\
-    \x03\x07&'\n\x0b\n\x04\x04\0\x03\x02\x12\x03\x08\x02\x18\n\x0c\n\x05\x04\
-    \0\x03\x02\x01\x12\x03\x08\n\x15\n\x0c\n\x04\x04\0\x08\0\x12\x04\n\x02\
-    \x0e\x03\n\x0c\n\x05\x04\0\x08\0\x01\x12\x03\n\x08\x0f\n\x0b\n\x04\x04\0\
-    \x02\0\x12\x03\x0b\x04$\n\x0c\n\x05\x04\0\x02\0\x06\x12\x03\x0b\x04\x11\
-    \n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x0b\x12\x1f\n\x0c\n\x05\x04\0\x02\0\
-    \x03\x12\x03\x0b\"#\n\x0b\n\x04\x04\0\x02\x01\x12\x03\x0c\x04\x20\n\x0c\
-    \n\x05\x04\0\x02\x01\x06\x12\x03\x0c\x04\x0f\n\x0c\n\x05\x04\0\x02\x01\
-    \x01\x12\x03\x0c\x10\x1b\n\x0c\n\x05\x04\0\x02\x01\x03\x12\x03\x0c\x1e\
-    \x1f\n\x0b\n\x04\x04\0\x02\x02\x12\x03\r\x04\x20\n\x0c\n\x05\x04\0\x02\
-    \x02\x06\x12\x03\r\x04\x0f\n\x0c\n\x05\x04\0\x02\x02\x01\x12\x03\r\x10\
-    \x1b\n\x0c\n\x05\x04\0\x02\x02\x03\x12\x03\r\x1e\x1f\n\n\n\x02\x04\x01\
-    \x12\x04\x11\0!\x01\n\n\n\x03\x04\x01\x01\x12\x03\x11\x08\x0e\n\x0b\n\
-    \x04\x04\x01\x03\0\x12\x03\x12\x02.\n\x0c\n\x05\x04\x01\x03\0\x01\x12\
-    \x03\x12\n\x17\n\r\n\x06\x04\x01\x03\0\x02\0\x12\x03\x12\x1a,\n\x0e\n\
-    \x07\x04\x01\x03\0\x02\0\x06\x12\x03\x12\x1a\x20\n\x0e\n\x07\x04\x01\x03\
-    \0\x02\0\x01\x12\x03\x12!'\n\x0e\n\x07\x04\x01\x03\0\x02\0\x03\x12\x03\
-    \x12*+\n\x0b\n\x04\x04\x01\x03\x01\x12\x03\x13\x02/\n\x0c\n\x05\x04\x01\
-    \x03\x01\x01\x12\x03\x13\n\x15\n\r\n\x06\x04\x01\x03\x01\x02\0\x12\x03\
-    \x13\x18-\n\x0e\n\x07\x04\x01\x03\x01\x02\0\x06\x12\x03\x13\x18!\n\x0e\n\
-    \x07\x04\x01\x03\x01\x02\0\x01\x12\x03\x13\"(\n\x0e\n\x07\x04\x01\x03\
-    \x01\x02\0\x03\x12\x03\x13+,\n\x0b\n\x04\x04\x01\x03\x02\x12\x03\x14\x02\
-    (\n\x0c\n\x05\x04\x01\x03\x02\x01\x12\x03\x14\n\x15\n\r\n\x06\x04\x01\
-    \x03\x02\x02\0\x12\x03\x14\x18&\n\x0e\n\x07\x04\x01\x03\x02\x02\0\x06\
-    \x12\x03\x14\x18\x1c\n\x0e\n\x07\x04\x01\x03\x02\x02\0\x01\x12\x03\x14\
-    \x1d!\n\x0e\n\x07\x04\x01\x03\x02\x02\0\x03\x12\x03\x14$%\n\x0b\n\x04\
-    \x04\x01\x03\x03\x12\x03\x15\x02.\n\x0c\n\x05\x04\x01\x03\x03\x01\x12\
-    \x03\x15\n\x17\n\r\n\x06\x04\x01\x03\x03\x02\0\x12\x03\x15\x1a,\n\x0e\n\
-    \x07\x04\x01\x03\x03\x02\0\x06\x12\x03\x15\x1a\x20\n\x0e\n\x07\x04\x01\
-    \x03\x03\x02\0\x01\x12\x03\x15!'\n\x0e\n\x07\x04\x01\x03\x03\x02\0\x03\
-    \x12\x03\x15*+\n\x0b\n\x04\x04\x01\x03\x04\x12\x03\x16\x02.\n\x0c\n\x05\
-    \x04\x01\x03\x04\x01\x12\x03\x16\n\x14\n\r\n\x06\x04\x01\x03\x04\x02\0\
-    \x12\x03\x16\x17,\n\x0e\n\x07\x04\x01\x03\x04\x02\0\x05\x12\x03\x16\x17\
-    \x1d\n\x0e\n\x07\x04\x01\x03\x04\x02\0\x01\x12\x03\x16\x1e'\n\x0e\n\x07\
-    \x04\x01\x03\x04\x02\0\x03\x12\x03\x16*+\n\x0b\n\x04\x04\x01\x03\x05\x12\
-    \x03\x17\x02\x19\n\x0c\n\x05\x04\x01\x03\x05\x01\x12\x03\x17\n\x16\n\x0c\
-    \n\x04\x04\x01\x08\0\x12\x04\x19\x02\x20\x03\n\x0c\n\x05\x04\x01\x08\0\
-    \x01\x12\x03\x19\x08\x0f\n\x0b\n\x04\x04\x01\x02\0\x12\x03\x1a\x04$\n\
-    \x0c\n\x05\x04\x01\x02\0\x06\x12\x03\x1a\x04\x11\n\x0c\n\x05\x04\x01\x02\
-    \0\x01\x12\x03\x1a\x12\x1f\n\x0c\n\x05\x04\x01\x02\0\x03\x12\x03\x1a\"#\
-    \n\x0b\n\x04\x04\x01\x02\x01\x12\x03\x1b\x04\x20\n\x0c\n\x05\x04\x01\x02\
-    \x01\x06\x12\x03\x1b\x04\x0f\n\x0c\n\x05\x04\x01\x02\x01\x01\x12\x03\x1b\
-    \x10\x1b\n\x0c\n\x05\x04\x01\x02\x01\x03\x12\x03\x1b\x1e\x1f\n\x0b\n\x04\
-    \x04\x01\x02\x02\x12\x03\x1c\x04\x20\n\x0c\n\x05\x04\x01\x02\x02\x06\x12\
-    \x03\x1c\x04\x0f\n\x0c\n\x05\x04\x01\x02\x02\x01\x12\x03\x1c\x10\x1b\n\
-    \x0c\n\x05\x04\x01\x02\x02\x03\x12\x03\x1c\x1e\x1f\n\x0b\n\x04\x04\x01\
-    \x02\x03\x12\x03\x1d\x04$\n\x0c\n\x05\x04\x01\x02\x03\x06\x12\x03\x1d\
-    \x04\x11\n\x0c\n\x05\x04\x01\x02\x03\x01\x12\x03\x1d\x12\x1f\n\x0c\n\x05\
-    \x04\x01\x02\x03\x03\x12\x03\x1d\"#\n\x0b\n\x04\x04\x01\x02\x04\x12\x03\
-    \x1e\x04\x1e\n\x0c\n\x05\x04\x01\x02\x04\x06\x12\x03\x1e\x04\x0e\n\x0c\n\
-    \x05\x04\x01\x02\x04\x01\x12\x03\x1e\x0f\x19\n\x0c\n\x05\x04\x01\x02\x04\
-    \x03\x12\x03\x1e\x1c\x1d\n\x0b\n\x04\x04\x01\x02\x05\x12\x03\x1f\x04\"\n\
-    \x0c\n\x05\x04\x01\x02\x05\x06\x12\x03\x1f\x04\x10\n\x0c\n\x05\x04\x01\
-    \x02\x05\x01\x12\x03\x1f\x11\x1d\n\x0c\n\x05\x04\x01\x02\x05\x03\x12\x03\
-    \x1f\x20!b\x06proto3\
+    EnteredH\0R\rplayerEntered\x12@\n\x0eplayerLostConn\x18\x05\x20\x01(\x0b\
+    2\x16.Server.PlayerLostConnH\0R\x0eplayerLostConn\x124\n\nplayerLeft\x18\
+    \x06\x20\x01(\x0b2\x12.Server.PlayerLeftH\0R\nplayerLeft\x12:\n\x0cgameD\
+    eclined\x18\x07\x20\x01(\x0b2\x14.Server.GameDeclinedH\0R\x0cgameDecline\
+    d\x1a0\n\rPlayerUpdated\x12\x1f\n\x06player\x18\x01\x20\x01(\x0b2\x07.Pl\
+    ayerR\x06player\x1a1\n\x0bSelfUpdated\x12\"\n\x06player\x18\x01\x20\x01(\
+    \x0b2\n.OwnPlayerR\x06player\x1a(\n\x0bGameUpdated\x12\x19\n\x04game\x18\
+    \x01\x20\x01(\x0b2\x05.GameR\x04game\x1a0\n\rPlayerEntered\x12\x1f\n\x06\
+    player\x18\x01\x20\x01(\x0b2\x07.PlayerR\x06player\x1a-\n\x0ePlayerLostC\
+    onn\x12\x1b\n\tplayer_id\x18\x01\x20\x01(\tR\x08playerId\x1a)\n\nPlayerL\
+    eft\x12\x1b\n\tplayer_id\x18\x01\x20\x01(\tR\x08playerId\x1a\x0e\n\x0cGa\
+    meDeclinedB\t\n\x07messageJ\xbc\x0b\n\x06\x12\x04\0\0#\x01\n\x08\n\x01\
+    \x0c\x12\x03\0\0\x12\n\t\n\x02\x03\0\x12\x03\x02\0\x16\n\t\n\x02\x03\x01\
+    \x12\x03\x03\0\x14\n\n\n\x02\x04\0\x12\x04\x05\0\x0f\x01\n\n\n\x03\x04\0\
+    \x01\x12\x03\x05\x08\x0e\n\x0b\n\x04\x04\0\x03\0\x12\x03\x06\x02-\n\x0c\
+    \n\x05\x04\0\x03\0\x01\x12\x03\x06\n\x17\n\r\n\x06\x04\0\x03\0\x02\0\x12\
+    \x03\x06\x1a+\n\x0e\n\x07\x04\0\x03\0\x02\0\x05\x12\x03\x06\x1a\x20\n\
+    \x0e\n\x07\x04\0\x03\0\x02\0\x01\x12\x03\x06!&\n\x0e\n\x07\x04\0\x03\0\
+    \x02\0\x03\x12\x03\x06)*\n\x0b\n\x04\x04\0\x03\x01\x12\x03\x07\x02*\n\
+    \x0c\n\x05\x04\0\x03\x01\x01\x12\x03\x07\n\x15\n\r\n\x06\x04\0\x03\x01\
+    \x02\0\x12\x03\x07\x18(\n\x0e\n\x07\x04\0\x03\x01\x02\0\x05\x12\x03\x07\
+    \x18\x1e\n\x0e\n\x07\x04\0\x03\x01\x02\0\x01\x12\x03\x07\x1f#\n\x0e\n\
+    \x07\x04\0\x03\x01\x02\0\x03\x12\x03\x07&'\n\x0b\n\x04\x04\0\x03\x02\x12\
+    \x03\x08\x02\x18\n\x0c\n\x05\x04\0\x03\x02\x01\x12\x03\x08\n\x15\n\x0c\n\
+    \x04\x04\0\x08\0\x12\x04\n\x02\x0e\x03\n\x0c\n\x05\x04\0\x08\0\x01\x12\
+    \x03\n\x08\x0f\n\x0b\n\x04\x04\0\x02\0\x12\x03\x0b\x04$\n\x0c\n\x05\x04\
+    \0\x02\0\x06\x12\x03\x0b\x04\x11\n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x0b\
+    \x12\x1f\n\x0c\n\x05\x04\0\x02\0\x03\x12\x03\x0b\"#\n\x0b\n\x04\x04\0\
+    \x02\x01\x12\x03\x0c\x04\x20\n\x0c\n\x05\x04\0\x02\x01\x06\x12\x03\x0c\
+    \x04\x0f\n\x0c\n\x05\x04\0\x02\x01\x01\x12\x03\x0c\x10\x1b\n\x0c\n\x05\
+    \x04\0\x02\x01\x03\x12\x03\x0c\x1e\x1f\n\x0b\n\x04\x04\0\x02\x02\x12\x03\
+    \r\x04\x20\n\x0c\n\x05\x04\0\x02\x02\x06\x12\x03\r\x04\x0f\n\x0c\n\x05\
+    \x04\0\x02\x02\x01\x12\x03\r\x10\x1b\n\x0c\n\x05\x04\0\x02\x02\x03\x12\
+    \x03\r\x1e\x1f\n\n\n\x02\x04\x01\x12\x04\x11\0#\x01\n\n\n\x03\x04\x01\
+    \x01\x12\x03\x11\x08\x0e\n\x0b\n\x04\x04\x01\x03\0\x12\x03\x12\x02.\n\
+    \x0c\n\x05\x04\x01\x03\0\x01\x12\x03\x12\n\x17\n\r\n\x06\x04\x01\x03\0\
+    \x02\0\x12\x03\x12\x1a,\n\x0e\n\x07\x04\x01\x03\0\x02\0\x06\x12\x03\x12\
+    \x1a\x20\n\x0e\n\x07\x04\x01\x03\0\x02\0\x01\x12\x03\x12!'\n\x0e\n\x07\
+    \x04\x01\x03\0\x02\0\x03\x12\x03\x12*+\n\x0b\n\x04\x04\x01\x03\x01\x12\
+    \x03\x13\x02/\n\x0c\n\x05\x04\x01\x03\x01\x01\x12\x03\x13\n\x15\n\r\n\
+    \x06\x04\x01\x03\x01\x02\0\x12\x03\x13\x18-\n\x0e\n\x07\x04\x01\x03\x01\
+    \x02\0\x06\x12\x03\x13\x18!\n\x0e\n\x07\x04\x01\x03\x01\x02\0\x01\x12\
+    \x03\x13\"(\n\x0e\n\x07\x04\x01\x03\x01\x02\0\x03\x12\x03\x13+,\n\x0b\n\
+    \x04\x04\x01\x03\x02\x12\x03\x14\x02(\n\x0c\n\x05\x04\x01\x03\x02\x01\
+    \x12\x03\x14\n\x15\n\r\n\x06\x04\x01\x03\x02\x02\0\x12\x03\x14\x18&\n\
+    \x0e\n\x07\x04\x01\x03\x02\x02\0\x06\x12\x03\x14\x18\x1c\n\x0e\n\x07\x04\
+    \x01\x03\x02\x02\0\x01\x12\x03\x14\x1d!\n\x0e\n\x07\x04\x01\x03\x02\x02\
+    \0\x03\x12\x03\x14$%\n\x0b\n\x04\x04\x01\x03\x03\x12\x03\x15\x02.\n\x0c\
+    \n\x05\x04\x01\x03\x03\x01\x12\x03\x15\n\x17\n\r\n\x06\x04\x01\x03\x03\
+    \x02\0\x12\x03\x15\x1a,\n\x0e\n\x07\x04\x01\x03\x03\x02\0\x06\x12\x03\
+    \x15\x1a\x20\n\x0e\n\x07\x04\x01\x03\x03\x02\0\x01\x12\x03\x15!'\n\x0e\n\
+    \x07\x04\x01\x03\x03\x02\0\x03\x12\x03\x15*+\n\x0b\n\x04\x04\x01\x03\x04\
+    \x12\x03\x16\x022\n\x0c\n\x05\x04\x01\x03\x04\x01\x12\x03\x16\n\x18\n\r\
+    \n\x06\x04\x01\x03\x04\x02\0\x12\x03\x16\x1b0\n\x0e\n\x07\x04\x01\x03\
+    \x04\x02\0\x05\x12\x03\x16\x1b!\n\x0e\n\x07\x04\x01\x03\x04\x02\0\x01\
+    \x12\x03\x16\"+\n\x0e\n\x07\x04\x01\x03\x04\x02\0\x03\x12\x03\x16./\n\
+    \x0b\n\x04\x04\x01\x03\x05\x12\x03\x17\x02.\n\x0c\n\x05\x04\x01\x03\x05\
+    \x01\x12\x03\x17\n\x14\n\r\n\x06\x04\x01\x03\x05\x02\0\x12\x03\x17\x17,\
+    \n\x0e\n\x07\x04\x01\x03\x05\x02\0\x05\x12\x03\x17\x17\x1d\n\x0e\n\x07\
+    \x04\x01\x03\x05\x02\0\x01\x12\x03\x17\x1e'\n\x0e\n\x07\x04\x01\x03\x05\
+    \x02\0\x03\x12\x03\x17*+\n\x0b\n\x04\x04\x01\x03\x06\x12\x03\x18\x02\x19\
+    \n\x0c\n\x05\x04\x01\x03\x06\x01\x12\x03\x18\n\x16\n\x0c\n\x04\x04\x01\
+    \x08\0\x12\x04\x1a\x02\"\x03\n\x0c\n\x05\x04\x01\x08\0\x01\x12\x03\x1a\
+    \x08\x0f\n\x0b\n\x04\x04\x01\x02\0\x12\x03\x1b\x04$\n\x0c\n\x05\x04\x01\
+    \x02\0\x06\x12\x03\x1b\x04\x11\n\x0c\n\x05\x04\x01\x02\0\x01\x12\x03\x1b\
+    \x12\x1f\n\x0c\n\x05\x04\x01\x02\0\x03\x12\x03\x1b\"#\n\x0b\n\x04\x04\
+    \x01\x02\x01\x12\x03\x1c\x04\x20\n\x0c\n\x05\x04\x01\x02\x01\x06\x12\x03\
+    \x1c\x04\x0f\n\x0c\n\x05\x04\x01\x02\x01\x01\x12\x03\x1c\x10\x1b\n\x0c\n\
+    \x05\x04\x01\x02\x01\x03\x12\x03\x1c\x1e\x1f\n\x0b\n\x04\x04\x01\x02\x02\
+    \x12\x03\x1d\x04\x20\n\x0c\n\x05\x04\x01\x02\x02\x06\x12\x03\x1d\x04\x0f\
+    \n\x0c\n\x05\x04\x01\x02\x02\x01\x12\x03\x1d\x10\x1b\n\x0c\n\x05\x04\x01\
+    \x02\x02\x03\x12\x03\x1d\x1e\x1f\n\x0b\n\x04\x04\x01\x02\x03\x12\x03\x1e\
+    \x04$\n\x0c\n\x05\x04\x01\x02\x03\x06\x12\x03\x1e\x04\x11\n\x0c\n\x05\
+    \x04\x01\x02\x03\x01\x12\x03\x1e\x12\x1f\n\x0c\n\x05\x04\x01\x02\x03\x03\
+    \x12\x03\x1e\"#\n\x0b\n\x04\x04\x01\x02\x04\x12\x03\x1f\x04&\n\x0c\n\x05\
+    \x04\x01\x02\x04\x06\x12\x03\x1f\x04\x12\n\x0c\n\x05\x04\x01\x02\x04\x01\
+    \x12\x03\x1f\x13!\n\x0c\n\x05\x04\x01\x02\x04\x03\x12\x03\x1f$%\n\x0b\n\
+    \x04\x04\x01\x02\x05\x12\x03\x20\x04\x1e\n\x0c\n\x05\x04\x01\x02\x05\x06\
+    \x12\x03\x20\x04\x0e\n\x0c\n\x05\x04\x01\x02\x05\x01\x12\x03\x20\x0f\x19\
+    \n\x0c\n\x05\x04\x01\x02\x05\x03\x12\x03\x20\x1c\x1d\n\x0b\n\x04\x04\x01\
+    \x02\x06\x12\x03!\x04\"\n\x0c\n\x05\x04\x01\x02\x06\x06\x12\x03!\x04\x10\
+    \n\x0c\n\x05\x04\x01\x02\x06\x01\x12\x03!\x11\x1d\n\x0c\n\x05\x04\x01\
+    \x02\x06\x03\x12\x03!\x20!b\x06proto3\
 ";
 
 static file_descriptor_proto_lazy: ::protobuf::rt::LazyV2<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::rt::LazyV2::INIT;

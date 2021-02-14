@@ -48,7 +48,7 @@ mod tests {
             .await
             .expect("Persisting player has failed");
         ctx.ws()
-            .register_active_player(player.id(), "peer")
+            .register_active_player(&player, "peer")
             .await
             .expect("Setting peer connection failed");
 

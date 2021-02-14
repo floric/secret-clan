@@ -16,7 +16,7 @@ pub async fn handle_auth_confirmation(
                 error!("Setting player active failed: {:?}", err);
             }
             ctx.ws()
-                .register_active_player(new_player.id(), peer_id)
+                .register_active_player(&new_player, peer_id)
                 .await
                 .expect("Registering player has failed");
 
@@ -35,6 +35,7 @@ pub async fn handle_auth_confirmation(
                     .send_message(String::from(new_player.id()), msg)
                     .await?;
 
+                // inform new player about existing players
                 for other_player_id in game.all_player_ids() {
                     if let Some(other_player) = ctx
                         .db()
@@ -42,26 +43,27 @@ pub async fn handle_auth_confirmation(
                         .get(&other_player_id)
                         .await
                         .expect("Reading player has failed")
+                        .filter(|p| p.id() != new_player.id())
                     {
-                        // inform new player about existing players
-                        if other_player_id != new_player.id() {
-                            let mut update_msg = proto::message::Server_PlayerEntered::new();
-                            update_msg.set_player(other_player.clone().into());
+                        // send general infos about player
+                        let mut entered_msg = proto::message::Server_PlayerEntered::new();
+                        entered_msg.set_player(other_player.clone().into());
+                        let mut msg = proto::message::Server::new();
+                        msg.set_playerEntered(entered_msg);
+                        ctx.ws()
+                            .send_message(String::from(new_player.id()), msg)
+                            .await?;
+
+                        // send message if player is inactive
+                        if !ctx.ws().is_active_player(&other_player_id).await {
+                            let mut left_conn_msg = proto::message::Server_PlayerLostConn::new();
+                            left_conn_msg.set_player_id(String::from(other_player.id()));
                             let mut msg = proto::message::Server::new();
-                            msg.set_playerEntered(update_msg);
+                            msg.set_playerLostConn(left_conn_msg);
                             ctx.ws()
                                 .send_message(String::from(new_player.id()), msg)
                                 .await?;
                         }
-
-                        // inform other players about new player
-                        let mut player_msg = proto::message::Server_PlayerEntered::new();
-                        player_msg.set_player(new_player.clone().into());
-                        let mut msg = proto::message::Server::new();
-                        msg.set_playerEntered(player_msg);
-                        ctx.ws()
-                            .send_message(String::from(other_player.id()), msg)
-                            .await?;
                     }
                 }
             }
@@ -82,7 +84,7 @@ mod tests {
     use super::handle_auth_confirmation;
     use crate::{
         config::AppConfig,
-        model::{ Game, Player, TaskDefinition},
+        model::{Game, Player, TaskDefinition},
         server::{
             app_context::{AppContext, DbClients},
             auth::generate_jwt_token,
@@ -111,7 +113,7 @@ mod tests {
             .expect("Persisting player has failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
         ctx.ws()
-            .register_active_player(player.id(), "peer-id")
+            .register_active_player(&player, "peer-id")
             .await
             .expect("Registering players connection failed");
 
@@ -130,7 +132,7 @@ mod tests {
             .expect("Persisting player has failed");
         let token = generate_jwt_token(&player, &ctx.config().auth_secret);
         ctx.ws()
-            .register_active_player(player.id(), "peer-id")
+            .register_active_player(&player, "peer-id")
             .await
             .expect("Registering players connection failed");
 

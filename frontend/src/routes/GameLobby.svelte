@@ -15,7 +15,7 @@
   export let params: { token?: string } = {};
   let currentGame: Game | null = null;
   let ownPlayer: OwnPlayer | null = null;
-  let players: Record<string, Player> = {};
+  let players: Record<string, { player: Player; active: boolean }> = {};
   let ws: WebSocket | null = null;
   let connectSuccessful = false;
   let connectClosed = false;
@@ -66,25 +66,43 @@
         if (message?.$case === "playerUpdated") {
           const { player } = message.playerUpdated;
           if (player?.id && players[player!.id]) {
-            players[player!.id] = player!;
+            players[player!.id] = {
+              player: player!,
+              active: players[player!.id].active,
+            };
           }
         } else if (message?.$case === "selfUpdated") {
           const { player } = message.selfUpdated;
           ownPlayer = player!;
           players[player!.id] = {
-            id: player!.id,
-            name: player!.name,
-            credits: player!.credits,
+            player: {
+              id: player!.id,
+              name: player!.name,
+              credits: player!.credits,
+            },
+            active: players[player!.id].active,
           };
+          players = players;
         } else if (message?.$case === "gameUpdated") {
           const { game } = message.gameUpdated;
           currentGame = game!;
         } else if (message?.$case === "playerEntered") {
           const { player } = message.playerEntered;
-          players[player!.id] = player!;
+          players[player!.id] = {
+            player: player!,
+            active: true,
+          };
+          players = players;
+        } else if (message?.$case === "playerLostConn") {
+          const { playerId } = message.playerLostConn;
+          players[playerId] = {
+            player: players[playerId].player,
+            active: false,
+          };
+          players = players;
         } else if (message?.$case === "playerLeft") {
           const { playerId } = message.playerLeft;
-          delete players[playerId!];
+          delete players[playerId];
           players = players;
         } else if (message?.$case === "gameDeclined") {
           currentGame = null;
