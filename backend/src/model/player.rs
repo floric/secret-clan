@@ -1,4 +1,4 @@
-use super::{TaskDefinition, TaskType};
+use super::TaskDefinition;
 use crate::{
     db::Persist,
     model::proto::{self},
@@ -97,13 +97,8 @@ impl Player {
         self.open_tasks.push_back(task);
     }
 
-    pub fn resolve_task(&mut self, task: TaskType) {
-        if self
-            .open_tasks
-            .front()
-            .filter(|t| t.get_type() == task)
-            .is_some()
-        {
+    pub fn resolve_task(&mut self, task: TaskDefinition) {
+        if self.open_tasks.front().filter(|t| **t == task).is_some() {
             self.open_tasks.pop_front();
         } else {
             warn!("Task {:?} not resolved", task);

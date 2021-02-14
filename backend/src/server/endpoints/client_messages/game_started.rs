@@ -1,5 +1,5 @@
 use crate::{
-    model::{Player, TaskType},
+    model::{Player, TaskDefinition},
     server::app_context::AppContext,
 };
 use std::fmt::format;
@@ -23,7 +23,7 @@ pub async fn handle_game_start(player: Option<Player>, ctx: &AppContext) -> Resu
                             let players = players
                                 .values_mut()
                                 .map(|p| {
-                                    p.resolve_task(TaskType::Settings);
+                                    p.resolve_task(TaskDefinition::Settings {});
                                     p.set_credits(5000);
                                     p.clone()
                                 })

@@ -1,29 +1,11 @@
 use super::proto::{self};
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum TaskType {
-    Settings,
-}
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskDefinition {
     Settings {},
 }
-
-impl TaskDefinition {
-    pub fn get_type(&self) -> TaskType {
-        match self {
-            TaskDefinition::Settings {} => TaskType::Settings,
-        }
-    }
-}
-
-#[async_trait]
-pub trait Task {}
 
 impl From<proto::task::Task> for TaskDefinition {
     fn from(proto_task: proto::task::Task) -> Self {

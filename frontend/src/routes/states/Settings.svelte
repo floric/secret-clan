@@ -5,6 +5,7 @@
   import TextInput from "../../components/inputs/TextInput.svelte";
   import Label from "../../components/inputs/Label.svelte";
   import DialogHeader from "../../components/headers/DialogHeader.svelte";
+  import InactivePlayer from "../../components/game/InactivePlayer.svelte";
   import { Client } from "../../types/proto/message";
   import type { Game } from "../../types/proto/game";
   import type { Player, OwnPlayer } from "../../types/proto/player";
@@ -73,9 +74,7 @@
           {#if p.player.id === currentGame.adminId}
             <span class="font-bold">(Admin)</span>
           {/if}
-          {#if !p.active}
-            <span class="font-bold text-red-800">(Inactive)</span>
-          {/if}
+          <InactivePlayer isActive={p.active} />
         </li>
       {/each}
     </ul>
