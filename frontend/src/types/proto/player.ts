@@ -10,6 +10,7 @@ export interface Player {
   name: string;
   credits: number;
   position: number;
+  cardsCount: number;
 }
 
 export interface OwnPlayer {
@@ -21,21 +22,38 @@ export interface OwnPlayer {
   position: number;
 }
 
-const basePlayer: object = { id: "", name: "", credits: 0, position: 0 };
+const basePlayer: object = {
+  id: "",
+  name: "",
+  credits: 0,
+  position: 0,
+  cardsCount: 0,
+};
 
 export const Player = {
   encode(message: Player, writer: Writer = Writer.create()): Writer {
-    writer.uint32(10).string(message.id);
-    writer.uint32(18).string(message.name);
-    writer.uint32(24).uint32(message.credits);
-    writer.uint32(32).uint32(message.position);
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.credits !== 0) {
+      writer.uint32(24).uint32(message.credits);
+    }
+    if (message.position !== 0) {
+      writer.uint32(32).uint32(message.position);
+    }
+    if (message.cardsCount !== 0) {
+      writer.uint32(40).uint32(message.cardsCount);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Player {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...basePlayer } as Player;
+    const message = globalThis.Object.create(basePlayer) as Player;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -51,6 +69,9 @@ export const Player = {
         case 4:
           message.position = reader.uint32();
           break;
+        case 5:
+          message.cardsCount = reader.uint32();
+          break;
         default:
           reader.skipType(tag & 7);
           break;
@@ -60,7 +81,7 @@ export const Player = {
   },
 
   fromJSON(object: any): Player {
-    const message = { ...basePlayer } as Player;
+    const message = globalThis.Object.create(basePlayer) as Player;
     if (object.id !== undefined && object.id !== null) {
       message.id = String(object.id);
     }
@@ -72,6 +93,9 @@ export const Player = {
     }
     if (object.position !== undefined && object.position !== null) {
       message.position = Number(object.position);
+    }
+    if (object.cardsCount !== undefined && object.cardsCount !== null) {
+      message.cardsCount = Number(object.cardsCount);
     }
     return message;
   },
@@ -90,6 +114,9 @@ export const Player = {
     if (object.position !== undefined && object.position !== null) {
       message.position = object.position;
     }
+    if (object.cardsCount !== undefined && object.cardsCount !== null) {
+      message.cardsCount = object.cardsCount;
+    }
     return message;
   },
 
@@ -99,6 +126,7 @@ export const Player = {
     message.name !== undefined && (obj.name = message.name);
     message.credits !== undefined && (obj.credits = message.credits);
     message.position !== undefined && (obj.position = message.position);
+    message.cardsCount !== undefined && (obj.cardsCount = message.cardsCount);
     return obj;
   },
 };
@@ -107,23 +135,31 @@ const baseOwnPlayer: object = { id: "", name: "", credits: 0, position: 0 };
 
 export const OwnPlayer = {
   encode(message: OwnPlayer, writer: Writer = Writer.create()): Writer {
-    writer.uint32(10).string(message.id);
-    writer.uint32(18).string(message.name);
+    if (message.id !== "") {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
+    }
     for (const v of message.openTasks) {
       Task.encode(v!, writer.uint32(26).fork()).ldelim();
     }
-    writer.uint32(32).uint32(message.credits);
+    if (message.credits !== 0) {
+      writer.uint32(32).uint32(message.credits);
+    }
     for (const v of message.cards) {
       Card.encode(v!, writer.uint32(42).fork()).ldelim();
     }
-    writer.uint32(48).uint32(message.position);
+    if (message.position !== 0) {
+      writer.uint32(48).uint32(message.position);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): OwnPlayer {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseOwnPlayer } as OwnPlayer;
+    const message = globalThis.Object.create(baseOwnPlayer) as OwnPlayer;
     message.openTasks = [];
     message.cards = [];
     while (reader.pos < end) {
@@ -156,7 +192,7 @@ export const OwnPlayer = {
   },
 
   fromJSON(object: any): OwnPlayer {
-    const message = { ...baseOwnPlayer } as OwnPlayer;
+    const message = globalThis.Object.create(baseOwnPlayer) as OwnPlayer;
     message.openTasks = [];
     message.cards = [];
     if (object.id !== undefined && object.id !== null) {
@@ -234,6 +270,16 @@ export const OwnPlayer = {
     return obj;
   },
 };
+
+declare var self: any | undefined;
+declare var window: any | undefined;
+var globalThis: any = (() => {
+  if (typeof globalThis !== "undefined") return globalThis;
+  if (typeof self !== "undefined") return self;
+  if (typeof window !== "undefined") return window;
+  if (typeof global !== "undefined") return global;
+  throw "Unable to locate global object";
+})();
 
 type Builtin = Date | Function | Uint8Array | string | number | undefined;
 export type DeepPartial<T> = T extends Builtin

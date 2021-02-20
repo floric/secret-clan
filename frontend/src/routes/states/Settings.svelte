@@ -66,7 +66,7 @@
     </div>
   </div>
   <div>
-    <h4 class="font-bold mb-4">Players</h4>
+    <h4 class="font-bold mb-4">{Object.values(players).length} Players</h4>
     <ul>
       {#each Object.values(players).sort((a, b) => b.player.position - a.player.position) as p}
         <li>
@@ -82,7 +82,10 @@
 </div>
 <ActionRow>
   {#if currentGame.adminId === ownPlayer.id}
-    <PrimaryButton onClick={startGame}>Start</PrimaryButton>
+    <PrimaryButton
+      disabled={Object.values(players).length < 2}
+      onClick={startGame}>Start</PrimaryButton
+    >
   {:else}
     <p>Wait for the game to start.</p>
   {/if}

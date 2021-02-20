@@ -1,8 +1,10 @@
+mod card;
 mod game;
 mod player;
 mod task;
 
 pub mod proto;
+pub use card::Card;
 pub use game::Game;
 pub use game::GameState;
 pub use player::Player;

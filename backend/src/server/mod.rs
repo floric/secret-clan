@@ -12,7 +12,6 @@ use self::{
         games::{
             attend_game_filter, create_game_filter, get_games_count_filter, leave_game_filter,
         },
-        players::get_player_filter,
     },
     reply::handle_rejection,
 };
@@ -75,15 +74,8 @@ pub async fn run_server(ctx: &'static AppContext) {
                 ),
         );
 
-    let player_route = warp::path("players").and(
-        // GET /api/players/:id
-        warp::get()
-            .and(warp::path!(String))
-            .and_then(move |id: String| async move { get_player_filter(&id, ctx).await }),
-    );
     let api_route = warp::path("api").and(
         game_route
-            .or(player_route)
             // WS /api/active_game
             .or(warp::path!("active_game")
                 .and(warp::ws())

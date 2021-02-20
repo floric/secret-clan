@@ -20,9 +20,17 @@ pub async fn handle_game_start(player: Option<Player>, ctx: &AppContext) -> Resu
                     match ctx.db().players().get_batch(&game.all_player_ids()).await {
                         Ok(mut players) => {
                             game.start();
+                            game.shuffle_deck();
+                            game.set_blinds_roles();
                             let players = players
                                 .values_mut()
                                 .map(|p| {
+                                    if let Some(card) = game.retrieve_card() {
+                                        p.add_card(card);
+                                    }
+                                    if let Some(card) = game.retrieve_card() {
+                                        p.add_card(card);
+                                    }
                                     p.resolve_task(TaskDefinition::Settings {});
                                     p.set_credits(5000);
                                     p.clone()

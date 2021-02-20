@@ -1,6 +1,5 @@
 <script lang="typescript">
   import { push } from "svelte-spa-router";
-  import type { Game, GameStats } from "../types/Game";
   import ActionRow from "../components/buttons/ActionRow.svelte";
   import PrimaryButton from "../components/buttons/Primary.svelte";
   import SecondaryButton from "../components/buttons/Secondary.svelte";
@@ -28,6 +27,11 @@
     await push(`/games/${game.game}`);
   }
 
+  const onSubmit: svelte.JSX.EventHandler = (ev) => {
+    ev.preventDefault();
+    attendGame();
+  };
+
   async function attendGame() {
     clearToken();
 
@@ -49,7 +53,9 @@
     await push(`/games/${inputToken?.trim()}`);
   }
   const loadStats = async () => {
-    const stats = await sendRequest<GameStats>(`/api/games/`, "GET");
+    const stats = await sendRequest<{
+      total: number;
+    }>(`/api/games/`, "GET");
     if (!stats) {
       return { total: 0 };
     }
@@ -73,12 +79,10 @@
 
   <Divider><span slot="text">or</span></Divider>
 
-  <form>
+  <form on:submit={onSubmit}>
     <div class="grid grid-cols-1 md:grid-cols-2 mb-6 gap-4">
       <TextInput id="token" placeholder="Token" bind:value={inputToken} />
-      <PrimaryButton disabled={!inputToken} onClick={attendGame}
-        >Attend</PrimaryButton
-      >
+      <PrimaryButton type="submit" disabled={!inputToken}>Attend</PrimaryButton>
     </div>
     <ActionRow>
       <div />

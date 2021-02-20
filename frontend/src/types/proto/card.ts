@@ -56,15 +56,19 @@ const baseCard: object = { color: 0, value: 0 };
 
 export const Card = {
   encode(message: Card, writer: Writer = Writer.create()): Writer {
-    writer.uint32(8).int32(message.color);
-    writer.uint32(16).uint32(message.value);
+    if (message.color !== 0) {
+      writer.uint32(8).int32(message.color);
+    }
+    if (message.value !== 0) {
+      writer.uint32(16).uint32(message.value);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Card {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseCard } as Card;
+    const message = globalThis.Object.create(baseCard) as Card;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -83,7 +87,7 @@ export const Card = {
   },
 
   fromJSON(object: any): Card {
-    const message = { ...baseCard } as Card;
+    const message = globalThis.Object.create(baseCard) as Card;
     if (object.color !== undefined && object.color !== null) {
       message.color = card_ColorFromJSON(object.color);
     }
@@ -112,6 +116,16 @@ export const Card = {
     return obj;
   },
 };
+
+declare var self: any | undefined;
+declare var window: any | undefined;
+var globalThis: any = (() => {
+  if (typeof globalThis !== "undefined") return globalThis;
+  if (typeof self !== "undefined") return self;
+  if (typeof window !== "undefined") return window;
+  if (typeof global !== "undefined") return global;
+  throw "Unable to locate global object";
+})();
 
 type Builtin = Date | Function | Uint8Array | string | number | undefined;
 export type DeepPartial<T> = T extends Builtin

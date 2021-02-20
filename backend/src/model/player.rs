@@ -1,4 +1,4 @@
-use super::TaskDefinition;
+use super::{Card, TaskDefinition};
 use crate::{
     db::Persist,
     model::proto::{self},
@@ -10,7 +10,7 @@ use nanoid::nanoid;
 use protobuf::RepeatedField;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, convert::TryInto};
 
 fn generate_random_name() -> String {
     Generator::default().next().unwrap()
@@ -30,7 +30,7 @@ pub struct Player {
     open_tasks: VecDeque<TaskDefinition>,
     credits: u32,
     position: u32,
-    // TODO cards
+    deck: VecDeque<Card>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
@@ -54,6 +54,7 @@ impl Player {
             open_tasks: VecDeque::default(),
             credits: 0,
             position: rand::random(),
+            deck: VecDeque::default(),
         }
     }
 
@@ -125,12 +126,9 @@ impl Player {
     pub fn credits(&self) -> u32 {
         self.credits
     }
-    pub fn to_response(&self) -> PlayerResponse {
-        PlayerResponse {
-            id: self.id.to_owned(),
-            name: self.name.to_owned(),
-            game_token: self.game_token.to_owned(),
-        }
+
+    pub fn add_card(&mut self, card: Card) {
+        self.deck.push_front(card);
     }
 }
 
@@ -160,6 +158,7 @@ impl Into<proto::player::Player> for Player {
         player.set_name(self.name);
         player.set_credits(self.credits);
         player.set_position(self.position);
+        player.set_cards_count(self.deck.len().try_into().unwrap());
         player
     }
 }
@@ -176,6 +175,11 @@ impl Into<proto::player::OwnPlayer> for Player {
         player.set_open_tasks(open_tasks);
         player.set_credits(self.credits);
         player.set_position(self.position);
+        let mut cards = RepeatedField::new();
+        for c in self.deck {
+            cards.push(c.into());
+        }
+        player.set_cards(cards);
         player
     }
 }

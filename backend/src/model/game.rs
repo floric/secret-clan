@@ -1,11 +1,19 @@
+use super::{card::CardColor, Card};
 use crate::{
     db::Persist,
     model::proto::{self},
 };
 use chrono::{DateTime, Utc};
+use log::error;
+use rand::prelude::*;
+use rand_pcg::Pcg64;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::{collections::BTreeMap, convert::TryFrom, iter::FromIterator};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    convert::TryFrom,
+    iter::FromIterator,
+};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub enum GameState {
@@ -58,7 +66,7 @@ pub struct Game {
     blind: u32,
     small_blind_id: Option<String>,
     big_blind_id: Option<String>,
-    // TODO cards
+    deck: VecDeque<Card>,
 }
 
 impl Game {
@@ -77,6 +85,7 @@ impl Game {
             blind: 10,
             small_blind_id: None,
             big_blind_id: None,
+            deck: VecDeque::new(),
         }
     }
 
@@ -147,22 +156,35 @@ impl Game {
     pub fn start(&mut self) {
         self.state = GameState::Started;
         self.pot = 0;
-
-        self.start_new_round();
     }
 
-    pub fn start_new_round(&mut self) {
-        self.set_blinds_roles();
-        // TODO set blinds
-        // TODO shuffle cards
-        // TODO give players and game cards
-        // TODO wait for blinds or just take blinds
-        // TODO wait for and process player actions
-        // TODO optional: increase blinds
-        // TODO check if all players can be part of new round
+    pub fn retrieve_card(&mut self) -> Option<Card> {
+        self.deck.pop_front()
     }
 
-    fn set_blinds_roles(&mut self) {
+    pub fn shuffle_deck(&mut self) {
+        let mut ordered_deck = vec![];
+        for col in vec![
+            CardColor::Pikes,
+            CardColor::Hearts,
+            CardColor::Clovers,
+            CardColor::Tiles,
+        ] {
+            for i in 1..14 {
+                ordered_deck.push(Card::new(col.clone(), i));
+            }
+        }
+
+        let mut rng = thread_rng();
+        self.deck = VecDeque::new();
+        while ordered_deck.len() > 0 {
+            let next_index = rng.gen_range(0..ordered_deck.len());
+            let card = ordered_deck.remove(next_index);
+            self.deck.push_back(card);
+        }
+    }
+
+    pub fn set_blinds_roles(&mut self) {
         let ids = self.all_player_ids();
         if ids.len() < 2 {
             return;
@@ -190,6 +212,10 @@ impl Game {
                 self.big_blind_id = Some(ids.get(1).unwrap().clone());
             }
         }
+    }
+
+    pub fn deck(&self) -> &VecDeque<Card> {
+        &self.deck
     }
 }
 
@@ -230,5 +256,19 @@ impl Into<proto::game::Game> for Game {
         }
         game.set_blind(self.blind);
         game
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Game;
+
+    #[tokio::test]
+    async fn should_shuffle_deck() {
+        let mut game = Game::new("admin", "GAME");
+
+        game.shuffle_deck();
+
+        assert_eq!(game.deck().len(), 52);
     }
 }

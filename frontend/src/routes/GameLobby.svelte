@@ -11,6 +11,7 @@
   import WaitForTask from "./states/WaitForTask.svelte";
   import ActiveGame from "./states/ActiveGame.svelte";
   import { sendRequest } from "../utils/requests";
+  import { loop_guard } from "svelte/internal";
 
   export let params: { token?: string } = {};
   let currentGame: Game | null = null;
@@ -58,10 +59,28 @@
     ws.onerror = (ev) => {
       console.error("Error", ev);
     };
+    const msgQueue: Array<Server> = [];
     ws.onmessage = async (ev: MessageEvent<Blob>) => {
       try {
         const raw = await ev.data.arrayBuffer();
-        const { message } = Server.decode(new Uint8Array(raw));
+        msgQueue.push(Server.decode(new Uint8Array(raw)));
+      } catch (err) {
+        console.error("Parsing task has failed", err);
+      }
+    };
+    let queueProcessingActive = false;
+    setInterval(() => {
+      processMessages();
+    }, 500);
+    function processMessages() {
+      if (queueProcessingActive) {
+        return;
+      }
+
+      queueProcessingActive = true;
+      while (msgQueue.length > 0) {
+        const elem = msgQueue.pop();
+        const { message } = elem!;
         console.info("Incoming message", message);
         if (message?.$case === "playerUpdated") {
           const { player } = message.playerUpdated;
@@ -80,8 +99,9 @@
               name: player!.name,
               credits: player!.credits,
               position: player!.position,
+              cardsCount: player!.cards.length,
             },
-            active: players[player!.id].active,
+            active: players[player!.id]?.active || false,
           };
           players = players;
         } else if (message?.$case === "gameUpdated") {
@@ -91,13 +111,13 @@
           const { player } = message.playerEntered;
           players[player!.id] = {
             player: player!,
-            active: true,
+            active: players[player!.id]?.active || true,
           };
           players = players;
         } else if (message?.$case === "playerLostConn") {
           const { playerId } = message.playerLostConn;
           players[playerId] = {
-            player: players[playerId].player,
+            player: players[playerId]?.player,
             active: false,
           };
           players = players;
@@ -113,10 +133,9 @@
         } else {
           console.warn("Unknown task type");
         }
-      } catch (err) {
-        console.error("Parsing task has failed", err);
       }
-    };
+      queueProcessingActive = false;
+    }
   }
 
   createWsConnection();

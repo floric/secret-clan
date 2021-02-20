@@ -87,7 +87,7 @@ export const Client = {
   decode(input: Reader | Uint8Array, length?: number): Client {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseClient } as Client;
+    const message = globalThis.Object.create(baseClient) as Client;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -118,7 +118,7 @@ export const Client = {
   },
 
   fromJSON(object: any): Client {
-    const message = { ...baseClient } as Client;
+    const message = globalThis.Object.create(baseClient) as Client;
     if (object.authConfirmed !== undefined && object.authConfirmed !== null) {
       message.message = {
         $case: "authConfirmed",
@@ -202,14 +202,18 @@ export const Client_AuthConfirmed = {
     message: Client_AuthConfirmed,
     writer: Writer = Writer.create()
   ): Writer {
-    writer.uint32(10).string(message.token);
+    if (message.token !== "") {
+      writer.uint32(10).string(message.token);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Client_AuthConfirmed {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseClient_AuthConfirmed } as Client_AuthConfirmed;
+    const message = globalThis.Object.create(
+      baseClient_AuthConfirmed
+    ) as Client_AuthConfirmed;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -225,7 +229,9 @@ export const Client_AuthConfirmed = {
   },
 
   fromJSON(object: any): Client_AuthConfirmed {
-    const message = { ...baseClient_AuthConfirmed } as Client_AuthConfirmed;
+    const message = globalThis.Object.create(
+      baseClient_AuthConfirmed
+    ) as Client_AuthConfirmed;
     if (object.token !== undefined && object.token !== null) {
       message.token = String(object.token);
     }
@@ -254,14 +260,18 @@ export const Client_NameUpdated = {
     message: Client_NameUpdated,
     writer: Writer = Writer.create()
   ): Writer {
-    writer.uint32(10).string(message.name);
+    if (message.name !== "") {
+      writer.uint32(10).string(message.name);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Client_NameUpdated {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseClient_NameUpdated } as Client_NameUpdated;
+    const message = globalThis.Object.create(
+      baseClient_NameUpdated
+    ) as Client_NameUpdated;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -277,7 +287,9 @@ export const Client_NameUpdated = {
   },
 
   fromJSON(object: any): Client_NameUpdated {
-    const message = { ...baseClient_NameUpdated } as Client_NameUpdated;
+    const message = globalThis.Object.create(
+      baseClient_NameUpdated
+    ) as Client_NameUpdated;
     if (object.name !== undefined && object.name !== null) {
       message.name = String(object.name);
     }
@@ -309,7 +321,9 @@ export const Client_GameStarted = {
   decode(input: Reader | Uint8Array, length?: number): Client_GameStarted {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseClient_GameStarted } as Client_GameStarted;
+    const message = globalThis.Object.create(
+      baseClient_GameStarted
+    ) as Client_GameStarted;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -322,7 +336,9 @@ export const Client_GameStarted = {
   },
 
   fromJSON(_: any): Client_GameStarted {
-    const message = { ...baseClient_GameStarted } as Client_GameStarted;
+    const message = globalThis.Object.create(
+      baseClient_GameStarted
+    ) as Client_GameStarted;
     return message;
   },
 
@@ -389,7 +405,7 @@ export const Server = {
   decode(input: Reader | Uint8Array, length?: number): Server {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer } as Server;
+    const message = globalThis.Object.create(baseServer) as Server;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -447,7 +463,7 @@ export const Server = {
   },
 
   fromJSON(object: any): Server {
-    const message = { ...baseServer } as Server;
+    const message = globalThis.Object.create(baseServer) as Server;
     if (object.playerUpdated !== undefined && object.playerUpdated !== null) {
       message.message = {
         $case: "playerUpdated",
@@ -617,7 +633,7 @@ export const Server_PlayerUpdated = {
     message: Server_PlayerUpdated,
     writer: Writer = Writer.create()
   ): Writer {
-    if (message.player !== undefined && message.player !== undefined) {
+    if (message.player !== undefined) {
       Player.encode(message.player, writer.uint32(10).fork()).ldelim();
     }
     return writer;
@@ -626,7 +642,9 @@ export const Server_PlayerUpdated = {
   decode(input: Reader | Uint8Array, length?: number): Server_PlayerUpdated {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_PlayerUpdated } as Server_PlayerUpdated;
+    const message = globalThis.Object.create(
+      baseServer_PlayerUpdated
+    ) as Server_PlayerUpdated;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -642,7 +660,9 @@ export const Server_PlayerUpdated = {
   },
 
   fromJSON(object: any): Server_PlayerUpdated {
-    const message = { ...baseServer_PlayerUpdated } as Server_PlayerUpdated;
+    const message = globalThis.Object.create(
+      baseServer_PlayerUpdated
+    ) as Server_PlayerUpdated;
     if (object.player !== undefined && object.player !== null) {
       message.player = Player.fromJSON(object.player);
     }
@@ -672,7 +692,7 @@ export const Server_SelfUpdated = {
     message: Server_SelfUpdated,
     writer: Writer = Writer.create()
   ): Writer {
-    if (message.player !== undefined && message.player !== undefined) {
+    if (message.player !== undefined) {
       OwnPlayer.encode(message.player, writer.uint32(10).fork()).ldelim();
     }
     return writer;
@@ -681,7 +701,9 @@ export const Server_SelfUpdated = {
   decode(input: Reader | Uint8Array, length?: number): Server_SelfUpdated {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_SelfUpdated } as Server_SelfUpdated;
+    const message = globalThis.Object.create(
+      baseServer_SelfUpdated
+    ) as Server_SelfUpdated;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -697,7 +719,9 @@ export const Server_SelfUpdated = {
   },
 
   fromJSON(object: any): Server_SelfUpdated {
-    const message = { ...baseServer_SelfUpdated } as Server_SelfUpdated;
+    const message = globalThis.Object.create(
+      baseServer_SelfUpdated
+    ) as Server_SelfUpdated;
     if (object.player !== undefined && object.player !== null) {
       message.player = OwnPlayer.fromJSON(object.player);
     }
@@ -729,7 +753,7 @@ export const Server_GameUpdated = {
     message: Server_GameUpdated,
     writer: Writer = Writer.create()
   ): Writer {
-    if (message.game !== undefined && message.game !== undefined) {
+    if (message.game !== undefined) {
       Game.encode(message.game, writer.uint32(10).fork()).ldelim();
     }
     return writer;
@@ -738,7 +762,9 @@ export const Server_GameUpdated = {
   decode(input: Reader | Uint8Array, length?: number): Server_GameUpdated {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_GameUpdated } as Server_GameUpdated;
+    const message = globalThis.Object.create(
+      baseServer_GameUpdated
+    ) as Server_GameUpdated;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -754,7 +780,9 @@ export const Server_GameUpdated = {
   },
 
   fromJSON(object: any): Server_GameUpdated {
-    const message = { ...baseServer_GameUpdated } as Server_GameUpdated;
+    const message = globalThis.Object.create(
+      baseServer_GameUpdated
+    ) as Server_GameUpdated;
     if (object.game !== undefined && object.game !== null) {
       message.game = Game.fromJSON(object.game);
     }
@@ -784,7 +812,7 @@ export const Server_PlayerEntered = {
     message: Server_PlayerEntered,
     writer: Writer = Writer.create()
   ): Writer {
-    if (message.player !== undefined && message.player !== undefined) {
+    if (message.player !== undefined) {
       Player.encode(message.player, writer.uint32(10).fork()).ldelim();
     }
     return writer;
@@ -793,7 +821,9 @@ export const Server_PlayerEntered = {
   decode(input: Reader | Uint8Array, length?: number): Server_PlayerEntered {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_PlayerEntered } as Server_PlayerEntered;
+    const message = globalThis.Object.create(
+      baseServer_PlayerEntered
+    ) as Server_PlayerEntered;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -809,7 +839,9 @@ export const Server_PlayerEntered = {
   },
 
   fromJSON(object: any): Server_PlayerEntered {
-    const message = { ...baseServer_PlayerEntered } as Server_PlayerEntered;
+    const message = globalThis.Object.create(
+      baseServer_PlayerEntered
+    ) as Server_PlayerEntered;
     if (object.player !== undefined && object.player !== null) {
       message.player = Player.fromJSON(object.player);
     }
@@ -839,14 +871,18 @@ export const Server_PlayerLostConn = {
     message: Server_PlayerLostConn,
     writer: Writer = Writer.create()
   ): Writer {
-    writer.uint32(10).string(message.playerId);
+    if (message.playerId !== "") {
+      writer.uint32(10).string(message.playerId);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Server_PlayerLostConn {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_PlayerLostConn } as Server_PlayerLostConn;
+    const message = globalThis.Object.create(
+      baseServer_PlayerLostConn
+    ) as Server_PlayerLostConn;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -862,7 +898,9 @@ export const Server_PlayerLostConn = {
   },
 
   fromJSON(object: any): Server_PlayerLostConn {
-    const message = { ...baseServer_PlayerLostConn } as Server_PlayerLostConn;
+    const message = globalThis.Object.create(
+      baseServer_PlayerLostConn
+    ) as Server_PlayerLostConn;
     if (object.playerId !== undefined && object.playerId !== null) {
       message.playerId = String(object.playerId);
     }
@@ -890,14 +928,18 @@ const baseServer_PlayerLeft: object = { playerId: "" };
 
 export const Server_PlayerLeft = {
   encode(message: Server_PlayerLeft, writer: Writer = Writer.create()): Writer {
-    writer.uint32(10).string(message.playerId);
+    if (message.playerId !== "") {
+      writer.uint32(10).string(message.playerId);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Server_PlayerLeft {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_PlayerLeft } as Server_PlayerLeft;
+    const message = globalThis.Object.create(
+      baseServer_PlayerLeft
+    ) as Server_PlayerLeft;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -913,7 +955,9 @@ export const Server_PlayerLeft = {
   },
 
   fromJSON(object: any): Server_PlayerLeft {
-    const message = { ...baseServer_PlayerLeft } as Server_PlayerLeft;
+    const message = globalThis.Object.create(
+      baseServer_PlayerLeft
+    ) as Server_PlayerLeft;
     if (object.playerId !== undefined && object.playerId !== null) {
       message.playerId = String(object.playerId);
     }
@@ -945,7 +989,9 @@ export const Server_GameDeclined = {
   decode(input: Reader | Uint8Array, length?: number): Server_GameDeclined {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseServer_GameDeclined } as Server_GameDeclined;
+    const message = globalThis.Object.create(
+      baseServer_GameDeclined
+    ) as Server_GameDeclined;
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
@@ -958,7 +1004,9 @@ export const Server_GameDeclined = {
   },
 
   fromJSON(_: any): Server_GameDeclined {
-    const message = { ...baseServer_GameDeclined } as Server_GameDeclined;
+    const message = globalThis.Object.create(
+      baseServer_GameDeclined
+    ) as Server_GameDeclined;
     return message;
   },
 
@@ -972,6 +1020,16 @@ export const Server_GameDeclined = {
     return obj;
   },
 };
+
+declare var self: any | undefined;
+declare var window: any | undefined;
+var globalThis: any = (() => {
+  if (typeof globalThis !== "undefined") return globalThis;
+  if (typeof self !== "undefined") return self;
+  if (typeof window !== "undefined") return window;
+  if (typeof global !== "undefined") return global;
+  throw "Unable to locate global object";
+})();
 
 type Builtin = Date | Function | Uint8Array | string | number | undefined;
 export type DeepPartial<T> = T extends Builtin

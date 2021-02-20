@@ -65,23 +65,37 @@ const baseGame: object = {
 
 export const Game = {
   encode(message: Game, writer: Writer = Writer.create()): Writer {
-    writer.uint32(10).string(message.token);
-    writer.uint32(18).string(message.adminId);
-    writer.uint32(24).int32(message.state);
-    writer.uint32(32).uint32(message.pot);
+    if (message.token !== "") {
+      writer.uint32(10).string(message.token);
+    }
+    if (message.adminId !== "") {
+      writer.uint32(18).string(message.adminId);
+    }
+    if (message.state !== 0) {
+      writer.uint32(24).int32(message.state);
+    }
+    if (message.pot !== 0) {
+      writer.uint32(32).uint32(message.pot);
+    }
     for (const v of message.cards) {
       Card.encode(v!, writer.uint32(42).fork()).ldelim();
     }
-    writer.uint32(50).string(message.smallBlindId);
-    writer.uint32(58).string(message.bigBlindId);
-    writer.uint32(64).uint32(message.blind);
+    if (message.smallBlindId !== "") {
+      writer.uint32(50).string(message.smallBlindId);
+    }
+    if (message.bigBlindId !== "") {
+      writer.uint32(58).string(message.bigBlindId);
+    }
+    if (message.blind !== 0) {
+      writer.uint32(64).uint32(message.blind);
+    }
     return writer;
   },
 
   decode(input: Reader | Uint8Array, length?: number): Game {
     const reader = input instanceof Uint8Array ? new Reader(input) : input;
     let end = length === undefined ? reader.len : reader.pos + length;
-    const message = { ...baseGame } as Game;
+    const message = globalThis.Object.create(baseGame) as Game;
     message.cards = [];
     while (reader.pos < end) {
       const tag = reader.uint32();
@@ -119,7 +133,7 @@ export const Game = {
   },
 
   fromJSON(object: any): Game {
-    const message = { ...baseGame } as Game;
+    const message = globalThis.Object.create(baseGame) as Game;
     message.cards = [];
     if (object.token !== undefined && object.token !== null) {
       message.token = String(object.token);
@@ -201,6 +215,16 @@ export const Game = {
     return obj;
   },
 };
+
+declare var self: any | undefined;
+declare var window: any | undefined;
+var globalThis: any = (() => {
+  if (typeof globalThis !== "undefined") return globalThis;
+  if (typeof self !== "undefined") return self;
+  if (typeof window !== "undefined") return window;
+  if (typeof global !== "undefined") return global;
+  throw "Unable to locate global object";
+})();
 
 type Builtin = Date | Function | Uint8Array | string | number | undefined;
 export type DeepPartial<T> = T extends Builtin

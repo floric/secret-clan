@@ -8,6 +8,7 @@ message Player {
   string name = 2;
   uint32 credits = 3;
   uint32 position = 4;
+  uint32 cards_count = 5;
 }
 
 message OwnPlayer {
