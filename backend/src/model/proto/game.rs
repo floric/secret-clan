@@ -28,6 +28,12 @@ pub struct Game {
     // message fields
     pub token: ::std::string::String,
     pub admin_id: ::std::string::String,
+    pub state: Game_State,
+    pub pot: u32,
+    pub cards: ::protobuf::RepeatedField<super::card::Card>,
+    pub small_blind_id: ::std::string::String,
+    pub big_blind_id: ::std::string::String,
+    pub blind: u32,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -95,10 +101,137 @@ impl Game {
     pub fn take_admin_id(&mut self) -> ::std::string::String {
         ::std::mem::replace(&mut self.admin_id, ::std::string::String::new())
     }
+
+    // .Game.State state = 3;
+
+
+    pub fn get_state(&self) -> Game_State {
+        self.state
+    }
+    pub fn clear_state(&mut self) {
+        self.state = Game_State::INITIALIZED;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_state(&mut self, v: Game_State) {
+        self.state = v;
+    }
+
+    // uint32 pot = 4;
+
+
+    pub fn get_pot(&self) -> u32 {
+        self.pot
+    }
+    pub fn clear_pot(&mut self) {
+        self.pot = 0;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_pot(&mut self, v: u32) {
+        self.pot = v;
+    }
+
+    // repeated .Card cards = 5;
+
+
+    pub fn get_cards(&self) -> &[super::card::Card] {
+        &self.cards
+    }
+    pub fn clear_cards(&mut self) {
+        self.cards.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_cards(&mut self, v: ::protobuf::RepeatedField<super::card::Card>) {
+        self.cards = v;
+    }
+
+    // Mutable pointer to the field.
+    pub fn mut_cards(&mut self) -> &mut ::protobuf::RepeatedField<super::card::Card> {
+        &mut self.cards
+    }
+
+    // Take field
+    pub fn take_cards(&mut self) -> ::protobuf::RepeatedField<super::card::Card> {
+        ::std::mem::replace(&mut self.cards, ::protobuf::RepeatedField::new())
+    }
+
+    // string small_blind_id = 6;
+
+
+    pub fn get_small_blind_id(&self) -> &str {
+        &self.small_blind_id
+    }
+    pub fn clear_small_blind_id(&mut self) {
+        self.small_blind_id.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_small_blind_id(&mut self, v: ::std::string::String) {
+        self.small_blind_id = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_small_blind_id(&mut self) -> &mut ::std::string::String {
+        &mut self.small_blind_id
+    }
+
+    // Take field
+    pub fn take_small_blind_id(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.small_blind_id, ::std::string::String::new())
+    }
+
+    // string big_blind_id = 7;
+
+
+    pub fn get_big_blind_id(&self) -> &str {
+        &self.big_blind_id
+    }
+    pub fn clear_big_blind_id(&mut self) {
+        self.big_blind_id.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_big_blind_id(&mut self, v: ::std::string::String) {
+        self.big_blind_id = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_big_blind_id(&mut self) -> &mut ::std::string::String {
+        &mut self.big_blind_id
+    }
+
+    // Take field
+    pub fn take_big_blind_id(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.big_blind_id, ::std::string::String::new())
+    }
+
+    // uint32 blind = 8;
+
+
+    pub fn get_blind(&self) -> u32 {
+        self.blind
+    }
+    pub fn clear_blind(&mut self) {
+        self.blind = 0;
+    }
+
+    // Param is passed by value, moved
+    pub fn set_blind(&mut self, v: u32) {
+        self.blind = v;
+    }
 }
 
 impl ::protobuf::Message for Game {
     fn is_initialized(&self) -> bool {
+        for v in &self.cards {
+            if !v.is_initialized() {
+                return false;
+            }
+        };
         true
     }
 
@@ -111,6 +244,32 @@ impl ::protobuf::Message for Game {
                 },
                 2 => {
                     ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.admin_id)?;
+                },
+                3 => {
+                    ::protobuf::rt::read_proto3_enum_with_unknown_fields_into(wire_type, is, &mut self.state, 3, &mut self.unknown_fields)?
+                },
+                4 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    let tmp = is.read_uint32()?;
+                    self.pot = tmp;
+                },
+                5 => {
+                    ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.cards)?;
+                },
+                6 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.small_blind_id)?;
+                },
+                7 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.big_blind_id)?;
+                },
+                8 => {
+                    if wire_type != ::protobuf::wire_format::WireTypeVarint {
+                        return ::std::result::Result::Err(::protobuf::rt::unexpected_wire_type(wire_type));
+                    }
+                    let tmp = is.read_uint32()?;
+                    self.blind = tmp;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -130,6 +289,25 @@ impl ::protobuf::Message for Game {
         if !self.admin_id.is_empty() {
             my_size += ::protobuf::rt::string_size(2, &self.admin_id);
         }
+        if self.state != Game_State::INITIALIZED {
+            my_size += ::protobuf::rt::enum_size(3, self.state);
+        }
+        if self.pot != 0 {
+            my_size += ::protobuf::rt::value_size(4, self.pot, ::protobuf::wire_format::WireTypeVarint);
+        }
+        for value in &self.cards {
+            let len = value.compute_size();
+            my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
+        };
+        if !self.small_blind_id.is_empty() {
+            my_size += ::protobuf::rt::string_size(6, &self.small_blind_id);
+        }
+        if !self.big_blind_id.is_empty() {
+            my_size += ::protobuf::rt::string_size(7, &self.big_blind_id);
+        }
+        if self.blind != 0 {
+            my_size += ::protobuf::rt::value_size(8, self.blind, ::protobuf::wire_format::WireTypeVarint);
+        }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
         my_size
@@ -141,6 +319,26 @@ impl ::protobuf::Message for Game {
         }
         if !self.admin_id.is_empty() {
             os.write_string(2, &self.admin_id)?;
+        }
+        if self.state != Game_State::INITIALIZED {
+            os.write_enum(3, ::protobuf::ProtobufEnum::value(&self.state))?;
+        }
+        if self.pot != 0 {
+            os.write_uint32(4, self.pot)?;
+        }
+        for v in &self.cards {
+            os.write_tag(5, ::protobuf::wire_format::WireTypeLengthDelimited)?;
+            os.write_raw_varint32(v.get_cached_size())?;
+            v.write_to_with_cached_sizes(os)?;
+        };
+        if !self.small_blind_id.is_empty() {
+            os.write_string(6, &self.small_blind_id)?;
+        }
+        if !self.big_blind_id.is_empty() {
+            os.write_string(7, &self.big_blind_id)?;
+        }
+        if self.blind != 0 {
+            os.write_uint32(8, self.blind)?;
         }
         os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -190,6 +388,36 @@ impl ::protobuf::Message for Game {
                 |m: &Game| { &m.admin_id },
                 |m: &mut Game| { &mut m.admin_id },
             ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeEnum<Game_State>>(
+                "state",
+                |m: &Game| { &m.state },
+                |m: &mut Game| { &mut m.state },
+            ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeUint32>(
+                "pot",
+                |m: &Game| { &m.pot },
+                |m: &mut Game| { &mut m.pot },
+            ));
+            fields.push(::protobuf::reflect::accessor::make_repeated_field_accessor::<_, ::protobuf::types::ProtobufTypeMessage<super::card::Card>>(
+                "cards",
+                |m: &Game| { &m.cards },
+                |m: &mut Game| { &mut m.cards },
+            ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                "small_blind_id",
+                |m: &Game| { &m.small_blind_id },
+                |m: &mut Game| { &mut m.small_blind_id },
+            ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                "big_blind_id",
+                |m: &Game| { &m.big_blind_id },
+                |m: &mut Game| { &mut m.big_blind_id },
+            ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeUint32>(
+                "blind",
+                |m: &Game| { &m.blind },
+                |m: &mut Game| { &mut m.blind },
+            ));
             ::protobuf::reflect::MessageDescriptor::new_pb_name::<Game>(
                 "Game",
                 fields,
@@ -208,6 +436,12 @@ impl ::protobuf::Clear for Game {
     fn clear(&mut self) {
         self.token.clear();
         self.admin_id.clear();
+        self.state = Game_State::INITIALIZED;
+        self.pot = 0;
+        self.cards.clear();
+        self.small_blind_id.clear();
+        self.big_blind_id.clear();
+        self.blind = 0;
         self.unknown_fields.clear();
     }
 }
@@ -224,9 +458,102 @@ impl ::protobuf::reflect::ProtobufValue for Game {
     }
 }
 
+#[derive(Clone,PartialEq,Eq,Debug,Hash)]
+pub enum Game_State {
+    INITIALIZED = 0,
+    STARTED = 1,
+    ABANDONED = 2,
+}
+
+impl ::protobuf::ProtobufEnum for Game_State {
+    fn value(&self) -> i32 {
+        *self as i32
+    }
+
+    fn from_i32(value: i32) -> ::std::option::Option<Game_State> {
+        match value {
+            0 => ::std::option::Option::Some(Game_State::INITIALIZED),
+            1 => ::std::option::Option::Some(Game_State::STARTED),
+            2 => ::std::option::Option::Some(Game_State::ABANDONED),
+            _ => ::std::option::Option::None
+        }
+    }
+
+    fn values() -> &'static [Self] {
+        static values: &'static [Game_State] = &[
+            Game_State::INITIALIZED,
+            Game_State::STARTED,
+            Game_State::ABANDONED,
+        ];
+        values
+    }
+
+    fn enum_descriptor_static() -> &'static ::protobuf::reflect::EnumDescriptor {
+        static descriptor: ::protobuf::rt::LazyV2<::protobuf::reflect::EnumDescriptor> = ::protobuf::rt::LazyV2::INIT;
+        descriptor.get(|| {
+            ::protobuf::reflect::EnumDescriptor::new_pb_name::<Game_State>("Game.State", file_descriptor_proto())
+        })
+    }
+}
+
+impl ::std::marker::Copy for Game_State {
+}
+
+impl ::std::default::Default for Game_State {
+    fn default() -> Self {
+        Game_State::INITIALIZED
+    }
+}
+
+impl ::protobuf::reflect::ProtobufValue for Game_State {
+    fn as_ref(&self) -> ::protobuf::reflect::ReflectValueRef {
+        ::protobuf::reflect::ReflectValueRef::Enum(::protobuf::ProtobufEnum::descriptor(self))
+    }
+}
+
 static file_descriptor_proto_data: &'static [u8] = b"\
-    \n\ngame.proto\"7\n\x04Game\x12\x14\n\x05token\x18\x01\x20\x01(\tR\x05to\
-    ken\x12\x19\n\x08admin_id\x18\x02\x20\x01(\tR\x07adminIdb\x06proto3\
+    \n\ngame.proto\x1a\ncard.proto\"\x9d\x02\n\x04Game\x12\x14\n\x05token\
+    \x18\x01\x20\x01(\tR\x05token\x12\x19\n\x08admin_id\x18\x02\x20\x01(\tR\
+    \x07adminId\x12!\n\x05state\x18\x03\x20\x01(\x0e2\x0b.Game.StateR\x05sta\
+    te\x12\x10\n\x03pot\x18\x04\x20\x01(\rR\x03pot\x12\x1b\n\x05cards\x18\
+    \x05\x20\x03(\x0b2\x05.CardR\x05cards\x12$\n\x0esmall_blind_id\x18\x06\
+    \x20\x01(\tR\x0csmallBlindId\x12\x20\n\x0cbig_blind_id\x18\x07\x20\x01(\
+    \tR\nbigBlindId\x12\x14\n\x05blind\x18\x08\x20\x01(\rR\x05blind\"4\n\x05\
+    State\x12\x0f\n\x0bINITIALIZED\x10\0\x12\x0b\n\x07STARTED\x10\x01\x12\r\
+    \n\tABANDONED\x10\x02J\xa4\x05\n\x06\x12\x04\0\0\x12\x01\n\x08\n\x01\x0c\
+    \x12\x03\0\0\x12\n\t\n\x02\x03\0\x12\x03\x02\0\x14\n\n\n\x02\x04\0\x12\
+    \x04\x04\0\x12\x01\n\n\n\x03\x04\0\x01\x12\x03\x04\x08\x0c\n\x0b\n\x04\
+    \x04\0\x02\0\x12\x03\x05\x02\x13\n\x0c\n\x05\x04\0\x02\0\x05\x12\x03\x05\
+    \x02\x08\n\x0c\n\x05\x04\0\x02\0\x01\x12\x03\x05\t\x0e\n\x0c\n\x05\x04\0\
+    \x02\0\x03\x12\x03\x05\x11\x12\n\x0b\n\x04\x04\0\x02\x01\x12\x03\x06\x02\
+    \x16\n\x0c\n\x05\x04\0\x02\x01\x05\x12\x03\x06\x02\x08\n\x0c\n\x05\x04\0\
+    \x02\x01\x01\x12\x03\x06\t\x11\n\x0c\n\x05\x04\0\x02\x01\x03\x12\x03\x06\
+    \x14\x15\n\x0c\n\x04\x04\0\x04\0\x12\x04\x07\x02\x0b\x03\n\x0c\n\x05\x04\
+    \0\x04\0\x01\x12\x03\x07\x07\x0c\n\r\n\x06\x04\0\x04\0\x02\0\x12\x03\x08\
+    \x04\x14\n\x0e\n\x07\x04\0\x04\0\x02\0\x01\x12\x03\x08\x04\x0f\n\x0e\n\
+    \x07\x04\0\x04\0\x02\0\x02\x12\x03\x08\x12\x13\n\r\n\x06\x04\0\x04\0\x02\
+    \x01\x12\x03\t\x04\x10\n\x0e\n\x07\x04\0\x04\0\x02\x01\x01\x12\x03\t\x04\
+    \x0b\n\x0e\n\x07\x04\0\x04\0\x02\x01\x02\x12\x03\t\x0e\x0f\n\r\n\x06\x04\
+    \0\x04\0\x02\x02\x12\x03\n\x04\x12\n\x0e\n\x07\x04\0\x04\0\x02\x02\x01\
+    \x12\x03\n\x04\r\n\x0e\n\x07\x04\0\x04\0\x02\x02\x02\x12\x03\n\x10\x11\n\
+    \x0b\n\x04\x04\0\x02\x02\x12\x03\x0c\x02\x12\n\x0c\n\x05\x04\0\x02\x02\
+    \x06\x12\x03\x0c\x02\x07\n\x0c\n\x05\x04\0\x02\x02\x01\x12\x03\x0c\x08\r\
+    \n\x0c\n\x05\x04\0\x02\x02\x03\x12\x03\x0c\x10\x11\n\x0b\n\x04\x04\0\x02\
+    \x03\x12\x03\r\x02\x11\n\x0c\n\x05\x04\0\x02\x03\x05\x12\x03\r\x02\x08\n\
+    \x0c\n\x05\x04\0\x02\x03\x01\x12\x03\r\t\x0c\n\x0c\n\x05\x04\0\x02\x03\
+    \x03\x12\x03\r\x0f\x10\n\x0b\n\x04\x04\0\x02\x04\x12\x03\x0e\x02\x1a\n\
+    \x0c\n\x05\x04\0\x02\x04\x04\x12\x03\x0e\x02\n\n\x0c\n\x05\x04\0\x02\x04\
+    \x06\x12\x03\x0e\x0b\x0f\n\x0c\n\x05\x04\0\x02\x04\x01\x12\x03\x0e\x10\
+    \x15\n\x0c\n\x05\x04\0\x02\x04\x03\x12\x03\x0e\x18\x19\n\x0b\n\x04\x04\0\
+    \x02\x05\x12\x03\x0f\x02\x1c\n\x0c\n\x05\x04\0\x02\x05\x05\x12\x03\x0f\
+    \x02\x08\n\x0c\n\x05\x04\0\x02\x05\x01\x12\x03\x0f\t\x17\n\x0c\n\x05\x04\
+    \0\x02\x05\x03\x12\x03\x0f\x1a\x1b\n\x0b\n\x04\x04\0\x02\x06\x12\x03\x10\
+    \x02\x1a\n\x0c\n\x05\x04\0\x02\x06\x05\x12\x03\x10\x02\x08\n\x0c\n\x05\
+    \x04\0\x02\x06\x01\x12\x03\x10\t\x15\n\x0c\n\x05\x04\0\x02\x06\x03\x12\
+    \x03\x10\x18\x19\n\x0b\n\x04\x04\0\x02\x07\x12\x03\x11\x02\x13\n\x0c\n\
+    \x05\x04\0\x02\x07\x05\x12\x03\x11\x02\x08\n\x0c\n\x05\x04\0\x02\x07\x01\
+    \x12\x03\x11\t\x0e\n\x0c\n\x05\x04\0\x02\x07\x03\x12\x03\x11\x11\x12b\
+    \x06proto3\
 ";
 
 static file_descriptor_proto_lazy: ::protobuf::rt::LazyV2<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::rt::LazyV2::INIT;

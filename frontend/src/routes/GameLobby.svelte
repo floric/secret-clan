@@ -3,25 +3,28 @@
   import Dialog from "../components/layout/Dialog.svelte";
   import DialogHeader from "../components/headers/DialogHeader.svelte";
   import { Client, Server } from "../types/proto/message";
-  import type { Game } from "../types/proto/game";
-  import type { Player } from "../types/proto/player";
-  import type { Task } from "../types/proto/task";
+  import { Game, Game_State } from "../types/proto/game";
+  import type { OwnPlayer, Player } from "../types/proto/player";
   import InternalLink from "../components/buttons/InternalLink.svelte";
   import { getToken } from "../utils/auth";
-  import Settings from "./tasks/Settings.svelte";
-  import WaitForTask from "./tasks/WaitForTask.svelte";
+  import Settings from "./states/Settings.svelte";
+  import WaitForTask from "./states/WaitForTask.svelte";
+  import ActiveGame from "./states/ActiveGame.svelte";
   import { sendRequest } from "../utils/requests";
+  import { loop_guard } from "svelte/internal";
 
   export let params: { token?: string } = {};
   let currentGame: Game | null = null;
-  let players: Record<string, Player> = {};
-  let currentTask: Task | null = null;
+  let ownPlayer: OwnPlayer | null = null;
+  let players: Record<string, { player: Player; active: boolean }> = {};
   let ws: WebSocket | null = null;
   let connectSuccessful = false;
+  let connectClosed = false;
 
   const leaveGame = async () => {
     ws?.close();
     if (getToken()) {
+      // TODO use WS message
       await sendRequest(`/api/games/${params.token}/leave`, "POST");
     }
     await push("/games");
@@ -32,8 +35,14 @@
       return;
     }
 
-    ws = new WebSocket("ws://localhost:3333/api/active_game");
+    ws = new WebSocket(
+      `${window.location.protocol === "https:" ? "wss" : "ws"}://${
+        window.location.host
+      }/api/active_game`
+    );
     ws.onopen = () => {
+      connectClosed = false;
+      connectSuccessful = true;
       ws?.send(
         Client.encode({
           message: {
@@ -42,71 +51,118 @@
           },
         }).finish()
       );
-      connectSuccessful = true;
     };
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       ws = null;
+      connectClosed = true;
     };
     ws.onerror = (ev) => {
       console.error("Error", ev);
     };
+    const msgQueue: Array<Server> = [];
     ws.onmessage = async (ev: MessageEvent<Blob>) => {
       try {
         const raw = await ev.data.arrayBuffer();
-        const { message } = Server.decode(new Uint8Array(raw));
-        console.info("Received new message", message);
+        msgQueue.push(Server.decode(new Uint8Array(raw)));
+      } catch (err) {
+        console.error("Parsing task has failed", err);
+      }
+    };
+    let queueProcessingActive = false;
+    setInterval(() => {
+      processMessages();
+    }, 500);
+    function processMessages() {
+      if (queueProcessingActive) {
+        return;
+      }
+
+      queueProcessingActive = true;
+      while (msgQueue.length > 0) {
+        const elem = msgQueue.pop();
+        const { message } = elem!;
+        console.info("Incoming message", message);
         if (message?.$case === "playerUpdated") {
           const { player } = message.playerUpdated;
           if (player?.id && players[player!.id]) {
-            players[player!.id] = player!;
+            players[player!.id] = {
+              player: player!,
+              active: players[player!.id].active,
+            };
           }
         } else if (message?.$case === "selfUpdated") {
           const { player } = message.selfUpdated;
-          players[player!.id] = { id: player!.id, name: player!.name };
-          currentTask = player?.openTasks[0] || null;
+          ownPlayer = player!;
+          players[player!.id] = {
+            player: {
+              id: player!.id,
+              name: player!.name,
+              credits: player!.credits,
+              position: player!.position,
+              cardsCount: player!.cards.length,
+            },
+            active: players[player!.id]?.active || false,
+          };
+          players = players;
         } else if (message?.$case === "gameUpdated") {
           const { game } = message.gameUpdated;
           currentGame = game!;
         } else if (message?.$case === "playerEntered") {
           const { player } = message.playerEntered;
-          players[player!.id] = player!;
+          players[player!.id] = {
+            player: player!,
+            active: players[player!.id]?.active || true,
+          };
+          players = players;
+        } else if (message?.$case === "playerLostConn") {
+          const { playerId } = message.playerLostConn;
+          players[playerId] = {
+            player: players[playerId]?.player,
+            active: false,
+          };
+          players = players;
         } else if (message?.$case === "playerLeft") {
           const { playerId } = message.playerLeft;
-          delete players[playerId!];
+          delete players[playerId];
           players = players;
+        } else if (message?.$case === "gameDeclined") {
+          currentGame = null;
+          ownPlayer = null;
+          connectClosed = true;
+          ws?.close();
         } else {
           console.warn("Unknown task type");
         }
-      } catch (err) {
-        console.error("Parsing task has failed", err);
       }
-    };
+      queueProcessingActive = false;
+    }
   }
 
   createWsConnection();
 </script>
 
 <Dialog>
-  {#if !ws}
-    <DialogHeader>Lobby</DialogHeader>
-    {#if !connectSuccessful}
-      <p>Loading game</p>
-    {:else}
-      <p>Connection lost</p>
-    {/if}
-  {:else if currentGame !== null}
-    {#if currentTask?.definition?.$case === "settings"}
-      <Settings {leaveGame} {currentGame} {players} {ws} />
+  {#if currentGame && ownPlayer && ws}
+    {#if currentGame?.state === Game_State.INITIALIZED}
+      <Settings {leaveGame} {currentGame} {players} {ownPlayer} {ws} />
+    {:else if currentGame?.state === Game_State.STARTED && ownPlayer}
+      <ActiveGame {leaveGame} {currentGame} {players} {ownPlayer} {ws} />
     {:else}
       <WaitForTask {leaveGame} />
     {/if}
   {:else}
     <DialogHeader>Lobby</DialogHeader>
-    <p>Game doesn't exist.</p>
-    <div class="flex items-center">
-      <div class="flex ml-auto">
-        <InternalLink href="/games">Back to Games</InternalLink>
+    {#if connectClosed && connectSuccessful}
+      <p>Game doesn't exist.</p>
+      <div class="flex items-center">
+        <div class="flex ml-auto">
+          <InternalLink href="/games">Back to Games</InternalLink>
+        </div>
       </div>
-    </div>
+    {:else if connectClosed}
+      <p>Connection lost</p>
+    {:else}
+      <p>Loading game</p>
+    {/if}
   {/if}
 </Dialog>

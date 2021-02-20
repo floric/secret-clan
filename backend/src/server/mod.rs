@@ -3,7 +3,6 @@ mod auth;
 mod endpoints;
 mod logger;
 mod reply;
-mod tasks;
 mod ws;
 
 use self::{
@@ -11,10 +10,8 @@ use self::{
     endpoints::{
         active_game::handle_ws_filter,
         games::{
-            attend_game_filter, create_game_filter, get_game_filter, get_games_count_filter,
-            leave_game_filter, start_game_filter,
+            attend_game_filter, create_game_filter, get_games_count_filter, leave_game_filter,
         },
-        players::get_player_filter,
     },
     reply::handle_rejection,
 };
@@ -64,6 +61,7 @@ pub async fn run_server(ctx: &'static AppContext) {
                     ),
                 )
                 .or(
+                    // TODO make this also a message
                     // POST /api/games/:token/leave
                     warp::post()
                         .and(warp::path!(String / "leave"))
@@ -73,38 +71,11 @@ pub async fn run_server(ctx: &'static AppContext) {
                                 leave_game_filter(&game_token, &authorization, ctx).await
                             },
                         ),
-                )
-                .or(
-                    // POST /api/games/:token/start
-                    warp::post()
-                        .and(warp::path!(String / "start"))
-                        .and(warp::header(AUTHORIZATION))
-                        .and_then(
-                            move |game_token: String, authorization: String| async move {
-                                start_game_filter(&game_token, &authorization, ctx).await
-                            },
-                        ),
-                )
-                .or(
-                    // GET /api/games/:token
-                    warp::get()
-                        .and(warp::path!(String))
-                        .and(warp::header(AUTHORIZATION))
-                        .and_then(move |token: String, authorization: String| async move {
-                            get_game_filter(&token, &authorization, ctx).await
-                        }),
                 ),
         );
 
-    let player_route = warp::path("players").and(
-        // GET /api/players/:id
-        warp::get()
-            .and(warp::path!(String))
-            .and_then(move |id: String| async move { get_player_filter(&id, ctx).await }),
-    );
     let api_route = warp::path("api").and(
         game_route
-            .or(player_route)
             // WS /api/active_game
             .or(warp::path!("active_game")
                 .and(warp::ws())

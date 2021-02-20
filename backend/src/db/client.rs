@@ -117,12 +117,23 @@ impl<T: Persist> Client<T> {
     }
 
     pub async fn persist_batch(&self, values: &[T]) -> Result<(), QueryError> {
-        self.run_query(|data| Command::PersistBatch {
-            values: values.to_owned(),
-            data,
-        })
-        .await
-        .and_then(Self::map_result)
+        let res = self
+            .run_query(|data| Command::PersistBatch {
+                values: values.to_owned(),
+                data,
+            })
+            .await
+            .and_then(Self::map_result);
+
+        if let Some(sender) = &self.change_sender {
+            for v in values {
+                if let Err(err) = sender.clone().send(v.clone()).await {
+                    error!("Propagating change has failed: {:?}", err);
+                }
+            }
+        }
+
+        res
     }
 
     pub async fn remove(&self, key: &str) -> Result<(), QueryError> {

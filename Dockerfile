@@ -1,7 +1,7 @@
 # Image based on https://shaneutt.com/blog/rust-fast-small-docker-image-builds/
 
 # Backend-Builder
-FROM rust:latest as be-builder
+FROM rust:1.50-slim as be-builder
 WORKDIR /usr/src/secret_clan
 COPY backend/Cargo.lock Cargo.lock
 COPY backend/Cargo.toml Cargo.toml

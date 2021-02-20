@@ -27,28 +27,23 @@ impl ChangeListener {
 
     async fn listen_to_players(updated_players: &mut mpsc::Receiver<Player>, ctx: &AppContext) {
         while let Some(player) = updated_players.recv().await {
-            match ctx.db().games().get(player.game_token()).await {
-                Ok(game) => {
-                    if let Some(game) = game {
-                        // inform all players of game about updated player
-                        for player_id in game.all_player_ids() {
-                            let mut msg = proto::message::Server::new();
-                            if player_id.eq(player.id()) {
-                                let mut update_msg = proto::message::Server_SelfUpdated::new();
-                                update_msg.set_player(player.clone().into());
-                                msg.set_selfUpdated(update_msg);
-                            } else {
-                                let mut update_msg = proto::message::Server_PlayerUpdated::new();
-                                update_msg.set_player(player.clone().into());
-                                msg.set_playerUpdated(update_msg);
-                            }
-                            if let Err(err) = ctx.ws().send_message(player_id, msg).await {
-                                error!("Sending PlayerUpdated has failed: {}", &err);
-                            }
-                        }
+            if let Ok(Some(game)) = ctx.db().games().get(player.game_token()).await {
+                // inform all players of game about updated player
+                for player_id in game.all_player_ids() {
+                    let mut msg = proto::message::Server::new();
+                    if player_id.eq(player.id()) {
+                        let mut update_msg = proto::message::Server_SelfUpdated::new();
+                        update_msg.set_player(player.clone().into());
+                        msg.set_selfUpdated(update_msg);
+                    } else {
+                        let mut update_msg = proto::message::Server_PlayerUpdated::new();
+                        update_msg.set_player(player.clone().into());
+                        msg.set_playerUpdated(update_msg);
+                    }
+                    if let Err(err) = ctx.ws().send_message(player_id, msg).await {
+                        error!("Sending PlayerUpdated has failed: {}", &err);
                     }
                 }
-                Err(_) => {}
             }
         }
     }
@@ -79,7 +74,7 @@ mod tests {
     };
 
     #[tokio::test]
-    async fn should_get_game() {
+    async fn should_listen_to_game_changes() {
         let (ctx, mut changes) = AppContext::init_with_changes();
         let ctx: &'static AppContext = Box::leak(Box::new(ctx));
         tokio::spawn(async move {

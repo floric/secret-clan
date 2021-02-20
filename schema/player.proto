@@ -1,14 +1,21 @@
 syntax = "proto3";
 
 import "task.proto";
+import "card.proto";
 
 message Player {
   string id = 1;
   string name = 2;
+  uint32 credits = 3;
+  uint32 position = 4;
+  uint32 cards_count = 5;
 }
 
 message OwnPlayer {
   string id = 1;
   string name = 2;
   repeated Task open_tasks = 3;
+  uint32 credits = 4;
+  repeated Card cards = 5;
+  uint32 position = 6;
 }

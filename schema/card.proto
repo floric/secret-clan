@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+message Card {
+  enum Color {
+    HEARTS = 0;
+    TILES = 1;
+    CLOVERS = 2;
+    PIKES = 3;
+  }
+  Color color = 1;
+  uint32 value = 2;
+}

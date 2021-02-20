@@ -6,10 +6,12 @@ import "game.proto";
 message Client {
   message AuthConfirmed { string token = 1; }
   message NameUpdated { string name = 1; }
+  message GameStarted {}
 
   oneof message {
     AuthConfirmed authConfirmed = 1;
     NameUpdated nameUpdated = 2;
+    GameStarted gameStarted = 3;
   }
 }
 
@@ -18,13 +20,17 @@ message Server {
   message SelfUpdated { OwnPlayer player = 1; }
   message GameUpdated { Game game = 1; }
   message PlayerEntered { Player player = 1; }
+  message PlayerLostConn { string player_id = 1; }
   message PlayerLeft { string player_id = 1; }
+  message GameDeclined {}
 
   oneof message {
     PlayerUpdated playerUpdated = 1;
     GameUpdated gameUpdated = 2;
     SelfUpdated selfUpdated = 3;
     PlayerEntered playerEntered = 4;
-    PlayerLeft playerLeft = 5;
+    PlayerLostConn playerLostConn = 5;
+    PlayerLeft playerLeft = 6;
+    GameDeclined gameDeclined = 7;
   }
 }

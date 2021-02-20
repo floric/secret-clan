@@ -12,12 +12,12 @@ pub async fn bench_games(c: &mut Criterion, local: &LocalSet) {
                 let start = Instant::now();
                 for _ in 0..iters {
                     let mut game = Game::new(black_box("game"), black_box("TOKEN"));
-                    game.add_player(black_box("player_a"));
-                    game.add_player(black_box("player_b"));
-                    game.add_player(black_box("player_c"));
-                    game.add_player(black_box("player_d"));
-                    game.add_player(black_box("player_e"));
-                    game.add_player(black_box("player_f"));
+                    game.add_player(black_box("player_a"), 1);
+                    game.add_player(black_box("player_b"), 2);
+                    game.add_player(black_box("player_c"), 3);
+                    game.add_player(black_box("player_d"), 4);
+                    game.add_player(black_box("player_e"), 5);
+                    game.add_player(black_box("player_f"), 6);
                     game.start();
                 }
                 start.elapsed()

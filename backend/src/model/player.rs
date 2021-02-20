@@ -1,4 +1,4 @@
-use super::{TaskDefinition, TaskType};
+use super::{Card, TaskDefinition};
 use crate::{
     db::Persist,
     model::proto::{self},
@@ -10,13 +10,13 @@ use nanoid::nanoid;
 use protobuf::RepeatedField;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, convert::TryInto};
 
 fn generate_random_name() -> String {
     Generator::default().next().unwrap()
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Derivative)]
 #[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Player {
@@ -28,6 +28,9 @@ pub struct Player {
     creation_time: DateTime<Utc>,
     last_active_time: Option<DateTime<Utc>>,
     open_tasks: VecDeque<TaskDefinition>,
+    credits: u32,
+    position: u32,
+    deck: VecDeque<Card>,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Derivative)]
@@ -49,6 +52,9 @@ impl Player {
             creation_time: Utc::now(),
             last_active_time: None,
             open_tasks: VecDeque::default(),
+            credits: 0,
+            position: rand::random(),
+            deck: VecDeque::default(),
         }
     }
 
@@ -58,6 +64,10 @@ impl Player {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn position(&self) -> u32 {
+        self.position
     }
 
     pub fn set_name(&mut self, name: &str) {
@@ -94,16 +104,14 @@ impl Player {
         self.open_tasks.push_back(task);
     }
 
-    pub fn resolve_task(&mut self, task: TaskType) {
-        if self
-            .open_tasks
-            .front()
-            .filter(|t| t.get_type() == task)
-            .is_some()
-        {
+    pub fn resolve_task(&mut self, task: TaskDefinition) {
+        if self.open_tasks.front().filter(|t| **t == task).is_some() {
             self.open_tasks.pop_front();
         } else {
-            warn!("Task {:?} not resolved", task);
+            warn!(
+                "Task {:?} not resolved, might have already been resolved before",
+                task
+            );
         }
     }
 
@@ -111,12 +119,16 @@ impl Player {
         &self.open_tasks
     }
 
-    pub fn to_response(&self) -> PlayerResponse {
-        PlayerResponse {
-            id: self.id.to_owned(),
-            name: self.name.to_owned(),
-            game_token: self.game_token.to_owned(),
-        }
+    pub fn set_credits(&mut self, credits: u32) {
+        self.credits = credits;
+    }
+
+    pub fn credits(&self) -> u32 {
+        self.credits
+    }
+
+    pub fn add_card(&mut self, card: Card) {
+        self.deck.push_front(card);
     }
 }
 
@@ -144,6 +156,9 @@ impl Into<proto::player::Player> for Player {
         let mut player = proto::player::Player::new();
         player.set_id(self.id);
         player.set_name(self.name);
+        player.set_credits(self.credits);
+        player.set_position(self.position);
+        player.set_cards_count(self.deck.len().try_into().unwrap());
         player
     }
 }
@@ -158,6 +173,13 @@ impl Into<proto::player::OwnPlayer> for Player {
             open_tasks.push(t.into());
         }
         player.set_open_tasks(open_tasks);
+        player.set_credits(self.credits);
+        player.set_position(self.position);
+        let mut cards = RepeatedField::new();
+        for c in self.deck {
+            cards.push(c.into());
+        }
+        player.set_cards(cards);
         player
     }
 }

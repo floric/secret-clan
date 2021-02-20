@@ -1,27 +1,39 @@
 watch-fe:
 	cd frontend && npm run watch
-
 watch-be:
 	cd backend && LOG_LEVEL=info cargo watch -x 'run --target-dir watch-target' -w 'src' -c -i 'src/model/proto'
 
 test-be:
-	cd backend && cargo tarpaulin --out Html --exclude-files src/model/proto/*
+	cd backend && cargo tarpaulin --out Html --exclude-files src/model/proto/*  --target-dir test-target
 
 bench:
 	cd backend && cargo bench
 
 build-fe:
 	cd frontend && npm run build
-
 build-be:
 	cd backend && cargo build
-
 build:
-	DOCKER_BUILDKIT=1 docker build -t secret_clan .
+	DOCKER_BUILDKIT=1 docker build -t floric/neuland .
+
+lint-fe:
+	cd frontend && npm run lint
+lint-be:
+	cd backend && cargo clippy
+lint:
+	lint-be
+	line-fe
 
 run:
-	docker run --rm -it -p 3333:3333 secret_clan
+	docker run --rm -it -p 3333:3333 floric/neuland
 
-protoc:
+release:
+	docker push floric/neuland
+
+proto:
 	protoc --proto_path=./schema message.proto --plugin=./frontend/node_modules/.bin/protoc-gen-ts_proto --ts_proto_opt=env=browser --ts_proto_opt=useOptionals=true --ts_proto_opt=oneof=unions --ts_proto_out=./frontend/src/types/proto message.proto
 	protoc --proto_path=./schema --rust_out=./backend/src/model/proto message.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto game.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto player.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto card.proto
+	protoc --proto_path=./schema --rust_out=./backend/src/model/proto task.proto

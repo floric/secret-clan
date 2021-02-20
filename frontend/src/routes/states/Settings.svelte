@@ -5,21 +5,26 @@
   import TextInput from "../../components/inputs/TextInput.svelte";
   import Label from "../../components/inputs/Label.svelte";
   import DialogHeader from "../../components/headers/DialogHeader.svelte";
-  import { getClaims, getToken } from "../../utils/auth";
-  import { sendRequest } from "../../utils/requests";
+  import InactivePlayer from "../../components/game/InactivePlayer.svelte";
   import { Client } from "../../types/proto/message";
   import type { Game } from "../../types/proto/game";
-  import type { Player } from "../../types/proto/player";
+  import type { Player, OwnPlayer } from "../../types/proto/player";
 
   export let currentGame: Game;
-  export let players: Record<string, Player>;
+  export let players: Record<string, { player: Player; active: boolean }>;
   export let ws: WebSocket;
   export let leaveGame: () => Promise<void>;
-  const claims = getClaims();
-  const currentName = players[claims.sub]?.name;
+  export let ownPlayer: OwnPlayer;
 
   const startGame = async () => {
-    await sendRequest(`/api/games/${currentGame.token}/start`, "POST");
+    ws?.send(
+      Client.encode({
+        message: {
+          $case: "gameStarted",
+          gameStarted: {},
+        },
+      }).finish()
+    );
   };
 
   const onChangeName = async (ev: any) => {
@@ -55,30 +60,32 @@
       <TextInput
         id="name"
         placeholder="Name"
-        value={currentName || ""}
+        value={ownPlayer.name}
         on:change={onChangeName}
       />
     </div>
   </div>
   <div>
-    <h4 class="font-bold mb-4">Players</h4>
+    <h4 class="font-bold mb-4">{Object.values(players).length} Players</h4>
     <ul>
-      {#each Object.values(players).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      ) as p}
+      {#each Object.values(players).sort((a, b) => b.player.position - a.player.position) as p}
         <li>
-          {p.name}
-          {#if p.id === currentGame.adminId}
+          {p.player.name}
+          {#if p.player.id === currentGame.adminId}
             <span class="font-bold">(Admin)</span>
           {/if}
+          <InactivePlayer isActive={p.active} />
         </li>
       {/each}
     </ul>
   </div>
 </div>
 <ActionRow>
-  {#if currentGame.adminId === claims.sub}
-    <PrimaryButton onClick={startGame}>Start</PrimaryButton>
+  {#if currentGame.adminId === ownPlayer.id}
+    <PrimaryButton
+      disabled={Object.values(players).length < 2}
+      onClick={startGame}>Start</PrimaryButton
+    >
   {:else}
     <p>Wait for the game to start.</p>
   {/if}
